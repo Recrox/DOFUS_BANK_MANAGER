@@ -299,6 +299,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
@@ -315,9 +316,30 @@
                                   Checked="HdvFilters_Changed" Unchecked="HdvFilters_Changed"
                                   ToolTip="Affiche aussi les objets dont le prix n'a pas encore été relevé"/>
                         <TextBlock x:Name="HdvCount" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource TextMuted}"/>
+                        <Button x:Name="ShareToggle" Content="Partage entre amis" Click="ShareToggle_Click" Margin="14,0,0,0"/>
                     </WrapPanel>
 
-                    <Grid Grid.Row="1">
+                    <!-- Partage des prix entre amis (désactivé par défaut) -->
+                    <Border x:Name="SharePanel" Grid.Row="1" Grid.ColumnSpan="2" Visibility="Collapsed" Margin="0,0,0,10"
+                            Background="{DynamicResource Surface2}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                            CornerRadius="12" Padding="14,10">
+                        <StackPanel>
+                            <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource TextMuted}"
+                                       Text="Mettez vos relevés en commun avec votre groupe : chacun consulte quelques objets, tout le monde reçoit tous les prix. Seuls l'objet, ses prix et la date du relevé sont envoyés (aucun nom, personnage ni banque)."/>
+                            <WrapPanel Margin="0,8,0,0">
+                                <CheckBox x:Name="ShareEnabled" Content="Activer le partage" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                                <TextBlock Text="Serveur" Style="{StaticResource Label}" Margin="0,0,8,0"/>
+                                <TextBox x:Name="ShareUrl" Width="330" ToolTip="Adresse du serveur du groupe, ex. https://dofus-bank-manager-hdv.xxx.workers.dev"/>
+                                <TextBlock Text="Code de groupe" Style="{StaticResource Label}"/>
+                                <TextBox x:Name="ShareKey" Width="160"/>
+                                <Button Content="Tester" Click="ShareTest_Click"/>
+                                <Button Content="Enregistrer" Click="ShareSave_Click" Style="{StaticResource AccentButton}"/>
+                            </WrapPanel>
+                            <TextBlock x:Name="ShareStatus" Margin="0,8,0,0" FontWeight="SemiBold" Foreground="{DynamicResource AccentSolid}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Grid.Row="2">
                         <DataGrid x:Name="HdvGrid" SelectionChanged="HdvGrid_SelectionChanged">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="50" ElementStyle="{StaticResource IndexText}"/>
@@ -371,7 +393,7 @@
                     </Grid>
 
                     <!-- Historique des prix de l'objet sélectionné -->
-                    <Border Grid.Row="1" Grid.Column="1" Margin="10,0,0,0" Background="{DynamicResource Surface2}"
+                    <Border Grid.Row="2" Grid.Column="1" Margin="10,0,0,0" Background="{DynamicResource Surface2}"
                             BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="12" Padding="14">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">

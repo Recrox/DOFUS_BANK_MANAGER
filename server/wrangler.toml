@@ -1,0 +1,9 @@
+name = "dofus-bank-manager-hdv"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dbm-hdv"
+# Remplacé par l'identifiant affiché par « npx wrangler d1 create dbm-hdv » (voir server/README.md)
+database_id = "1fb6dea8-6be4-4122-b709-a16c7456ff4a"

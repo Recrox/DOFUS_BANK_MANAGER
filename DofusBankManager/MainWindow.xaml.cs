@@ -478,6 +478,18 @@ public partial class MainWindow : Window
         _tracker.HdvAverage += _hdv.OnAverage;
         _tracker.HdvOfferMove += _hdv.OnOfferMove;
 
+        _sync = new Hdv.HdvSync(_hdv);
+        _sync.Log += AddLog;
+        _sync.StatusChanged += () => ShareStatus.Text = _sync.Status;
+        ShareEnabled.IsChecked = _sync.Settings.Enabled;
+        ShareUrl.Text = _sync.Settings.ServerUrl;
+        ShareKey.Text = _sync.Settings.GroupKey;
+        ShareStatus.Text = _sync.Status;
+        var syncTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+        syncTimer.Tick += async (_, _) => await _sync.TickAsync();
+        syncTimer.Start();
+        _ = _sync.TickAsync();
+
         HdvTypeFilter.Items.Add(AllTypes);
         foreach (var t in data.Items.Values.Select(i => i.TypeName).Distinct().Order()) HdvTypeFilter.Items.Add(t);
         HdvTypeFilter.SelectedIndex = 0;
@@ -499,7 +511,7 @@ public partial class MainWindow : Window
             .OrderByDescending(x => x.Price?.SeenAt ?? DateTime.MinValue).ThenBy(x => x.Item.Name)
             .Select((x, i) => new HdvRow(i + 1, x.Item.Id, x.Item.Name, x.Item.Level, x.Item.TypeName,
                 x.Price?.Lot1, x.Price?.Lot10, x.Price?.Lot100, x.Price?.UnitPrice, x.Price?.Average,
-                x.Price is { } p ? Ago(p.SeenAt) : "", x.Price?.SeenAt ?? DateTime.MinValue))
+                x.Price is { } p ? Ago(p.SeenAt) + (p.Shared ? " · groupe" : "") : "", x.Price?.SeenAt ?? DateTime.MinValue))
             .ToList();
 
         HdvGrid.ItemsSource = rows;
@@ -509,6 +521,30 @@ public partial class MainWindow : Window
     }
 
     void HdvFilters_Changed(object sender, RoutedEventArgs e) => ApplyHdvFilters();
+
+    Hdv.HdvSync? _sync;
+
+    void ShareToggle_Click(object sender, RoutedEventArgs e) =>
+        SharePanel.Visibility = SharePanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+
+    async void ShareTest_Click(object sender, RoutedEventArgs e)
+    {
+        if (_sync == null) return;
+        ShareStatus.Text = "Test en cours…";
+        ShareStatus.Text = await _sync.TestAsync(ShareUrl.Text, ShareKey.Text);
+    }
+
+    async void ShareSave_Click(object sender, RoutedEventArgs e)
+    {
+        if (_sync == null) return;
+        if (ShareEnabled.IsChecked == true && (ShareUrl.Text.Trim().Length == 0 || ShareKey.Text.Trim().Length == 0))
+        {
+            ShareStatus.Text = "Renseignez l'adresse du serveur et le code de groupe.";
+            return;
+        }
+        _sync.Configure(ShareEnabled.IsChecked == true, ShareUrl.Text, ShareKey.Text);
+        await _sync.TickAsync();
+    }
 
     void HdvGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {

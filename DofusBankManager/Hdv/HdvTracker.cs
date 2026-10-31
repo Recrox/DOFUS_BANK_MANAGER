@@ -24,6 +24,8 @@ public sealed class HdvPrice
     public long? Average { get; set; }
     public int Offers { get; set; }
     public DateTime SeenAt { get; set; }
+    /// <summary>Vrai si le dernier relevé vient d'un autre membre du groupe (partage des prix).</summary>
+    public bool Shared { get; set; }
     public List<HdvSnapshot> History { get; set; } = new();
 
     /// <summary>Meilleur prix par unité parmi les lots disponibles.</summary>
@@ -56,6 +58,8 @@ public sealed class HdvTracker
 
     public event Action? Changed;
     public event Action<string>? Log;
+    /// <summary>Prix relevé par le joueur lui-même (à partager avec le groupe, si le partage est activé).</summary>
+    public event Action<HdvPrice>? Observed;
 
     public HdvTracker(GameData data)
     {
@@ -118,17 +122,23 @@ public sealed class HdvTracker
         price.Lot1 = min1; price.Lot10 = min10; price.Lot100 = min100;
         price.Offers = offers;
         price.SeenAt = DateTime.Now;
-
-        // Un relevé par consultation ; on remplace le précédent s'il date de moins d'une minute
-        var last = price.History.LastOrDefault();
-        var snap = new HdvSnapshot { Time = DateTime.Now, Lot1 = min1, Lot10 = min10, Lot100 = min100, Offers = offers };
-        if (last != null && DateTime.Now - last.Time < TimeSpan.FromMinutes(1)) price.History[^1] = snap;
-        else price.History.Add(snap);
-        if (price.History.Count > MaxHistory) price.History.RemoveRange(0, price.History.Count - MaxHistory);
+        price.Shared = false;
+        AddSnapshot(price, offers);
 
         Log?.Invoke($"HDV {_data.GetItem(tpl).Name} : ×1 {Fmt(min1)}, ×10 {Fmt(min10)}, ×100 {Fmt(min100)}.");
         Save();
+        Observed?.Invoke(price);
         Changed?.Invoke();
+    }
+
+    /// <summary>Un relevé par consultation : on remplace le précédent s'il date de moins d'une minute.</summary>
+    static void AddSnapshot(HdvPrice price, int offers)
+    {
+        var last = price.History.LastOrDefault();
+        var snap = new HdvSnapshot { Time = price.SeenAt, Lot1 = price.Lot1, Lot10 = price.Lot10, Lot100 = price.Lot100, Offers = offers };
+        if (last != null && (price.SeenAt - last.Time).Duration() < TimeSpan.FromMinutes(1)) price.History[^1] = snap;
+        else price.History.Add(snap);
+        if (price.History.Count > MaxHistory) price.History.RemoveRange(0, price.History.Count - MaxHistory);
     }
 
     /// <summary>Prix moyen d'un objet (message EHP sans le préfixe).</summary>
@@ -140,7 +150,36 @@ public sealed class HdvTracker
         price.Average = avg;
         if (price.SeenAt == default) price.SeenAt = DateTime.Now;
         Save();
+        Observed?.Invoke(price);
         Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// Fusionne les prix reçus du groupe : un relevé distant ne remplace le local que s'il est plus récent.
+    /// Retourne le nombre d'objets mis à jour.
+    /// </summary>
+    public int MergeShared(IEnumerable<(int Tpl, long? Lot1, long? Lot10, long? Lot100, long? Average, DateTime SeenAt)> prices)
+    {
+        int updated = 0;
+        foreach (var r in prices)
+        {
+            if (!_data.Items.ContainsKey(r.Tpl)) continue;
+            var price = Get(r.Tpl);
+            if (r.SeenAt <= price.SeenAt) continue;
+            price.Lot1 = r.Lot1; price.Lot10 = r.Lot10; price.Lot100 = r.Lot100;
+            if (r.Average != null) price.Average = r.Average;
+            price.SeenAt = r.SeenAt;
+            price.Offers = 0;
+            price.Shared = true;
+            AddSnapshot(price, 0);
+            updated++;
+        }
+        if (updated > 0)
+        {
+            Save();
+            Changed?.Invoke();
+        }
+        return updated;
     }
 
     public void Forget(int templateId)

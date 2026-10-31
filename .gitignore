@@ -4,3 +4,6 @@ publish/
 dist/
 installer/payload/
 *_wpftmp.csproj
+server/node_modules/
+server/.wrangler/
+server/.dev.vars
