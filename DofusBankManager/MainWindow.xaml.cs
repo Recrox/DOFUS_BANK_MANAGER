@@ -476,6 +476,7 @@ public partial class MainWindow : Window
         _hdv.Changed += () => { ApplyHdvFilters(); ApplyBankFilter(); };
         _tracker.HdvOffers += _hdv.OnOffers;
         _tracker.HdvAverage += _hdv.OnAverage;
+        _tracker.HdvOfferMove += _hdv.OnOfferMove;
 
         HdvTypeFilter.Items.Add(AllTypes);
         foreach (var t in data.Items.Values.Select(i => i.TypeName).Distinct().Order()) HdvTypeFilter.Items.Add(t);

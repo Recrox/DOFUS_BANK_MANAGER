@@ -34,8 +34,11 @@ public sealed class HdvPrice
 /// Prix de l'hôtel de vente, relevés passivement quand le joueur consulte un HDV en jeu.
 /// Aucune requête n'est envoyée au serveur (README, règles 1 et 3) : seuls les objets consultés ont un prix.
 ///
-///   EHl{tpl}|{ligne}|{ligne}…   offres d'un objet, ligne = "id;effets;prix×1;prix×10;prix×100" (prix vide si aucun lot)
-///   EHP{tpl}|{prix}              prix moyen d'un objet
+/// Formats observés sur Retro (prix écrits "547,0") :
+///   EHl{tpl}|{offre}|{offre}…           offres d'un objet, offre = "id;effets;×1;×10;×100;tpl"
+///   EHm+{id}|{tpl}|{effets}|{×1}|{×10}|{×100}   offre ajoutée ou modifiée pendant la consultation
+///   EHm-{id}                            offre retirée (vendue, annulée)
+///   EHP{tpl}|{prix}                     prix moyen d'un objet (par unité)
 /// </summary>
 public sealed class HdvTracker
 {
@@ -44,6 +47,10 @@ public sealed class HdvTracker
     static string HdvPath => Path.Combine(GameData.AppDir, "hdv.json");
 
     readonly GameData _data;
+
+    /// <summary>Offres actuellement affichées en jeu, par objet puis par identifiant d'offre.</summary>
+    readonly Dictionary<int, Dictionary<long, (long? Lot1, long? Lot10, long? Lot100)>> _offers = new();
+    readonly Dictionary<long, int> _templateOfOffer = new();
 
     public Dictionary<int, HdvPrice> Prices { get; private set; } = new();
 
@@ -56,23 +63,56 @@ public sealed class HdvTracker
         Load();
     }
 
-    /// <summary>Offres d'un objet (message EHl sans le préfixe).</summary>
+    /// <summary>Offres d'un objet (message EHl sans le préfixe) : remplacent les offres connues.</summary>
     public void OnOffers(string body)
     {
         var parts = body.Split('|');
         if (!int.TryParse(parts[0], out var tpl)) return;
 
-        long? min1 = null, min10 = null, min100 = null;
-        int offers = 0;
+        var lines = new Dictionary<long, (long?, long?, long?)>();
         foreach (var line in parts.Skip(1))
         {
-            // "id;effets;prix×1;prix×10;prix×100" : les effets utilisent ',' et '#', jamais ';'
+            // "id;effets;×1;×10;×100;tpl" : les effets utilisent ',' et '#', jamais ';'
             var f = line.Split(';');
-            if (f.Length < 5 || !long.TryParse(f[0], out _)) continue;
-            var p1 = ParsePrice(f[2]); var p10 = ParsePrice(f[3]); var p100 = ParsePrice(f[4]);
-            min1 = Min(min1, p1); min10 = Min(min10, p10); min100 = Min(min100, p100);
-            offers += (p1 != null ? 1 : 0) + (p10 != null ? 1 : 0) + (p100 != null ? 1 : 0);
+            if (f.Length < 5 || !long.TryParse(f[0], out var id)) continue;
+            lines[id] = (ParsePrice(f[2]), ParsePrice(f[3]), ParsePrice(f[4]));
         }
+        foreach (var id in _offers.GetValueOrDefault(tpl)?.Keys ?? Enumerable.Empty<long>()) _templateOfOffer.Remove(id);
+        foreach (var id in lines.Keys) _templateOfOffer[id] = tpl;
+        _offers[tpl] = lines;
+
+        if (lines.Count == 0 && parts.Length > 1)
+            Log?.Invoke($"HDV : offres non reconnues pour {_data.GetItem(tpl).Name} : {body[..Math.Min(body.Length, 160)]}");
+        Record(tpl);
+    }
+
+    /// <summary>Offre ajoutée, modifiée ou retirée pendant la consultation (message EHm sans le préfixe).</summary>
+    public void OnOfferMove(string body)
+    {
+        if (body.Length < 2) return;
+        var f = body[1..].Split('|');
+        if (!long.TryParse(f[0], out var id)) return;
+
+        if (body[0] == '+' && f.Length >= 6 && int.TryParse(f[1], out var tpl))
+        {
+            if (!_offers.TryGetValue(tpl, out var lines)) _offers[tpl] = lines = new();
+            lines[id] = (ParsePrice(f[3]), ParsePrice(f[4]), ParsePrice(f[5]));
+            _templateOfOffer[id] = tpl;
+            Record(tpl);
+        }
+        else if (body[0] == '-' && _templateOfOffer.Remove(id, out var removedTpl))
+        {
+            _offers[removedTpl].Remove(id);
+            Record(removedTpl);
+        }
+    }
+
+    /// <summary>Enregistre le lot le moins cher de chaque taille, d'après les offres connues de l'objet.</summary>
+    void Record(int tpl)
+    {
+        var lines = _offers.GetValueOrDefault(tpl)?.Values.ToList() ?? new();
+        long? min1 = lines.Min(l => l.Lot1), min10 = lines.Min(l => l.Lot10), min100 = lines.Min(l => l.Lot100);
+        int offers = lines.Sum(l => (l.Lot1 != null ? 1 : 0) + (l.Lot10 != null ? 1 : 0) + (l.Lot100 != null ? 1 : 0));
 
         var price = Get(tpl);
         price.Lot1 = min1; price.Lot10 = min10; price.Lot100 = min100;
@@ -116,8 +156,8 @@ public sealed class HdvTracker
         return p;
     }
 
-    static long? ParsePrice(string s) => long.TryParse(s, out var v) && v > 0 ? v : null;
-    static long? Min(long? a, long? b) => a == null ? b : b == null ? a : Math.Min(a.Value, b.Value);
+    /// <summary>Prix au format "547,0" (ou "547") ; vide ou 0 = aucun lot.</summary>
+    static long? ParsePrice(string s) => long.TryParse(s.Split(',')[0], out var v) && v > 0 ? v : null;
     static string Fmt(long? v) => v?.ToString("N0") ?? "—";
 
     void Load()

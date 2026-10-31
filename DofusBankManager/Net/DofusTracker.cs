@@ -66,6 +66,8 @@ public sealed class DofusTracker
     public event Action<string>? HdvOffers;
     /// <summary>Prix moyen d'un objet à l'HDV (message EHP sans le préfixe).</summary>
     public event Action<string>? HdvAverage;
+    /// <summary>Offre ajoutée/retirée pendant la consultation de l'HDV (message EHm sans le préfixe).</summary>
+    public event Action<string>? HdvOfferMove;
 
     /// <summary>Codes des messages de forgemagie (fichier lang : INFOS_117, INFOS_183, INFOS_194).</summary>
     public static readonly int[] FmInfoCodes = [117, 183, 194];
@@ -115,6 +117,7 @@ public sealed class DofusTracker
         else if (InCraft && (msg.StartsWith("EmKO+") || msg.StartsWith("EMKO+"))) OnCraftItem(msg[5..]);
         else if (msg.StartsWith("EHl")) HdvOffers?.Invoke(msg[3..]);
         else if (msg.StartsWith("EHP")) HdvAverage?.Invoke(msg[3..]);
+        else if (msg.StartsWith("EHm")) HdvOfferMove?.Invoke(msg[3..]);
         else if (InCraft && msg.StartsWith("Ec")) CraftResult?.Invoke(msg[2..]);
         else if (InCraft && msg.StartsWith("Im"))
             foreach (var code in InfoCodes(msg)) CraftInfo?.Invoke(code);

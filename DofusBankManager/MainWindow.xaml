@@ -303,7 +303,7 @@
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="320"/>
+                        <ColumnDefinition Width="280"/>
                     </Grid.ColumnDefinitions>
 
                     <WrapPanel Grid.ColumnSpan="2" Margin="0,0,0,10">
@@ -328,19 +328,26 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Objet" Binding="{Binding Name}" Width="*">
+                                <DataGridTextColumn Header="Objet" Binding="{Binding Name}" Width="2*" MinWidth="160">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Niv." Binding="{Binding Level}" Width="50"/>
-                                <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="140"/>
-                                <DataGridTextColumn Header="×1" Binding="{Binding Lot1, StringFormat={}{0:N0}}" Width="90"/>
-                                <DataGridTextColumn Header="×10" Binding="{Binding Lot10, StringFormat={}{0:N0}}" Width="100"/>
-                                <DataGridTextColumn Header="×100" Binding="{Binding Lot100, StringFormat={}{0:N0}}" Width="110"/>
-                                <DataGridTextColumn Header="Prix unitaire" Binding="{Binding Unit, StringFormat={}{0:N0}}" Width="100">
+                                <DataGridTextColumn Header="Niv." Binding="{Binding Level}" Width="44"/>
+                                <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="*" MinWidth="90">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="×1" Binding="{Binding Lot1, StringFormat={}{0:N0}}" Width="72"/>
+                                <DataGridTextColumn Header="×10" Binding="{Binding Lot10, StringFormat={}{0:N0}}" Width="80"/>
+                                <DataGridTextColumn Header="×100" Binding="{Binding Lot100, StringFormat={}{0:N0}}" Width="90"/>
+                                <DataGridTextColumn Header="Unité" Binding="{Binding Unit, StringFormat={}{0:N0}}" Width="70">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="FontWeight" Value="Bold"/>
@@ -348,8 +355,8 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Moyen" Binding="{Binding Average, StringFormat={}{0:N0}}" Width="90"/>
-                                <DataGridTextColumn Header="Relevé" Binding="{Binding Seen}" Width="110" SortMemberPath="SeenAt">
+                                <DataGridTextColumn Header="Moyen" Binding="{Binding Average, StringFormat={}{0:N0}}" Width="70"/>
+                                <DataGridTextColumn Header="Relevé" Binding="{Binding Seen}" Width="96" SortMemberPath="SeenAt">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
