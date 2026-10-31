@@ -40,9 +40,12 @@ Le fichier est créé dans `dist\DofusBankManager-Setup.msi`. WiX Toolset est r�
 
 ### Publier une nouvelle version
 
-1. Augmentez `<Version>` dans [DofusBankManager.csproj](DofusBankManager/DofusBankManager.csproj), par exemple `1.1.0`.
-2. Lancez `.\build-installer.ps1`.
-3. Sur GitHub, créez une Release avec le tag **`v1.1.0`** (le même numéro, précédé de `v`), et joignez-y `dist\DofusBankManager-Setup.msi`.
+1. Augmentez `<Version>` dans [DofusBankManager.csproj](DofusBankManager/DofusBankManager.csproj), par exemple `1.2.0`.
+2. Committez et poussez sur `main`.
+
+C'est tout : le workflow [release.yml](.github/workflows/release.yml) construit l'installateur sur GitHub, crée le tag `v1.2.0` et publie la Release avec le `.msi`. Suivez son avancement dans l'onglet **Actions** du dépôt (environ 3 minutes). Si la Release de cette version existe déjà, il ne fait rien. On peut aussi le relancer à la main : Actions › Release › **Run workflow**.
+
+Changez au moins le 3e chiffre (`1.2.0` → `1.2.1`) : Windows Installer ignore le 4e.
 
 Les applications déjà installées compareront leur version au tag de la dernière Release et afficheront le bandeau de mise à jour. Ne changez jamais l'`UpgradeCode` de [installer/Package.wxs](installer/Package.wxs) : c'est lui qui permet au nouvel installateur de remplacer l'ancien.
 
