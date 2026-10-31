@@ -10,6 +10,9 @@ public sealed record Ingredient(int ItemId, int Quantity);
 
 public sealed record Recipe(int ResultId, IReadOnlyList<Ingredient> Ingredients, IReadOnlyList<string> Jobs);
 
+/// <summary>Effet d'objet. Characteristic est commune au bonus et au malus d'une même stat (ex. +Force / -Force).</summary>
+public sealed record EffectInfo(int Id, string Description, bool IsMalus, int Characteristic);
+
 /// <summary>
 /// Données statiques du jeu (objets, recettes, métiers) extraites des fichiers de langue
 /// de Dofus Retro, téléchargés depuis le CDN d'Ankama puis mis en cache localement.
@@ -18,7 +21,7 @@ public sealed class GameData
 {
     const string DefaultDataUrl = "https://dofusretro.cdn.ankama.com/static-data/612/";
     const string Lang = "fr";
-    static readonly string[] Files = ["items", "crafts", "skills", "jobs"];
+    static readonly string[] Files = ["items", "crafts", "skills", "jobs", "effects"];
 
     public static string AppDir { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DofusBankManager");
@@ -26,9 +29,18 @@ public sealed class GameData
     public Dictionary<int, ItemInfo> Items { get; } = new();
     public List<Recipe> Recipes { get; } = new();
     public List<string> JobNames { get; } = new();
+    public Dictionary<int, EffectInfo> Effects { get; } = new();
 
     public ItemInfo GetItem(int id) =>
         Items.TryGetValue(id, out var it) ? it : new ItemInfo(id, $"Objet #{id}", 0, 0, "?", 0);
+
+    /// <summary>Libellé d'un effet avec sa valeur, ex. « +12 en force ».</summary>
+    public string FormatEffect(int effectId, int value)
+    {
+        if (!Effects.TryGetValue(effectId, out var e)) return $"Effet {effectId} : {value}";
+        var s = System.Text.RegularExpressions.Regex.Replace(e.Description, @"#1\{[^}]*\}#2", value.ToString());
+        return s.Replace("#1", value.ToString()).Replace("#2", "").Replace("#3", "").Trim();
+    }
 
     public static async Task<GameData> LoadAsync(Action<string> log)
     {
@@ -41,6 +53,13 @@ public sealed class GameData
         var crafts = Avm1.Run(await File.ReadAllBytesAsync(paths["crafts"]));
         var skills = Avm1.Run(await File.ReadAllBytesAsync(paths["skills"]));
         var jobs = Avm1.Run(await File.ReadAllBytesAsync(paths["jobs"]));
+        var effects = Avm1.Run(await File.ReadAllBytesAsync(paths["effects"]));
+
+        if (effects.GetValueOrDefault("E") is AsObject E)
+            foreach (var (k, v) in E)
+                if (v is AsObject o && int.TryParse(k, out var eid))
+                    data.Effects[eid] = new EffectInfo(eid, Avm1.ToStr(o.GetValueOrDefault("d")),
+                        Avm1.ToStr(o.GetValueOrDefault("o")) == "-", (int)Avm1.ToNum(o.GetValueOrDefault("c")));
 
         var types = new Dictionary<int, string>();
         if (items.GetValueOrDefault("I") is AsObject I)

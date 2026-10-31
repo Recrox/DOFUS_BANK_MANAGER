@@ -95,7 +95,7 @@ Le trafic capturé contient des informations sensibles : nom de compte, ticket d
   - la lecture de la dernière Release GitHub du projet pour vérifier la version ([UpdateChecker.cs](DofusBankManager/UpdateChecker.cs)).
 
   Ces requêtes ne contiennent aucune information sur le joueur. Toute nouvelle requête vers l'extérieur doit respecter la même règle.
-- `packets.log` est un outil de diagnostic. Il **ne doit contenir que les messages de banque et d'inventaire** (`ECK`, `EL`, `EsK`, `EV`, `OAKO`, `OR`, `OQ`), filtrés par `DofusTracker.IsLoggable`. **Ne jamais élargir ce filtre** à des messages de connexion, de chat ou d'identité (`ASK` compris). Ne committez jamais ce fichier.
+- `packets.log` est un outil de diagnostic. Il **ne doit contenir que les messages de banque, d'inventaire et d'atelier** (`ECK`, `EL`, `EsK`, `EV`, `OAKO`, `OCO`, `OR`, `OQ`, `Ec`, `EmK`, `EMK`, et les seuls messages `Im` de forgemagie `117`/`183`/`194`), filtrés par `DofusTracker.IsLoggable`. Les autres messages `Im` (ex. connexion d'un ami) contiennent des noms : ils ne sont jamais journalisés. Ces messages ne décrivent que des objets et leurs caractéristiques. **Ne jamais élargir ce filtre** à des messages de connexion, de chat ou d'identité (`ASK` compris). Ne committez jamais ce fichier.
 - La journalisation des paquets reste **désactivée par défaut**, et elle n'écrit pas les adresses IP.
 
 ### 5. Données du jeu
@@ -114,9 +114,29 @@ Même passif, cet outil est un logiciel tiers. Les conditions d'utilisation d'An
 - **Capture** ([Net/PacketSniffer.cs](DofusBankManager/Net/PacketSniffer.cs)) : socket brute Windows (`SIO_RCVALL`), sans Npcap. Les flux TCP sont réassemblés, puis découpés en messages sur `\0`.
 - **Pare-feu** ([Net/FirewallRule.cs](DofusBankManager/Net/FirewallRule.cs)) : sans autorisation, Windows bloque le trafic entrant vers une socket brute, et seuls les messages envoyés par le client sont visibles. Au démarrage de la capture, l'appli ajoute donc la règle entrante « Dofus Bank Manager », limitée à son exécutable. Pour la retirer : `netsh advfirewall firewall delete rule name="Dofus Bank Manager"`.
 - **Protocole** ([Net/DofusTracker.cs](DofusBankManager/Net/DofusTracker.cs)) : `ECK5` ouvre la banque, `EL…` donne son contenu, `EsK…` ses mouvements. `ASK` / `OAKO` / `OR` / `OQ` suivent l'inventaire.
-- **Données du jeu** ([Data/GameData.cs](DofusBankManager/Data/GameData.cs)) : les fichiers `items`, `crafts`, `skills` et `jobs` sont décodés par un mini-interpréteur AS2 ([Data/Avm1.cs](DofusBankManager/Data/Avm1.cs)).
+- **Données du jeu** ([Data/GameData.cs](DofusBankManager/Data/GameData.cs)) : les fichiers `items`, `crafts`, `skills`, `jobs` et `effects` sont décodés par un mini-interpréteur AS2 ([Data/Avm1.cs](DofusBankManager/Data/Avm1.cs)).
+- **Forgemagie** ([Fm/FmTracker.cs](DofusBankManager/Fm/FmTracker.cs)) : voir ci-dessous.
 
-Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées et `packets.log`.
+Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées, `settings.json` (thème), `fm.json` (historique FM), `fm_poids.json` (poids des stats) et `packets.log`.
+
+### Onglet FM (forgemagie)
+
+L'onglet suit les objets que vous forgemagez et estime leur reliquat. Il ne fait que lire : aucune rune n'est passée à votre place (règle 3).
+
+À chaque rune passée dans un atelier, l'application compare les caractéristiques de l'objet avant et après :
+
+| Résultat | Comment il est reconnu | Reliquat estimé |
+|---|---|---|
+| Succès critique | objet recréé avec un gain, sans message d'échec | consommé du poids gagné s'il le couvre, sinon inchangé |
+| Succès neutre | message `194` (« La magie n'a pas parfaitement fonctionné… ») | − variation nette de poids (jamais sous 0) |
+| Échec | message `117` (« …ainsi que la diminution de la puissance de l'objet ») | + poids perdu |
+| Échec sans effet | message `183` (« Malgré vos talents, la magie n'opère pas… ») | inchangé |
+
+Le **résultat** vient du message affiché par le jeu (codes `INFOS_117`, `INFOS_183`, `INFOS_194` du fichier de langue) ; les **gains et pertes** viennent de la comparaison des stats. Retro recrée l'objet (nouvel identifiant) quand la rune modifie ses stats ; l'application suit l'objet posé dans l'atelier à travers ces versions. Le reliquat se calcule sur la variation **nette** de poids : un gain et une perte sur la même stat se compensent correctement. La rune consommée est rattachée au passage le plus proche.
+
+Le poids d'une variation = nombre de points × poids par point de la stat. Les poids par défaut sont des valeurs communautaires ; ils sont modifiables dans `fm_poids.json` (bouton « Poids des stats », puis redémarrer l'application). Le reliquat reste une **estimation** : corrigez-le à la main si vous connaissez la vraie valeur. L'historique et le reliquat de chaque objet sont conservés entre deux lancements.
+
+Pour que l'état « avant » de l'objet soit connu, lancez l'application **avant de vous connecter au jeu** (l'inventaire est alors capturé).
 
 ## Dépannage
 
