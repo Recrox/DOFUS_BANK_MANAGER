@@ -1,5 +1,8 @@
 # Serveur de partage des prix HDV
 
+> **Réservé à la personne qui héberge le serveur du groupe (une seule par groupe).**
+> Pour **rejoindre** un groupe, vous n'avez rien à faire ici ni sur Cloudflare : installez l'application, puis onglet HDV › **Partage entre amis**, collez le code de groupe reçu en privé, **Tester** et **Enregistrer**.
+
 Petite base de prix commune, hébergée gratuitement sur Cloudflare (Workers + D1). Elle permet à un groupe d'amis de mettre en commun les prix relevés à l'hôtel de vente : chacun consulte quelques objets, tout le monde reçoit tous les prix.
 
 Elle ne stocke **que** : identifiant d'objet, prix des lots ×1/×10/×100, prix moyen, date du relevé. Aucune donnée de joueur (voir la règle 4 du README principal).
@@ -44,6 +47,6 @@ npx wrangler dev                       # http://127.0.0.1:8787
 
 ## Limites
 
-- Offre gratuite Cloudflare : 100 000 requêtes par jour. Chaque application ouverte fait environ 30 requêtes par heure : largement assez pour un groupe d'amis.
+- Offre gratuite Cloudflare : 100 000 requêtes par jour. Chaque application ouverte fait environ 240 requêtes par heure (lecture toutes les 15 secondes) : une vingtaine d'applications peuvent rester ouvertes en permanence.
 - Le serveur rejette les données incohérentes (prix négatifs ou démesurés, relevés de plus de 30 jours ou datés du futur), et un relevé plus ancien ne remplace jamais un plus récent.
 - Un membre du groupe qui enverrait volontairement de faux prix pourrait fausser la base : ne partagez le code qu'avec des personnes de confiance.

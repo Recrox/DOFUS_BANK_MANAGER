@@ -24,7 +24,10 @@ public sealed class SyncSettings
 /// </summary>
 public sealed class HdvSync
 {
-    static readonly TimeSpan PullInterval = TimeSpan.FromMinutes(2);
+    /// <summary>Fréquence de lecture des relevés du groupe (~240 requêtes/h par application ouverte).</summary>
+    static readonly TimeSpan PullInterval = TimeSpan.FromSeconds(15);
+    /// <summary>Délai avant l'envoi d'un relevé, pour regrouper les consultations rapprochées.</summary>
+    static readonly TimeSpan PushDelay = TimeSpan.FromSeconds(1);
     const int MaxBatch = 1000;
 
     static string SettingsPath => Path.Combine(GameData.AppDir, "partage.json");
@@ -46,7 +49,7 @@ public sealed class HdvSync
         _hdv = hdv;
         _http.DefaultRequestHeaders.UserAgent.ParseAdd($"DofusBankManager/{UpdateChecker.CurrentText}");
         Load();
-        _hdv.Observed += p => { if (Settings.Enabled) _outbox[p.TemplateId] = p; };
+        _hdv.Observed += OnObserved;
         if (Settings.Enabled) SetStatus("Partage activé.");
     }
 
@@ -83,7 +86,25 @@ public sealed class HdvSync
         catch (Exception ex) { return "Serveur injoignable : " + ex.Message; }
     }
 
-    /// <summary>Appelé régulièrement : envoie les nouveaux relevés, et récupère ceux du groupe toutes les 2 minutes.</summary>
+    /// <summary>Nouveau relevé du joueur : envoyé au groupe presque immédiatement.</summary>
+    async void OnObserved(HdvPrice price)
+    {
+        if (!Settings.Enabled) return;
+        bool first = _outbox.Count == 0;
+        _outbox[price.TemplateId] = price;
+        if (!first) return; // un envoi est déjà programmé
+        await Task.Delay(PushDelay);
+        await TickAsync();
+    }
+
+    /// <summary>Synchronisation immédiate (bouton « Synchroniser »).</summary>
+    public Task SyncNowAsync()
+    {
+        _lastPullAt = DateTime.MinValue;
+        return TickAsync();
+    }
+
+    /// <summary>Appelé régulièrement : envoie les nouveaux relevés, et récupère ceux du groupe toutes les 15 secondes.</summary>
     public async Task TickAsync()
     {
         if (_busy || !Settings.Enabled || Settings.ServerUrl.Length == 0 || Settings.GroupKey.Length == 0) return;

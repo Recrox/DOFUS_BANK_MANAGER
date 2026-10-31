@@ -126,7 +126,10 @@ Quand vous consultez un objet dans un hôtel de vente en jeu, le serveur envoie 
 
 L'application **n'interroge jamais l'HDV elle-même** : cela demanderait d'envoyer des requêtes au serveur (règles 1 et 3). La base de prix se remplit donc au fil de vos consultations ; « Tous les objets du jeu » affiche aussi les objets sans prix. Les prix vieillissent : regardez la colonne « Relevé ».
 
-**Partage entre amis** (bouton dans l'onglet HDV, désactivé par défaut) : les relevés de chaque membre du groupe sont envoyés à une base commune, et chacun reçoit ceux des autres toutes les 2 minutes. Un relevé plus récent remplace toujours un plus ancien ; les prix venus du groupe sont marqués « groupe » dans la colonne « Relevé ». Le serveur s'héberge gratuitement : voir [server/README.md](server/README.md).
+**Partage entre amis** (bouton dans l'onglet HDV, désactivé par défaut) : les relevés de chaque membre du groupe sont envoyés à une base commune, et chacun reçoit ceux des autres en une quinzaine de secondes (bouton « Synchroniser » pour forcer). Un relevé plus récent remplace toujours un plus ancien ; les prix venus du groupe sont marqués « groupe » dans la colonne « Relevé ».
+
+- **Rejoindre un groupe** (aucun compte nécessaire) : onglet HDV › **Partage entre amis** ; l'adresse du serveur est pré-remplie, collez le code de groupe reçu en privé, cochez **Activer le partage**, puis **Tester** et **Enregistrer**. Le réglage est conservé.
+- **Héberger le serveur** (une seule personne par groupe) : voir [server/README.md](server/README.md).
 
 Le **prix unitaire** est le meilleur des trois : ×1, ×10 ÷ 10, ×100 ÷ 100. L'onglet Banque s'en sert pour estimer la valeur de chaque objet et de la banque entière (objets sans prix relevé non comptés).
 

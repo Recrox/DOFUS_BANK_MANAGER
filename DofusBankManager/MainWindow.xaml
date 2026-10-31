@@ -317,6 +317,7 @@
                                   ToolTip="Affiche aussi les objets dont le prix n'a pas encore été relevé"/>
                         <TextBlock x:Name="HdvCount" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource TextMuted}"/>
                         <Button x:Name="ShareToggle" Content="Partage entre amis" Click="ShareToggle_Click" Margin="14,0,0,0"/>
+                        <Button Content="Synchroniser" Click="ShareSync_Click" ToolTip="Récupère tout de suite les derniers prix du groupe"/>
                     </WrapPanel>
 
                     <!-- Partage des prix entre amis (désactivé par défaut) -->

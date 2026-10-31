@@ -485,7 +485,7 @@ public partial class MainWindow : Window
         ShareUrl.Text = _sync.Settings.ServerUrl;
         ShareKey.Text = _sync.Settings.GroupKey;
         ShareStatus.Text = _sync.Status;
-        var syncTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+        var syncTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
         syncTimer.Tick += async (_, _) => await _sync.TickAsync();
         syncTimer.Start();
         _ = _sync.TickAsync();
@@ -526,6 +526,13 @@ public partial class MainWindow : Window
 
     void ShareToggle_Click(object sender, RoutedEventArgs e) =>
         SharePanel.Visibility = SharePanel.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+
+    async void ShareSync_Click(object sender, RoutedEventArgs e)
+    {
+        if (_sync == null) return;
+        if (!_sync.Settings.Enabled) { ShareStatus.Text = "Activez et enregistrez le partage d'abord."; return; }
+        await _sync.SyncNowAsync();
+    }
 
     async void ShareTest_Click(object sender, RoutedEventArgs e)
     {
