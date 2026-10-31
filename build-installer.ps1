@@ -6,7 +6,8 @@ $payload = Join-Path $root 'installer\payload'
 
 # 1. Application autonome (.NET inclus) en un seul exécutable : aucun prérequis chez l'utilisateur
 if (Test-Path $payload) { Remove-Item -Recurse -Force $payload }
-dotnet publish "$root\DofusBankManager" -c Release -r win-x64 --self-contained true `
+Remove-Item "$root\DofusBankManager\*_wpftmp.csproj" -ErrorAction SilentlyContinue # restes d'une compilation WPF interrompue
+dotnet publish "$root\DofusBankManager\DofusBankManager.csproj" -c Release -r win-x64 --self-contained true `
     -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
     -p:EnableCompressionInSingleFile=true -p:DebugType=none -o $payload
 if ($LASTEXITCODE -ne 0) { throw "Échec de la publication de l'application" }

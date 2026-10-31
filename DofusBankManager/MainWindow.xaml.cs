@@ -25,9 +25,16 @@ public sealed record FmItemOption(long Uid, string Label)
 public sealed record FmHistoryRow(int Index, string Time, int RuneId, string Rune, string Outcome, Brush OutcomeBrush,
     string Gains, string Losses, string Weight, string Reliquat);
 
+public sealed record HdvRow(int Index, int ItemId, string Name, int Level, string Type,
+    long? Lot1, long? Lot10, long? Lot100, double? Unit, long? Average, string Seen, DateTime SeenAt);
+
+public sealed record HdvHistoryRow(string When, string Prices);
+
 public sealed record BankRow(int ItemId, string Name, int Quantity, int Level, string Type, int UsedIn)
 {
     public int Index { get; init; }
+    /// <summary>Valeur estimée à l'HDV (quantité × meilleur prix unitaire relevé).</summary>
+    public long? Value { get; init; }
 }
 
 public partial class MainWindow : Window
@@ -260,6 +267,7 @@ public partial class MainWindow : Window
 
         ItemIcons.Data = _data;
         InitFm(_data);
+        InitHdv(_data);
         _usage = _data.Recipes.SelectMany(r => r.Ingredients.Select(i => i.ItemId).Distinct())
             .GroupBy(id => id).ToDictionary(g => g.Key, g => g.Count());
 
@@ -439,7 +447,10 @@ public partial class MainWindow : Window
             .Select(g =>
             {
                 var it = _data.GetItem(g.Key);
-                return new BankRow(g.Key, it.Name, g.Sum(i => i.Quantity), it.Level, it.TypeName, _usage.GetValueOrDefault(g.Key));
+                int qty = g.Sum(i => i.Quantity);
+                var unit = _hdv?.Prices.GetValueOrDefault(g.Key)?.UnitPrice;
+                return new BankRow(g.Key, it.Name, qty, it.Level, it.TypeName, _usage.GetValueOrDefault(g.Key))
+                    { Value = unit is { } u ? (long)Math.Round(u * qty) : null };
             })
             .Where(r => search.Length == 0 || Contains(r.Name, search) || Contains(r.Type, search))
             .OrderBy(r => r.Type).ThenBy(r => r.Name)
@@ -447,6 +458,86 @@ public partial class MainWindow : Window
             .ToList();
         BankGrid.ItemsSource = rows;
         BankCount.Text = $"{rows.Count} objet(s) distinct(s)";
+
+        int priced = rows.Count(r => r.Value != null);
+        BankValue.Text = priced == 0 ? ""
+            : $"Valeur estimée : {rows.Sum(r => r.Value ?? 0):N0} kamas ({priced}/{rows.Count} objets avec un prix)";
+    }
+
+    // --- Hôtel de vente ---
+
+    const string AllTypes = "Tous les types";
+    Hdv.HdvTracker? _hdv;
+
+    void InitHdv(GameData data)
+    {
+        _hdv = new Hdv.HdvTracker(data);
+        _hdv.Log += AddLog;
+        _hdv.Changed += () => { ApplyHdvFilters(); ApplyBankFilter(); };
+        _tracker.HdvOffers += _hdv.OnOffers;
+        _tracker.HdvAverage += _hdv.OnAverage;
+
+        HdvTypeFilter.Items.Add(AllTypes);
+        foreach (var t in data.Items.Values.Select(i => i.TypeName).Distinct().Order()) HdvTypeFilter.Items.Add(t);
+        HdvTypeFilter.SelectedIndex = 0;
+        ApplyHdvFilters();
+    }
+
+    void ApplyHdvFilters()
+    {
+        if (_hdv == null || _data == null || HdvTypeFilter.SelectedItem == null) return;
+        var search = HdvSearch.Text.Trim();
+        var type = HdvTypeFilter.SelectedItem as string;
+        var selected = (HdvGrid.SelectedItem as HdvRow)?.ItemId;
+
+        IEnumerable<int> ids = HdvShowAll.IsChecked == true ? _data.Items.Keys : _hdv.Prices.Keys;
+        var rows = ids
+            .Select(id => (Item: _data.GetItem(id), Price: _hdv.Prices.GetValueOrDefault(id)))
+            .Where(x => type == AllTypes || x.Item.TypeName == type)
+            .Where(x => search.Length == 0 || Contains(x.Item.Name, search))
+            .OrderByDescending(x => x.Price?.SeenAt ?? DateTime.MinValue).ThenBy(x => x.Item.Name)
+            .Select((x, i) => new HdvRow(i + 1, x.Item.Id, x.Item.Name, x.Item.Level, x.Item.TypeName,
+                x.Price?.Lot1, x.Price?.Lot10, x.Price?.Lot100, x.Price?.UnitPrice, x.Price?.Average,
+                x.Price is { } p ? Ago(p.SeenAt) : "", x.Price?.SeenAt ?? DateTime.MinValue))
+            .ToList();
+
+        HdvGrid.ItemsSource = rows;
+        HdvGrid.SelectedItem = rows.FirstOrDefault(r => r.ItemId == selected);
+        HdvCount.Text = $"{rows.Count} objet(s) · {_hdv.Prices.Count} prix relevé(s)";
+        HdvEmpty.Visibility = _hdv.Prices.Count == 0 && HdvShowAll.IsChecked != true ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    void HdvFilters_Changed(object sender, RoutedEventArgs e) => ApplyHdvFilters();
+
+    void HdvGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_hdv == null || _data == null || HdvGrid.SelectedItem is not HdvRow row) return;
+        var price = _hdv.Prices.GetValueOrDefault(row.ItemId);
+        HdvDetailTitle.Text = row.Name;
+        HdvDetailIcon.Source = ItemIcons.Get(row.ItemId);
+        HdvDetailSub.Text = price == null
+            ? "Pas encore de prix relevé : consultez cet objet dans un hôtel de vente en jeu."
+            : $"Prix unitaire : {Kamas(price.UnitPrice)} · moyen : {Kamas(price.Average)}\n{price.Offers} lot(s) en vente au dernier relevé ({Ago(price.SeenAt)})";
+        HdvHistory.ItemsSource = price?.History.AsEnumerable().Reverse()
+            .Select(s => new HdvHistoryRow(s.Time.ToString("dd/MM/yyyy HH:mm"),
+                $"×1 {Kamas(s.Lot1)} · ×10 {Kamas(s.Lot10)} · ×100 {Kamas(s.Lot100)}"))
+            .ToList();
+    }
+
+    void HdvForget_Click(object sender, RoutedEventArgs e)
+    {
+        if (HdvGrid.SelectedItem is HdvRow row) _hdv?.Forget(row.ItemId);
+    }
+
+    static string Kamas(double? v) => v is { } k ? $"{k:N0} k" : "—";
+
+    static string Ago(DateTime t)
+    {
+        var d = DateTime.Now - t;
+        return d.TotalMinutes < 1 ? "à l'instant"
+            : d.TotalHours < 1 ? $"il y a {(int)d.TotalMinutes} min"
+            : d.TotalDays < 1 ? $"il y a {(int)d.TotalHours} h"
+            : t.ToString("dd/MM/yyyy");
     }
 
     void RecipeGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)

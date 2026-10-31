@@ -249,6 +249,9 @@
                         <TextBlock Text="Recherche" Style="{StaticResource Label}" Margin="0,0,8,0"/>
                         <TextBox x:Name="BankSearch" Width="240" TextChanged="BankSearch_TextChanged"/>
                         <TextBlock x:Name="BankCount" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource TextMuted}"/>
+                        <TextBlock x:Name="BankValue" VerticalAlignment="Center" Margin="14,0,0,0" FontWeight="Bold"
+                                   Foreground="{DynamicResource AccentSolid}"
+                                   ToolTip="Quantité × meilleur prix unitaire relevé à l'HDV. Les objets sans prix relevé ne sont pas comptés."/>
                     </StackPanel>
                     <DataGrid x:Name="BankGrid" Grid.Row="1">
                         <DataGrid.Columns>
@@ -278,8 +281,119 @@
                             <DataGridTextColumn Header="Niv." Binding="{Binding Level}" Width="60"/>
                             <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="180"/>
                             <DataGridTextColumn Header="Utilisé dans" Binding="{Binding UsedIn}" Width="110"/>
+                            <DataGridTextColumn Header="Valeur HDV" Binding="{Binding Value, StringFormat={}{0:N0}}" Width="120">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentSolid}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- Hôtel de vente : prix relevés pendant les consultations en jeu -->
+            <TabItem Header="HDV">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="320"/>
+                    </Grid.ColumnDefinitions>
+
+                    <WrapPanel Grid.ColumnSpan="2" Margin="0,0,0,10">
+                        <TextBlock Text="Recherche" Style="{StaticResource Label}" Margin="0,0,8,0"/>
+                        <TextBox x:Name="HdvSearch" Width="220" TextChanged="HdvFilters_Changed"/>
+                        <TextBlock Text="Type" Style="{StaticResource Label}"/>
+                        <ComboBox x:Name="HdvTypeFilter" Width="200" SelectionChanged="HdvFilters_Changed"/>
+                        <CheckBox x:Name="HdvShowAll" Content="Tous les objets du jeu" VerticalAlignment="Center" Margin="14,0,0,0"
+                                  Checked="HdvFilters_Changed" Unchecked="HdvFilters_Changed"
+                                  ToolTip="Affiche aussi les objets dont le prix n'a pas encore été relevé"/>
+                        <TextBlock x:Name="HdvCount" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource TextMuted}"/>
+                    </WrapPanel>
+
+                    <Grid Grid.Row="1">
+                        <DataGrid x:Name="HdvGrid" SelectionChanged="HdvGrid_SelectionChanged">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="50" ElementStyle="{StaticResource IndexText}"/>
+                                <DataGridTemplateColumn Width="44" CanUserSort="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Image Source="{Binding ItemId, Converter={StaticResource Icon}}" Width="30" Height="30"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Objet" Binding="{Binding Name}" Width="*">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Niv." Binding="{Binding Level}" Width="50"/>
+                                <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="140"/>
+                                <DataGridTextColumn Header="×1" Binding="{Binding Lot1, StringFormat={}{0:N0}}" Width="90"/>
+                                <DataGridTextColumn Header="×10" Binding="{Binding Lot10, StringFormat={}{0:N0}}" Width="100"/>
+                                <DataGridTextColumn Header="×100" Binding="{Binding Lot100, StringFormat={}{0:N0}}" Width="110"/>
+                                <DataGridTextColumn Header="Prix unitaire" Binding="{Binding Unit, StringFormat={}{0:N0}}" Width="100">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentSolid}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Moyen" Binding="{Binding Average, StringFormat={}{0:N0}}" Width="90"/>
+                                <DataGridTextColumn Header="Relevé" Binding="{Binding Seen}" Width="110" SortMemberPath="SeenAt">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock x:Name="HdvEmpty" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="40"
+                                   Foreground="{DynamicResource TextMuted}" FontSize="14"
+                                   Text="Aucun prix relevé pour l'instant. Ouvrez un hôtel de vente en jeu et consultez des objets : leurs prix ×1, ×10 et ×100 s'enregistreront ici."/>
+                    </Grid>
+
+                    <!-- Historique des prix de l'objet sélectionné -->
+                    <Border Grid.Row="1" Grid.Column="1" Margin="10,0,0,0" Background="{DynamicResource Surface2}"
+                            BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="12" Padding="14">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                                <StackPanel Orientation="Horizontal">
+                                    <Image x:Name="HdvDetailIcon" Width="40" Height="40" Margin="0,0,10,0"/>
+                                    <TextBlock x:Name="HdvDetailTitle" Text="Sélectionnez un objet" FontSize="16" FontWeight="Bold"
+                                               Foreground="{DynamicResource AccentSolid}" TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="230"/>
+                                </StackPanel>
+                                <TextBlock x:Name="HdvDetailSub" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                <TextBlock Text="Historique des relevés" Foreground="{DynamicResource TextMuted}" FontWeight="SemiBold" Margin="0,12,0,0"/>
+                            </StackPanel>
+                            <Button DockPanel.Dock="Bottom" Content="Oublier ce prix" Click="HdvForget_Click" Margin="0,10,0,0" HorizontalAlignment="Left"/>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl x:Name="HdvHistory">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                                                    CornerRadius="8" Padding="8,5" Margin="0,0,0,5">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding When}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding Prices}" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
                 </Grid>
             </TabItem>
 

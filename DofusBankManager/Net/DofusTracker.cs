@@ -62,6 +62,11 @@ public sealed class DofusTracker
     /// <summary>Message d'information du jeu reçu pendant un atelier, par code (ex. 183 = échec de forgemagie).</summary>
     public event Action<int>? CraftInfo;
 
+    /// <summary>Offres d'un objet consulté à l'HDV (message EHl sans le préfixe).</summary>
+    public event Action<string>? HdvOffers;
+    /// <summary>Prix moyen d'un objet à l'HDV (message EHP sans le préfixe).</summary>
+    public event Action<string>? HdvAverage;
+
     /// <summary>Codes des messages de forgemagie (fichier lang : INFOS_117, INFOS_183, INFOS_194).</summary>
     public static readonly int[] FmInfoCodes = [117, 183, 194];
 
@@ -77,6 +82,7 @@ public sealed class DofusTracker
         msg.StartsWith("ECK") || msg.StartsWith("EL") || msg.StartsWith("EsK") || msg == "EV"
         || msg.StartsWith("OAKO") || msg.StartsWith("OCO")
         || msg.StartsWith("Ec") || msg.StartsWith("EmK") || msg.StartsWith("EMK")
+        || msg.StartsWith("EH") // hôtel de vente : objets et prix, sans nom de vendeur
         || (msg.StartsWith("OR") && long.TryParse(msg.AsSpan(2), out _))
         || (msg.StartsWith("OQ") && msg.Length > 2 && char.IsDigit(msg[2]))
         || (InfoCodes(msg).Any() && InfoCodes(msg).All(c => FmInfoCodes.Contains(c))); // uniquement des messages de forgemagie
@@ -107,6 +113,8 @@ public sealed class DofusTracker
         else if (msg.StartsWith("OR") && long.TryParse(msg.AsSpan(2), out var removed)) OnInventoryRemove(removed);
         else if (msg.StartsWith("OQ")) OnInventoryQuantity(msg[2..]);
         else if (InCraft && (msg.StartsWith("EmKO+") || msg.StartsWith("EMKO+"))) OnCraftItem(msg[5..]);
+        else if (msg.StartsWith("EHl")) HdvOffers?.Invoke(msg[3..]);
+        else if (msg.StartsWith("EHP")) HdvAverage?.Invoke(msg[3..]);
         else if (InCraft && msg.StartsWith("Ec")) CraftResult?.Invoke(msg[2..]);
         else if (InCraft && msg.StartsWith("Im"))
             foreach (var code in InfoCodes(msg)) CraftInfo?.Invoke(code);

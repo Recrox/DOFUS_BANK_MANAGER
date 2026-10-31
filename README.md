@@ -58,7 +58,7 @@ Ensuite, en jeu, **ouvrez votre banque** : elle est capturée, puis sauvegardée
 Pour recompiler (.NET 10 SDK requis) :
 
 ```
-dotnet publish DofusBankManager -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish
+dotnet publish DofusBankManager\DofusBankManager.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish
 ```
 
 ## Règles de développement
@@ -95,7 +95,7 @@ Le trafic capturé contient des informations sensibles : nom de compte, ticket d
   - la lecture de la dernière Release GitHub du projet pour vérifier la version ([UpdateChecker.cs](DofusBankManager/UpdateChecker.cs)).
 
   Ces requêtes ne contiennent aucune information sur le joueur. Toute nouvelle requête vers l'extérieur doit respecter la même règle.
-- `packets.log` est un outil de diagnostic. Il **ne doit contenir que les messages de banque, d'inventaire et d'atelier** (`ECK`, `EL`, `EsK`, `EV`, `OAKO`, `OCO`, `OR`, `OQ`, `Ec`, `EmK`, `EMK`, et les seuls messages `Im` de forgemagie `117`/`183`/`194`), filtrés par `DofusTracker.IsLoggable`. Les autres messages `Im` (ex. connexion d'un ami) contiennent des noms : ils ne sont jamais journalisés. Ces messages ne décrivent que des objets et leurs caractéristiques. **Ne jamais élargir ce filtre** à des messages de connexion, de chat ou d'identité (`ASK` compris). Ne committez jamais ce fichier.
+- `packets.log` est un outil de diagnostic. Il **ne doit contenir que les messages de banque, d'inventaire et d'atelier** (`ECK`, `EL`, `EsK`, `EV`, `OAKO`, `OCO`, `OR`, `OQ`, `Ec`, `EmK`, `EMK`, `EH` pour l'hôtel de vente, et les seuls messages `Im` de forgemagie `117`/`183`/`194`), filtrés par `DofusTracker.IsLoggable`. Les autres messages `Im` (ex. connexion d'un ami) contiennent des noms : ils ne sont jamais journalisés. Ces messages ne décrivent que des objets et leurs caractéristiques. **Ne jamais élargir ce filtre** à des messages de connexion, de chat ou d'identité (`ASK` compris). Ne committez jamais ce fichier.
 - La journalisation des paquets reste **désactivée par défaut**, et elle n'écrit pas les adresses IP.
 
 ### 5. Données du jeu
@@ -117,7 +117,15 @@ Même passif, cet outil est un logiciel tiers. Les conditions d'utilisation d'An
 - **Données du jeu** ([Data/GameData.cs](DofusBankManager/Data/GameData.cs)) : les fichiers `items`, `crafts`, `skills`, `jobs` et `effects` sont décodés par un mini-interpréteur AS2 ([Data/Avm1.cs](DofusBankManager/Data/Avm1.cs)).
 - **Forgemagie** ([Fm/FmTracker.cs](DofusBankManager/Fm/FmTracker.cs)) : voir ci-dessous.
 
-Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées, `settings.json` (thème), `fm.json` (historique FM), `fm_poids.json` (poids des stats) et `packets.log`.
+Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées, `settings.json` (thème), `fm.json` (historique FM), `fm_poids.json` (poids des stats), `hdv.json` (prix relevés) et `packets.log`.
+
+### Onglet HDV (hôtel de vente)
+
+Quand vous consultez un objet dans un hôtel de vente en jeu, le serveur envoie ses offres ; l'application les lit au passage et retient, pour chaque objet, le lot le moins cher en ×1, ×10 et ×100, le prix moyen affiché par l'HDV, et la date du relevé. Un historique des relevés est conservé par objet (50 au plus).
+
+L'application **n'interroge jamais l'HDV elle-même** : cela demanderait d'envoyer des requêtes au serveur (règles 1 et 3). La base de prix se remplit donc au fil de vos consultations ; « Tous les objets du jeu » affiche aussi les objets sans prix. Les prix vieillissent : regardez la colonne « Relevé ».
+
+Le **prix unitaire** est le meilleur des trois : ×1, ×10 ÷ 10, ×100 ÷ 100. L'onglet Banque s'en sert pour estimer la valeur de chaque objet et de la banque entière (objets sans prix relevé non comptés).
 
 ### Onglet FM (forgemagie)
 

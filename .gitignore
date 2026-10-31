@@ -3,3 +3,4 @@ obj/
 publish/
 dist/
 installer/payload/
+*_wpftmp.csproj
