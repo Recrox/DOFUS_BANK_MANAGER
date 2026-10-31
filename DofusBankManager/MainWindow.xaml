@@ -1,0 +1,185 @@
+﻿<Window x:Class="DofusBankManager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Dofus Bank Manager" Height="780" Width="1280" MinWidth="900" MinHeight="500"
+        Background="#F4F1EA" FontFamily="Segoe UI" FontSize="13"
+        WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <SolidColorBrush x:Key="Accent" Color="#6B4E2E"/>
+        <SolidColorBrush x:Key="Ok" Color="#2E7D32"/>
+        <SolidColorBrush x:Key="Missing" Color="#C62828"/>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="12,5"/>
+            <Setter Property="Margin" Value="6,0,0,0"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#E6E0D4"/>
+            <Setter Property="RowBackground" Value="White"/>
+            <Setter Property="AlternatingRowBackground" Value="#FBF9F5"/>
+            <Setter Property="BorderBrush" Value="#D8D0C0"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- En-tête : état de la capture et de la banque -->
+        <Border Background="White" BorderBrush="#D8D0C0" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse x:Name="CaptureDot" Width="10" Height="10" Fill="Gray" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="CaptureStatus" Text="Capture arrêtée" FontWeight="SemiBold"/>
+                    </StackPanel>
+                    <TextBlock x:Name="BankStatus" Margin="18,4,0,0" Foreground="#555" Text="Aucune banque reçue — ouvrez votre banque en jeu."/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <CheckBox x:Name="LogPacketsBox" Content="Journaliser les paquets" VerticalAlignment="Center" Margin="0,0,8,0"
+                              Checked="LogPacketsBox_Changed" Unchecked="LogPacketsBox_Changed"
+                              ToolTip="Écrit tous les messages texte capturés dans packets.log (diagnostic)"/>
+                    <Button x:Name="AdminButton" Content="Relancer en administrateur" Click="AdminButton_Click" Visibility="Collapsed"/>
+                    <Button x:Name="CaptureButton" Content="Démarrer la capture" Click="CaptureButton_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <TabControl Grid.Row="1" Background="White">
+            <!-- Recettes -->
+            <TabItem Header="  Recettes  ">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="340"/>
+                    </Grid.ColumnDefinitions>
+
+                    <WrapPanel Grid.ColumnSpan="2" Margin="0,0,0,8">
+                        <TextBlock Text="Recherche" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox x:Name="RecipeSearch" Width="200" TextChanged="Filters_Changed" VerticalContentAlignment="Center" Padding="3"/>
+                        <TextBlock Text="Métier" VerticalAlignment="Center" Margin="14,0,6,0"/>
+                        <ComboBox x:Name="JobFilter" Width="200" SelectionChanged="Filters_Changed"/>
+                        <TextBlock Text="Afficher" VerticalAlignment="Center" Margin="14,0,6,0"/>
+                        <ComboBox x:Name="ModeFilter" Width="230" SelectedIndex="0" SelectionChanged="Filters_Changed">
+                            <ComboBoxItem Content="Faisables maintenant"/>
+                            <ComboBoxItem Content="Faisables ou il manque 1 ingrédient"/>
+                            <ComboBoxItem Content="Il manque au plus 2 ingrédients"/>
+                            <ComboBoxItem Content="Utilisant au moins 1 de mes ressources"/>
+                            <ComboBoxItem Content="Toutes les recettes"/>
+                        </ComboBox>
+                        <TextBlock Text="Niveau" VerticalAlignment="Center" Margin="14,0,6,0"/>
+                        <TextBox x:Name="LevelMin" Width="40" Text="1" TextChanged="Filters_Changed" Padding="3"/>
+                        <TextBlock Text="à" VerticalAlignment="Center" Margin="4,0"/>
+                        <TextBox x:Name="LevelMax" Width="40" Text="200" TextChanged="Filters_Changed" Padding="3"/>
+                        <CheckBox x:Name="IncludeInventory" Content="Inclure l'inventaire" VerticalAlignment="Center" Margin="14,0,0,0"
+                                  Checked="Filters_Changed" Unchecked="Filters_Changed"/>
+                        <TextBlock x:Name="RecipeCount" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="#777"/>
+                    </WrapPanel>
+
+                    <DataGrid x:Name="RecipeGrid" Grid.Row="1" SelectionChanged="RecipeGrid_SelectionChanged">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Objet" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="Niv." Binding="{Binding Level}" Width="50"/>
+                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="130"/>
+                            <DataGridTextColumn Header="Métier" Binding="{Binding Jobs}" Width="170"/>
+                            <DataGridTextColumn Header="Faisable ×" Binding="{Binding Craftable}" Width="80">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        <Setter Property="Foreground" Value="{StaticResource Ok}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Craftable}" Value="0">
+                                                <Setter Property="Foreground" Value="#AAA"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Manquants" Binding="{Binding MissingText}" Width="220">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{StaticResource Missing}"/>
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Détail de la recette sélectionnée -->
+                    <Border Grid.Row="1" Grid.Column="1" Margin="8,0,0,0" BorderBrush="#D8D0C0" BorderThickness="1" CornerRadius="4" Padding="10">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                                <TextBlock x:Name="DetailTitle" Text="Sélectionnez une recette" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{StaticResource Accent}"/>
+                                <TextBlock x:Name="DetailSub" Foreground="#777" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <ItemsControl x:Name="DetailIngredients">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,3">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding Note}" FontSize="11" Foreground="#8A6D3B"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding Ratio}" FontWeight="Bold" Margin="8,0,0,0" Foreground="{Binding Brush}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- Contenu de la banque -->
+            <TabItem Header="  Banque  ">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="Recherche" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBox x:Name="BankSearch" Width="220" TextChanged="BankSearch_TextChanged" Padding="3"/>
+                        <TextBlock x:Name="BankCount" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="#777"/>
+                    </StackPanel>
+                    <DataGrid x:Name="BankGrid" Grid.Row="1">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Objet" Binding="{Binding Name}" Width="*"/>
+                            <DataGridTextColumn Header="Quantité" Binding="{Binding Quantity}" Width="90"/>
+                            <DataGridTextColumn Header="Niv." Binding="{Binding Level}" Width="60"/>
+                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="180"/>
+                            <DataGridTextColumn Header="Utilisé dans" Binding="{Binding UsedIn}" Width="100"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- Journal -->
+            <TabItem Header="  Journal  ">
+                <TextBox x:Name="LogBox" IsReadOnly="True" FontFamily="Consolas" FontSize="12" Margin="8"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap"/>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>
