@@ -15,6 +15,8 @@
 
     <Icon Id="AppIcon" SourceFile="..\DofusBankManager\app.ico" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/Recrox/DOFUS_BANK_MANAGER" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/Recrox/DOFUS_BANK_MANAGER/releases/latest" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="Dofus Bank Manager">
@@ -33,13 +35,19 @@
       </Directory>
     </StandardDirectory>
 
+    <!-- Menu Démarrer : dossier « Dofus Bank Manager » avec l'application et sa désinstallation -->
     <StandardDirectory Id="ProgramMenuFolder">
-      <Component Id="StartMenuShortcut">
-        <Shortcut Id="StartMenuShortcut" Name="Dofus Bank Manager" Description="Banque et recettes Dofus Retro"
-                  Target="[#AppExe]" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon" />
-        <RegistryValue Root="HKCU" Key="Software\DofusBankManager" Name="StartMenuShortcut"
-                       Type="integer" Value="1" KeyPath="yes" />
-      </Component>
+      <Directory Id="AppMenuFolder" Name="Dofus Bank Manager">
+        <Component Id="StartMenuShortcuts">
+          <Shortcut Id="StartMenuShortcut" Name="Dofus Bank Manager" Description="Banque et recettes Dofus Retro"
+                    Target="[#AppExe]" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon" />
+          <Shortcut Id="UninstallShortcut" Name="Désinstaller Dofus Bank Manager" Description="Supprime Dofus Bank Manager"
+                    Target="[System64Folder]msiexec.exe" Arguments="/x [ProductCode]" />
+          <RemoveFolder Id="RemoveAppMenuFolder" On="uninstall" />
+          <RegistryValue Root="HKCU" Key="Software\DofusBankManager" Name="StartMenuShortcuts"
+                         Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
     </StandardDirectory>
 
     <StandardDirectory Id="DesktopFolder">
@@ -51,15 +59,37 @@
       </Component>
     </StandardDirectory>
 
+    <!-- Désinstallation : l'application peut aussi avoir créé elle-même la règle de pare-feu
+         (FirewallRule.cs). On supprime toute règle « Dofus Bank Manager » liée à cet exécutable.
+         Pas lors d'une mise à jour : la nouvelle version recrée sa règle. -->
+    <SetProperty Id="CleanFirewall" Sequence="execute" Before="CleanFirewall"
+                 Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE"
+                 Value="&quot;[System64Folder]netsh.exe&quot; advfirewall firewall delete rule name=&quot;Dofus Bank Manager&quot; program=&quot;[INSTALLFOLDER]DofusBankManager.exe&quot;" />
+    <CustomAction Id="CleanFirewall" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+    <InstallExecuteSequence>
+      <Custom Action="CleanFirewall" Before="RemoveFiles" Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+
+    <!-- Fin d'installation : case « Lancer Dofus Bank Manager », cochée par défaut -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Lancer Dofus Bank Manager" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WixShellExecTarget" Value="[#AppExe]" />
+    <CustomAction Id="LaunchApplication" BinaryRef="Wix4UtilCA_X64" DllEntry="WixShellExec" Impersonate="yes" />
+
     <Feature Id="Main" Title="Dofus Bank Manager">
       <ComponentRef Id="AppExe" />
       <ComponentRef Id="Readme" />
-      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="StartMenuShortcuts" />
       <ComponentRef Id="DesktopShortcut" />
     </Feature>
 
-    <!-- Assistant : bienvenue, conditions d'utilisation, dossier d'installation -->
-    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <!-- Assistant : bienvenue, conditions d'utilisation, dossier d'installation, fin -->
+    <UI>
+      <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+    </UI>
     <WixVariable Id="WixUILicenseRtf" Value="Licence.rtf" />
   </Package>
 </Wix>

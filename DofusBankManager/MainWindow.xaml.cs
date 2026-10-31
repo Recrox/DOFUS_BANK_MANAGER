@@ -52,7 +52,40 @@ public partial class MainWindow : Window
         SourceInitialized += (_, _) => ThemeManager.ApplyTitleBar(this);
         ThemeManager.Changed += OnThemeChanged;
         UpdateThemeUi();
+        VersionText.Text = "v" + UpdateChecker.CurrentText;
     }
+
+    // --- Mise à jour ---
+
+    UpdateInfo? _update;
+
+    async Task CheckUpdatesAsync()
+    {
+        try
+        {
+            _update = await UpdateChecker.CheckAsync();
+            if (_update == null)
+            {
+                AddLog($"Version {UpdateChecker.CurrentText} : à jour.");
+                return;
+            }
+            UpdateTitle.Text = $"Nouvelle version {_update.Latest} disponible (vous avez la {UpdateChecker.CurrentText})";
+            UpdateBanner.Visibility = Visibility.Visible;
+            AddLog($"Mise à jour disponible : {_update.Latest} ({_update.PageUrl}).");
+        }
+        catch (Exception ex)
+        {
+            AddLog($"Vérification de mise à jour impossible : {ex.Message}");
+        }
+    }
+
+    void UpdateDownload_Click(object sender, RoutedEventArgs e)
+    {
+        try { UpdateChecker.OpenInBrowser(_update?.PageUrl ?? UpdateChecker.ReleasesPage); }
+        catch (Exception ex) { AddLog("Ouverture du navigateur impossible : " + ex.Message); }
+    }
+
+    void UpdateLater_Click(object sender, RoutedEventArgs e) => UpdateBanner.Visibility = Visibility.Collapsed;
 
     // --- Thème ---
 
@@ -84,6 +117,7 @@ public partial class MainWindow : Window
     async Task InitAsync()
     {
         UpdateCaptureUi();
+        _ = CheckUpdatesAsync();
         try
         {
             AddLog("Chargement des données du jeu…");

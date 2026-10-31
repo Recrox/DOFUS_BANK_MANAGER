@@ -7,15 +7,28 @@ Lit votre banque Dofus Retro en écoutant passivement le trafic réseau, puis li
 
 ## Installation (pour un utilisateur)
 
-1. Lancez `DofusBankManager-Setup.msi`.
+1. Téléchargez `DofusBankManager-Setup.msi` depuis les [Releases](https://github.com/Recrox/DOFUS_BANK_MANAGER/releases/latest), puis lancez-le.
 2. Acceptez les conditions d'utilisation, puis choisissez le dossier d'installation.
-3. Ouvrez **Dofus Bank Manager** depuis le menu Démarrer ou le Bureau, puis acceptez la demande de droits administrateur.
+3. À la fin, laissez cochée la case **« Lancer Dofus Bank Manager »** si vous voulez l'ouvrir tout de suite, puis acceptez la demande de droits administrateur.
 
-Aucun prérequis : .NET est inclus. L'installateur ajoute la règle de pare-feu « Dofus Bank Manager » et la retire à la désinstallation. Les banques sauvegardées (`%LOCALAPPDATA%\DofusBankManager`) sont conservées.
+Ensuite, l'application s'ouvre depuis le menu Démarrer (dossier « Dofus Bank Manager ») ou le Bureau.
+
+Aucun prérequis : .NET est inclus. L'installateur ajoute la règle de pare-feu « Dofus Bank Manager ».
 
 L'installateur n'est pas signé numériquement : Windows SmartScreen affichera « Windows a protégé votre ordinateur ». Cliquez sur **Informations complémentaires**, puis **Exécuter quand même**.
 
-Pour désinstaller : Paramètres Windows › Applications › Dofus Bank Manager › Désinstaller.
+### Mises à jour
+
+Au lancement, l'application vérifie si une version plus récente est publiée dans les Releases GitHub. Si c'est le cas, un bandeau propose de la télécharger. Il suffit de lancer le nouvel installateur : il remplace l'ancienne version et conserve les banques sauvegardées et le thème.
+
+### Désinstallation
+
+Deux possibilités :
+
+- Menu Démarrer › Dofus Bank Manager › **Désinstaller Dofus Bank Manager** ;
+- Paramètres Windows › Applications › Dofus Bank Manager › **Désinstaller**.
+
+La désinstallation supprime l'application, les raccourcis et la règle de pare-feu. Vos données personnelles (banques sauvegardées, thème, cache des données du jeu) restent dans `%LOCALAPPDATA%\DofusBankManager`, au cas où vous réinstalleriez. Supprimez ce dossier à la main pour tout effacer.
 
 ### Construire l'installateur
 
@@ -25,7 +38,13 @@ Pour désinstaller : Paramètres Windows › Applications › Dofus Bank Manager
 
 Le fichier est créé dans `dist\DofusBankManager-Setup.msi`. WiX Toolset est récupéré automatiquement via NuGet : rien à installer.
 
-Avant de publier une nouvelle version, augmentez `<Version>` dans [DofusBankManager.csproj](DofusBankManager/DofusBankManager.csproj). L'installateur remplacera alors l'ancienne version. Ne changez jamais l'`UpgradeCode` de [installer/Package.wxs](installer/Package.wxs).
+### Publier une nouvelle version
+
+1. Augmentez `<Version>` dans [DofusBankManager.csproj](DofusBankManager/DofusBankManager.csproj), par exemple `1.1.0`.
+2. Lancez `.\build-installer.ps1`.
+3. Sur GitHub, créez une Release avec le tag **`v1.1.0`** (le même numéro, précédé de `v`), et joignez-y `dist\DofusBankManager-Setup.msi`.
+
+Les applications déjà installées compareront leur version au tag de la dernière Release et afficheront le bandeau de mise à jour. Ne changez jamais l'`UpgradeCode` de [installer/Package.wxs](installer/Package.wxs) : c'est lui qui permet au nouvel installateur de remplacer l'ancien.
 
 ## Lancement (développement)
 
@@ -68,7 +87,11 @@ C'est ce qui sépare un outil d'aide d'un bot. Les sanctions d'Ankama visent sur
 Le trafic capturé contient des informations sensibles : nom de compte, ticket de connexion, messages privés.
 
 - **Ne lire que les messages utiles** à la banque et à l'inventaire (voir [DofusTracker.cs](DofusBankManager/Net/DofusTracker.cs)). Les autres sont ignorés.
-- **Rien ne sort de la machine** : pas d'envoi vers un serveur, pas de télémétrie.
+- **Aucune donnée du joueur ne sort de la machine** : pas de télémétrie, pas d'envoi de la banque ni de l'inventaire. Les seules requêtes réseau autorisées sont :
+  - le téléchargement des données du jeu depuis le CDN d'Ankama ([GameData.cs](DofusBankManager/Data/GameData.cs)) ;
+  - la lecture de la dernière Release GitHub du projet pour vérifier la version ([UpdateChecker.cs](DofusBankManager/UpdateChecker.cs)).
+
+  Ces requêtes ne contiennent aucune information sur le joueur. Toute nouvelle requête vers l'extérieur doit respecter la même règle.
 - `packets.log` est un outil de diagnostic. Il **ne doit contenir que les messages de banque et d'inventaire** (`ECK`, `EL`, `EsK`, `EV`, `OAKO`, `OR`, `OQ`), filtrés par `DofusTracker.IsLoggable`. **Ne jamais élargir ce filtre** à des messages de connexion, de chat ou d'identité (`ASK` compris). Ne committez jamais ce fichier.
 - La journalisation des paquets reste **désactivée par défaut**, et elle n'écrit pas les adresses IP.
 
