@@ -90,6 +90,7 @@ public sealed class DofusTracker
         int end = body.IndexOf('|');
         if (end >= 0) body = body[..end];
         _exchangeType = int.TryParse(body, out var t) ? t : -1;
+        Log?.Invoke($"Échange ouvert (type {_exchangeType}){(_exchangeType == BankExchangeType ? " : banque" : "")}.");
     }
 
     void OnBankList(string data)

@@ -10,11 +10,17 @@ using DofusBankManager.Net;
 namespace DofusBankManager;
 
 public sealed record RecipeRow(Recipe Recipe, string Name, int Level, string Type, string Jobs,
-    int Craftable, int MissingKinds, string MissingText, bool UsesOwned);
+    int Craftable, int MissingKinds, string MissingText, bool UsesOwned)
+{
+    public int Index { get; init; }
+}
 
-public sealed record IngredientRow(string Name, string Ratio, Brush Brush, string Note);
+public sealed record IngredientRow(int ItemId, string Name, string Ratio, Brush Brush, string Note);
 
-public sealed record BankRow(string Name, int Quantity, int Level, string Type, int UsedIn);
+public sealed record BankRow(int ItemId, string Name, int Quantity, int Level, string Type, int UsedIn)
+{
+    public int Index { get; init; }
+}
 
 public partial class MainWindow : Window
 {
@@ -36,6 +42,7 @@ public partial class MainWindow : Window
 
         _sniffer.Log += m => Ui(() => AddLog(m));
         _sniffer.MessageReceived += OnMessage;
+        _sniffer.StreamClassified += OnStreamClassified;
         _tracker.Log += m => Ui(() => AddLog(m));
         _tracker.BankChanged += () => Ui(Refresh);
         _tracker.InventoryChanged += () => Ui(() => { if (IncludeInventory.IsChecked == true) Refresh(); });
@@ -60,6 +67,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        ItemIcons.Data = _data;
         _usage = _data.Recipes.SelectMany(r => r.Ingredients.Select(i => i.ItemId).Distinct())
             .GroupBy(id => id).ToDictionary(g => g.Key, g => g.Count());
 
@@ -87,10 +95,31 @@ public partial class MainWindow : Window
         // Le suivi de l'état se fait sur le thread de l'interface pour éviter tout accès concurrent
         Ui(() =>
         {
+            if (_streamsWithMessages.Add(stream))
+                AddLog($"Messages texte reçus sur {stream}.");
             try { _tracker.Handle(msg); }
             catch (Exception ex) { AddLog($"Paquet ignoré ({ex.Message}) : {msg[..Math.Min(80, msg.Length)]}"); }
         });
     }
+
+    /// <summary>Diagnostic : indique si les connexions du client Dofus sont lisibles (texte) ou chiffrées.</summary>
+    void OnStreamClassified(string server, bool isText, byte firstByte)
+    {
+        if (!DofusConnections.RemoteEndpoints().Contains(server)) return;
+        Ui(() => AddLog(isText
+            ? $"Connexion Dofus {server} : flux texte lisible."
+            : $"Connexion Dofus {server} : flux illisible (premier octet 0x{firstByte:X2}{(firstByte == 0x16 || firstByte == 0x17 ? ", chiffrement TLS" : "")})."));
+    }
+
+    void LogDofusConnections()
+    {
+        var eps = DofusConnections.RemoteEndpoints();
+        AddLog(eps.Count == 0
+            ? "Client Dofus Retro introuvable (aucune connexion)."
+            : "Connexions du client Dofus Retro : " + string.Join(", ", eps));
+    }
+
+    readonly HashSet<string> _streamsWithMessages = new();
 
     volatile bool _logPackets;
     bool LogPacketsEnabled => _logPackets;
@@ -99,8 +128,10 @@ public partial class MainWindow : Window
     {
         try
         {
+            AddLog(FirewallRule.Ensure());
             _sniffer.Start();
             AddLog("Capture démarrée. Ouvrez votre banque en jeu pour la synchroniser.");
+            LogDofusConnections();
         }
         catch (Exception ex)
         {
@@ -201,7 +232,8 @@ public partial class MainWindow : Window
                 || r.Recipe.Ingredients.Any(i => Contains(_data!.GetItem(i.ItemId).Name, search)));
 
         var list = q.OrderByDescending(r => r.Craftable > 0).ThenBy(r => r.MissingKinds)
-            .ThenByDescending(r => r.Level).ThenBy(r => r.Name).ToList();
+            .ThenByDescending(r => r.Level).ThenBy(r => r.Name)
+            .Select((r, i) => r with { Index = i + 1 }).ToList();
         RecipeGrid.ItemsSource = list;
         RecipeCount.Text = $"{list.Count} recette(s)";
     }
@@ -215,10 +247,11 @@ public partial class MainWindow : Window
             .Select(g =>
             {
                 var it = _data.GetItem(g.Key);
-                return new BankRow(it.Name, g.Sum(i => i.Quantity), it.Level, it.TypeName, _usage.GetValueOrDefault(g.Key));
+                return new BankRow(g.Key, it.Name, g.Sum(i => i.Quantity), it.Level, it.TypeName, _usage.GetValueOrDefault(g.Key));
             })
             .Where(r => search.Length == 0 || Contains(r.Name, search) || Contains(r.Type, search))
             .OrderBy(r => r.Type).ThenBy(r => r.Name)
+            .Select((r, i) => r with { Index = i + 1 })
             .ToList();
         BankGrid.ItemsSource = rows;
         BankCount.Text = $"{rows.Count} objet(s) distinct(s)";
@@ -244,7 +277,7 @@ public partial class MainWindow : Window
                 if (sub != null)
                     note = sub.Craftable > 0 ? $"Fabricable avec vos ressources (×{sub.Craftable})" : "Fabricable (ressources manquantes)";
             }
-            return new IngredientRow($"{i.Quantity}× {_data.GetItem(i.ItemId).Name}", $"{have} / {i.Quantity}",
+            return new IngredientRow(i.ItemId, $"{i.Quantity}× {_data.GetItem(i.ItemId).Name}", $"{have} / {i.Quantity}",
                 ok ? (Brush)FindResource("Ok") : (Brush)FindResource("Missing"), note);
         }).ToList();
     }

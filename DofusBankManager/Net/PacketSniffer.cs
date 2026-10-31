@@ -21,6 +21,10 @@ public sealed class PacketSniffer : IDisposable
     /// <summary>Message texte complet reçu (clé du flux, contenu).</summary>
     public event Action<string, string>? MessageReceived;
     public event Action<string>? Log;
+    /// <summary>Premier segment d'un flux entrant analysé : (serveur ip:port, flux texte ?, premier octet).</summary>
+    public event Action<string, bool, byte>? StreamClassified;
+
+    readonly HashSet<IPAddress> _localIps = new();
 
     public bool IsRunning => _cts != null;
 
@@ -36,6 +40,8 @@ public sealed class PacketSniffer : IDisposable
             .Where(a => a.AddressFamily == AddressFamily.InterNetwork)
             .Distinct()
             .ToList();
+        _localIps.Clear();
+        _localIps.UnionWith(addresses);
 
         foreach (var ip in addresses)
         {
@@ -108,22 +114,33 @@ public sealed class PacketSniffer : IDisposable
         int payloadStart = t + dataOffset, payloadLen = total - payloadStart;
 
         List<string>? messages = null;
+        bool classified = false;
+        TcpStream? current;
         lock (_lock)
         {
             if (rst) { _streams.Remove(key); return; }
-            if (!_streams.TryGetValue(key, out var stream))
+            if (!_streams.TryGetValue(key, out current))
             {
                 if (payloadLen <= 0 && !syn) return;
-                _streams[key] = stream = new TcpStream(syn ? seq + 1 : seq);
+                _streams[key] = current = new TcpStream(syn ? seq + 1 : seq);
             }
-            else if (syn) stream.Reset(seq + 1);
+            else if (syn) current.Reset(seq + 1);
 
-            if (payloadLen > 0)
-                messages = stream.Push(seq, b.AsSpan(payloadStart, payloadLen));
+            // Un flux ignoré (binaire/chiffré) reste mémorisé pour ne pas être réanalysé à chaque segment
+            if (payloadLen > 0 && !current.Ignored)
+            {
+                bool wasChecked = current.Checked;
+                messages = current.Push(seq, b.AsSpan(payloadStart, payloadLen));
+                classified = !wasChecked && current.Checked;
+            }
 
-            if (fin || stream.Ignored) _streams.Remove(key);
+            if (fin) _streams.Remove(key);
             if (_streams.Count > 2000) PruneStreams();
         }
+
+        // Diagnostic : uniquement l'adresse du serveur et le type de flux, jamais le contenu
+        if (classified && !_localIps.Contains(new IPAddress(b.AsSpan(12, 4))))
+            StreamClassified?.Invoke($"{b[12]}.{b[13]}.{b[14]}.{b[15]}:{srcPort}", !current.Ignored, b[payloadStart]);
 
         if (messages != null)
             foreach (var m in messages) MessageReceived?.Invoke(key, m);
@@ -145,6 +162,7 @@ public sealed class PacketSniffer : IDisposable
         readonly SortedDictionary<uint, byte[]> _pending = new(Comparer<uint>.Create((a, b) => (int)(a - b)));
         bool _checked;
 
+        public bool Checked => _checked;
         public bool Ignored { get; private set; }
         public DateTime LastSeen { get; private set; } = DateTime.UtcNow;
 
@@ -161,9 +179,9 @@ public sealed class PacketSniffer : IDisposable
             if (!_checked)
             {
                 _checked = true;
-                // Les flux binaires (TLS, etc.) ne sont pas du protocole Dofus texte
-                byte first = data[0];
-                if (first < 0x20 && first != 0 && first != (byte)'\n') { Ignored = true; return null; }
+                // Les flux binaires (TLS, etc.) ne sont pas du protocole Dofus texte.
+                // On juge sur tout le segment : on peut arriver en plein milieu d'un flux déjà ouvert.
+                if (!LooksLikeText(data)) { Ignored = true; return null; }
             }
 
             int diff = (int)(seq - _next);
@@ -191,6 +209,16 @@ public sealed class PacketSniffer : IDisposable
 
             if (_buffer.Count > MaxBuffer) { Ignored = true; return null; }
             return Extract();
+        }
+
+        static bool LooksLikeText(ReadOnlySpan<byte> data)
+        {
+            if (data[0] is 0x14 or 0x15 or 0x16 or 0x17) return false; // en-tête d'enregistrement TLS
+            int control = 0;
+            foreach (var x in data)
+                if (x < 0x20 && x != 0 && x != (byte)'\n' && x != (byte)'\r' && x != (byte)'\t') control++;
+            // Des données chiffrées contiennent ~12 % d'octets de contrôle ; du texte Dofus quasiment aucun
+            return control * 50 <= data.Length;
         }
 
         void Append(ReadOnlySpan<byte> d)

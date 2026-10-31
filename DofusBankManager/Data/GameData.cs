@@ -4,7 +4,7 @@ using System.Xml.Linq;
 
 namespace DofusBankManager.Data;
 
-public sealed record ItemInfo(int Id, string Name, int Level, int TypeId, string TypeName);
+public sealed record ItemInfo(int Id, string Name, int Level, int TypeId, string TypeName, int Gfx);
 
 public sealed record Ingredient(int ItemId, int Quantity);
 
@@ -28,7 +28,7 @@ public sealed class GameData
     public List<string> JobNames { get; } = new();
 
     public ItemInfo GetItem(int id) =>
-        Items.TryGetValue(id, out var it) ? it : new ItemInfo(id, $"Objet #{id}", 0, 0, "?");
+        Items.TryGetValue(id, out var it) ? it : new ItemInfo(id, $"Objet #{id}", 0, 0, "?", 0);
 
     public static async Task<GameData> LoadAsync(Action<string> log)
     {
@@ -54,7 +54,8 @@ public sealed class GameData
                     if (v is not AsObject o) continue;
                     int id = int.Parse(k), type = (int)Avm1.ToNum(o.GetValueOrDefault("t"));
                     data.Items[id] = new ItemInfo(id, Avm1.ToStr(o.GetValueOrDefault("n")),
-                        (int)Avm1.ToNum(o.GetValueOrDefault("l")), type, types.GetValueOrDefault(type, "?"));
+                        (int)Avm1.ToNum(o.GetValueOrDefault("l")), type, types.GetValueOrDefault(type, "?"),
+                        (int)Avm1.ToNum(o.GetValueOrDefault("g")));
                 }
         }
 

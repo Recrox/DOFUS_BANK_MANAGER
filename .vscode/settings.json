@@ -1,0 +1,13 @@
+{
+    // Charger uniquement la solution (et pas les projets temporaires créés par WPF pendant la compilation)
+    "dotnet.defaultSolution": "DofusBankManager.sln",
+    "files.watcherExclude": {
+        "**/*_wpftmp.csproj": true,
+        "**/bin/**": true,
+        "**/obj/**": true,
+        "**/publish/**": true
+    },
+    "files.exclude": {
+        "**/*_wpftmp.csproj": true
+    }
+}
