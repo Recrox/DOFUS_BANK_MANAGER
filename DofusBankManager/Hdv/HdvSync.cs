@@ -8,8 +8,11 @@ namespace DofusBankManager.Hdv;
 
 public sealed class SyncSettings
 {
+    /// <summary>Serveur du groupe (voir server/README.md). Public : seul le code de groupe protège l'accès.</summary>
+    public const string DefaultServerUrl = "https://dofus-bank-manager-hdv.recrox.workers.dev";
+
     public bool Enabled { get; set; }
-    public string ServerUrl { get; set; } = "";
+    public string ServerUrl { get; set; } = DefaultServerUrl;
     public string GroupKey { get; set; } = "";
     /// <summary>Horloge du serveur lors de la dernière lecture : on ne redemande que les nouveautés.</summary>
     public long LastPull { get; set; }
@@ -163,6 +166,7 @@ public sealed class HdvSync
                 Settings = JsonSerializer.Deserialize<SyncSettings>(File.ReadAllText(SettingsPath)) ?? new();
         }
         catch { Settings = new(); }
+        if (string.IsNullOrWhiteSpace(Settings.ServerUrl)) Settings.ServerUrl = SyncSettings.DefaultServerUrl;
     }
 
     void Save()
