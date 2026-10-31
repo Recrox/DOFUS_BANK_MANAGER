@@ -1,0 +1,65 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:fw="http://wixtoolset.org/schemas/v4/wxs/firewall">
+
+  <!-- UpgradeCode : ne jamais le changer, il permet aux nouvelles versions de remplacer les anciennes -->
+  <Package Name="Dofus Bank Manager"
+           Manufacturer="Dofus Bank Manager"
+           Version="!(bind.FileVersion.AppExe)"
+           UpgradeCode="7727C9CD-4CAE-44A1-A2C5-2661DAF6E7C0"
+           Language="1036"
+           Scope="perMachine">
+
+    <MajorUpgrade DowngradeErrorMessage="Une version plus récente de Dofus Bank Manager est déjà installée." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="AppIcon" SourceFile="..\DofusBankManager\app.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Dofus Bank Manager">
+        <Component Id="AppExe">
+          <File Id="AppExe" Source="$(PayloadDir)\DofusBankManager.exe" KeyPath="yes">
+            <!-- Sans cette règle, Windows bloque le trafic entrant vers la capture (voir README).
+                 Elle est retirée à la désinstallation. -->
+            <fw:FirewallException Id="FirewallIn" Name="Dofus Bank Manager"
+                                  Description="Lecture passive du trafic Dofus Retro (aucun port ouvert)"
+                                  Scope="any" Profile="all" IgnoreFailure="yes" />
+          </File>
+        </Component>
+        <Component Id="Readme">
+          <File Id="Readme" Source="..\README.md" Name="LISEZMOI.md" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="StartMenuShortcut">
+        <Shortcut Id="StartMenuShortcut" Name="Dofus Bank Manager" Description="Banque et recettes Dofus Retro"
+                  Target="[#AppExe]" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon" />
+        <RegistryValue Root="HKCU" Key="Software\DofusBankManager" Name="StartMenuShortcut"
+                       Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder">
+      <Component Id="DesktopShortcut">
+        <Shortcut Id="DesktopShortcut" Name="Dofus Bank Manager" Description="Banque et recettes Dofus Retro"
+                  Target="[#AppExe]" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon" />
+        <RegistryValue Root="HKCU" Key="Software\DofusBankManager" Name="DesktopShortcut"
+                       Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <Feature Id="Main" Title="Dofus Bank Manager">
+      <ComponentRef Id="AppExe" />
+      <ComponentRef Id="Readme" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+
+    <!-- Assistant : bienvenue, conditions d'utilisation, dossier d'installation -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="Licence.rtf" />
+  </Package>
+</Wix>

@@ -5,7 +5,29 @@ Lit votre banque Dofus Retro en écoutant passivement le trafic réseau, puis li
 > **Avant de modifier le code, lisez les [règles de développement](#règles-de-développement).**
 > Elles ne sont pas négociables : elles garantissent que l'application reste un simple outil de lecture.
 
-## Lancement
+## Installation (pour un utilisateur)
+
+1. Lancez `DofusBankManager-Setup.msi`.
+2. Acceptez les conditions d'utilisation, puis choisissez le dossier d'installation.
+3. Ouvrez **Dofus Bank Manager** depuis le menu Démarrer ou le Bureau, puis acceptez la demande de droits administrateur.
+
+Aucun prérequis : .NET est inclus. L'installateur ajoute la règle de pare-feu « Dofus Bank Manager » et la retire à la désinstallation. Les banques sauvegardées (`%LOCALAPPDATA%\DofusBankManager`) sont conservées.
+
+L'installateur n'est pas signé numériquement : Windows SmartScreen affichera « Windows a protégé votre ordinateur ». Cliquez sur **Informations complémentaires**, puis **Exécuter quand même**.
+
+Pour désinstaller : Paramètres Windows › Applications › Dofus Bank Manager › Désinstaller.
+
+### Construire l'installateur
+
+```
+.\build-installer.ps1
+```
+
+Le fichier est créé dans `dist\DofusBankManager-Setup.msi`. WiX Toolset est récupéré automatiquement via NuGet : rien à installer.
+
+Avant de publier une nouvelle version, augmentez `<Version>` dans [DofusBankManager.csproj](DofusBankManager/DofusBankManager.csproj). L'installateur remplacera alors l'ancienne version. Ne changez jamais l'`UpgradeCode` de [installer/Package.wxs](installer/Package.wxs).
+
+## Lancement (développement)
 
 Double-cliquez sur `Lancer DofusBankManager.bat`. L'application a besoin des droits administrateur pour lire le trafic réseau.
 
