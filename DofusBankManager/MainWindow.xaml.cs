@@ -48,7 +48,37 @@ public partial class MainWindow : Window
         _tracker.InventoryChanged += () => Ui(() => { if (IncludeInventory.IsChecked == true) Refresh(); });
 
         Loaded += async (_, _) => await InitAsync();
-        Closed += (_, _) => _sniffer.Dispose();
+        Closed += (_, _) => { _sniffer.Dispose(); ThemeManager.Changed -= OnThemeChanged; };
+        SourceInitialized += (_, _) => ThemeManager.ApplyTitleBar(this);
+        ThemeManager.Changed += OnThemeChanged;
+        UpdateThemeUi();
+    }
+
+    // --- Thème ---
+
+    void ThemeButton_Click(object sender, RoutedEventArgs e) => ThemePopup.IsOpen = !ThemePopup.IsOpen;
+
+    void ThemeOption_Click(object sender, RoutedEventArgs e)
+    {
+        ThemePopup.IsOpen = false;
+        ThemeManager.Apply(sender == ThemeJour ? ThemeManager.Jour
+            : sender == ThemeNuit ? ThemeManager.Nuit : ThemeManager.Crepuscule);
+    }
+
+    void OnThemeChanged()
+    {
+        UpdateThemeUi();
+        // Les couleurs des ingrédients sont calculées à l'affichage : on les recalcule
+        RecipeGrid_SelectionChanged(RecipeGrid, null!);
+    }
+
+    void UpdateThemeUi()
+    {
+        var current = ThemeManager.Current;
+        ThemeJour.Tag = current == ThemeManager.Jour ? "selected" : "";
+        ThemeCrepuscule.Tag = current == ThemeManager.Crepuscule ? "selected" : "";
+        ThemeNuit.Tag = current == ThemeManager.Nuit ? "selected" : "";
+        ThemeButtonIcon.Data = (System.Windows.Media.Geometry)FindResource("Icon" + current);
     }
 
     async Task InitAsync()

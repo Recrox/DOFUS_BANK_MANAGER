@@ -1,0 +1,30 @@
+<!-- Thème Crépuscule : bois chaud et orange, l'ambiance par défaut -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="Bg" Color="#2A1C11"/>
+    <LinearGradientBrush x:Key="HeaderBg" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#4A321D" Offset="0"/>
+        <GradientStop Color="#3A2717" Offset="1"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="Surface" Color="#3A2717"/>
+    <SolidColorBrush x:Key="Surface2" Color="#4A321D"/>
+    <SolidColorBrush x:Key="Border" Color="#5E4128"/>
+    <SolidColorBrush x:Key="Text" Color="#F5E8D2"/>
+    <SolidColorBrush x:Key="TextMuted" Color="#C4A988"/>
+    <LinearGradientBrush x:Key="AccentBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#F39A35" Offset="0"/>
+        <GradientStop Color="#D96A12" Offset="1"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="AccentSolid" Color="#F2A04A"/>
+    <SolidColorBrush x:Key="AccentBorder" Color="#FFC27A"/>
+    <SolidColorBrush x:Key="AccentText" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="InputBg" Color="#24170D"/>
+    <SolidColorBrush x:Key="RowBg" Color="#33221A"/>
+    <SolidColorBrush x:Key="RowAlt" Color="#3B281B"/>
+    <SolidColorBrush x:Key="HoverBg" Color="#57391F"/>
+    <SolidColorBrush x:Key="Selection" Color="#7A4A1C"/>
+    <SolidColorBrush x:Key="ScrollThumb" Color="#7A5634"/>
+    <SolidColorBrush x:Key="Ok" Color="#8FD67F"/>
+    <SolidColorBrush x:Key="Missing" Color="#FF8A78"/>
+    <SolidColorBrush x:Key="Warning" Color="#E6C27A"/>
+</ResourceDictionary>
