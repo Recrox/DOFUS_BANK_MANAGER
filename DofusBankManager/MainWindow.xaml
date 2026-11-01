@@ -309,7 +309,16 @@
                                           ToolTip="Coût et prix de vente connus, vente supérieure au coût. Triées par bénéfice."/>
                             <ComboBoxItem Content="Coût et vente connus"
                                           ToolTip="Toutes les recettes dont le bénéfice est calculable. Triées par bénéfice."/>
+                            <ComboBoxItem Content="Meilleure marge"
+                                          ToolTip="Recettes rentables triées par marge (bénéfice ÷ coût), de la plus forte à la plus faible."/>
                         </ComboBox>
+                        <!-- Modes rentabilité : écarte les objets qui se vendent trop peu cher pour valoir le coup -->
+                        <StackPanel x:Name="SellMinPanel" Orientation="Horizontal" Visibility="Collapsed">
+                            <TextBlock Text="Vente min." Style="{StaticResource Label}"
+                                       ToolTip="Prix de vente HDV minimum de l'objet fabriqué, en kamas (0 = aucun minimum)."/>
+                            <TextBox x:Name="SellMin" Width="90" Text="10000" TextChanged="Filters_Changed" Padding="4,0"
+                                     HorizontalContentAlignment="Center"/>
+                        </StackPanel>
                         <TextBlock Text="Niveau" Style="{StaticResource Label}"/>
                         <TextBox x:Name="LevelMin" Width="58" Text="1" TextChanged="Filters_Changed" Padding="4,0" HorizontalContentAlignment="Center"/>
                         <TextBlock Text="à" Style="{StaticResource Label}" Margin="6,0"/>

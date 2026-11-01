@@ -549,10 +549,14 @@ public partial class MainWindow : Window
             1 => q.Where(r => r.MissingKinds <= 1),
             2 => q.Where(r => r.MissingKinds <= 2),
             3 => q.Where(r => r.UsesOwned),
-            5 => q.Where(r => r.Profit > 0),
+            5 or 7 => q.Where(r => r.Profit > 0),
             6 => q.Where(r => r.Profit != null),
             _ => q
         };
+        var profitMode = ModeFilter.SelectedIndex >= 5;
+        SellMinPanel.Visibility = profitMode ? Visibility.Visible : Visibility.Collapsed;
+        if (profitMode && long.TryParse(new string(SellMin.Text.Where(char.IsDigit).ToArray()), out var sellMin) && sellMin > 0)
+            q = q.Where(r => r.Sell >= sellMin);
         if (job != null && job != AllJobs) q = q.Where(r => r.Recipe.Jobs.Contains(job));
         q = q.Where(r => r.Level >= min && r.Level <= max);
         var slots = SlotFilters.Children.OfType<System.Windows.Controls.Primitives.ToggleButton>()
@@ -563,9 +567,9 @@ public partial class MainWindow : Window
             q = q.Where(r => Contains(r.Name, search) || Contains(r.Type, search)
                 || r.Recipe.Ingredients.Any(i => Contains(_data!.GetItem(i.ItemId).Name, search)));
 
-        // Modes « rentabilité » : les plus gros bénéfices en haut ; sinon les faisables d'abord
-        var ordered = ModeFilter.SelectedIndex >= 5
-            ? q.OrderByDescending(r => r.Profit).ThenBy(r => r.Name)
+        // Modes « rentabilité » : les plus gros bénéfices (ou marges) en haut ; sinon les faisables d'abord
+        var ordered = ModeFilter.SelectedIndex == 7 ? q.OrderByDescending(r => r.Margin).ThenByDescending(r => r.Profit).ThenBy(r => r.Name)
+            : profitMode ? q.OrderByDescending(r => r.Profit).ThenBy(r => r.Name)
             : q.OrderByDescending(r => r.Craftable > 0).ThenBy(r => r.MissingKinds).ThenByDescending(r => r.Level).ThenBy(r => r.Name);
         var list = ordered.Select((r, i) => r with { Index = i + 1 }).ToList();
         var selected = (RecipeGrid.SelectedItem as RecipeRow)?.Recipe;
