@@ -1,6 +1,9 @@
-<!-- Thème Nuit : sombre, accents orange atténués -->
+﻿<!-- Thème Nuit : sombre, accents orange atténués -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="FormesClassique.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
     <SolidColorBrush x:Key="Bg" Color="#121010"/>
     <LinearGradientBrush x:Key="HeaderBg" StartPoint="0,0" EndPoint="0,1">
         <GradientStop Color="#221D19" Offset="0"/>
@@ -27,4 +30,7 @@
     <SolidColorBrush x:Key="Ok" Color="#7FCC70"/>
     <SolidColorBrush x:Key="Missing" Color="#FF7466"/>
     <SolidColorBrush x:Key="Warning" Color="#D9B670"/>
+    <!-- Onglets non sélectionnés -->
+    <SolidColorBrush x:Key="TabBg" Color="#27211C"/>
+    <SolidColorBrush x:Key="TabBorder" Color="#3A302A"/>
 </ResourceDictionary>

@@ -320,6 +320,9 @@ public partial class MainWindow : Window
 
     void ThemeButton_Click(object sender, RoutedEventArgs e) => ThemePopup.IsOpen = !ThemePopup.IsOpen;
 
+    void StyleButton_Click(object sender, RoutedEventArgs e) =>
+        ThemeManager.ApplyStyle(ThemeManager.Style == ThemeManager.Moderne ? ThemeManager.Classique : ThemeManager.Moderne);
+
     void ThemeOption_Click(object sender, RoutedEventArgs e)
     {
         ThemePopup.IsOpen = false;
@@ -342,6 +345,8 @@ public partial class MainWindow : Window
         ThemeCrepuscule.Tag = current == ThemeManager.Crepuscule ? "selected" : "";
         ThemeNuit.Tag = current == ThemeManager.Nuit ? "selected" : "";
         ThemeButtonIcon.Data = (System.Windows.Media.Geometry)FindResource("Icon" + current);
+        // Le bouton propose l'autre style
+        StyleButtonText.Text = ThemeManager.Style == ThemeManager.Moderne ? "Classique" : "Moderne";
     }
 
     async Task InitAsync()

@@ -14,29 +14,42 @@ namespace DofusBankManager;
 public static class ThemeManager
 {
     public const string Jour = "Jour", Crepuscule = "Crepuscule", Nuit = "Nuit";
+    /// <summary>Styles : Classique (bois et orange) ou Moderne (verre et dégradés). Chacun décline les trois thèmes.</summary>
+    public const string Classique = "Classique", Moderne = "Moderne";
 
     static string SettingsPath => Path.Combine(GameData.AppDir, "settings.json");
 
     public static string Current { get; private set; } = Crepuscule;
+    public static string Style { get; private set; } = Classique;
 
     public static event Action? Changed;
 
     public static void LoadSaved()
     {
-        var name = Crepuscule;
+        var settings = new Settings();
         try
         {
             if (File.Exists(SettingsPath))
-                name = JsonSerializer.Deserialize<Settings>(File.ReadAllText(SettingsPath))?.Theme ?? Crepuscule;
+                settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText(SettingsPath)) ?? settings;
         }
         catch { }
-        Apply(name, save: false);
+        Style = settings.Style == Moderne ? Moderne : Classique;
+        Apply(settings.Theme, save: false);
+    }
+
+    /// <summary>Change de style en gardant le thème (Jour, Crépuscule ou Nuit).</summary>
+    public static void ApplyStyle(string style)
+    {
+        Style = style == Moderne ? Moderne : Classique;
+        Apply(Current);
     }
 
     public static void Apply(string name, bool save = true)
     {
         if (name is not (Jour or Crepuscule or Nuit)) name = Crepuscule;
-        var dict = new ResourceDictionary { Source = new Uri($"pack://application:,,,/Themes/{name}.xaml") };
+        // Moderne : Themes/ModerneNuit.xaml… ; Classique : Themes/Nuit.xaml…
+        var file = (Style == Moderne ? Moderne : "") + name;
+        var dict = new ResourceDictionary { Source = new Uri($"pack://application:,,,/Themes/{file}.xaml") };
         var merged = Application.Current.Resources.MergedDictionaries;
         if (merged.Count > 0) merged[0] = dict; else merged.Add(dict);
         Current = name;
@@ -60,7 +73,7 @@ public static class ThemeManager
         try
         {
             Directory.CreateDirectory(GameData.AppDir);
-            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(new Settings { Theme = Current }));
+            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(new Settings { Theme = Current, Style = Style }));
         }
         catch { }
     }
@@ -68,6 +81,7 @@ public static class ThemeManager
     sealed class Settings
     {
         public string Theme { get; set; } = Crepuscule;
+        public string Style { get; set; } = Classique;
     }
 
     [DllImport("dwmapi.dll")]

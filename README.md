@@ -144,7 +144,7 @@ Même passif, cet outil est un logiciel tiers. Les conditions d'utilisation d'An
 - **Données du jeu** ([Data/GameData.cs](DofusBankManager/Data/GameData.cs)) : les fichiers `items`, `crafts`, `skills`, `jobs`, `effects`, `monsters`, `monsterdrops` (taux de drop officiels) et `maps` (coordonnées et zones) sont décodés par un mini-interpréteur AS2 ([Data/Avm1.cs](DofusBankManager/Data/Avm1.cs)).
 - **Forgemagie** ([Fm/FmTracker.cs](DofusBankManager/Fm/FmTracker.cs)) : voir ci-dessous.
 
-Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées, `settings.json` (thème), `fm.json` (historique FM), `fm_poids.json` (poids des stats), `hdv.json` (prix relevés), `pda.json` (prix des pierres d'âme par monstre), `marchands.json` (prix des cartes TTG chez les marchands), `chasse.json` (archi-monstres aperçus et combats), `monstres.json` (XP des monstres, facultatif : complète celle livrée avec l'application, voir l'onglet Combat) et `packets.log`.
+Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées, `settings.json` (style Classique ou Moderne, choisi par le bouton en haut, et thème Jour, Crépuscule ou Nuit), `fm.json` (historique FM), `fm_poids.json` (poids des stats), `hdv.json` (prix relevés), `pda.json` (prix des pierres d'âme par monstre), `marchands.json` (prix des cartes TTG chez les marchands), `chasse.json` (archi-monstres aperçus et combats), `monstres.json` (XP des monstres, facultatif : complète celle livrée avec l'application, voir l'onglet Combat) et `packets.log`.
 
 ### Onglet HDV (hôtel de vente)
 

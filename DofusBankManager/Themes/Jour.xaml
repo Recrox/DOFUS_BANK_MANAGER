@@ -1,6 +1,9 @@
-<!-- Thème Jour : parchemin clair -->
+﻿<!-- Thème Jour : parchemin clair -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="FormesClassique.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
     <SolidColorBrush x:Key="Bg" Color="#EADCC2"/>
     <LinearGradientBrush x:Key="HeaderBg" StartPoint="0,0" EndPoint="0,1">
         <GradientStop Color="#FBF4E6" Offset="0"/>
@@ -27,4 +30,7 @@
     <SolidColorBrush x:Key="Ok" Color="#2E7D32"/>
     <SolidColorBrush x:Key="Missing" Color="#C0392B"/>
     <SolidColorBrush x:Key="Warning" Color="#8A6D3B"/>
+    <!-- Onglets non sélectionnés -->
+    <SolidColorBrush x:Key="TabBg" Color="#EFE1C6"/>
+    <SolidColorBrush x:Key="TabBorder" Color="#CDB287"/>
 </ResourceDictionary>

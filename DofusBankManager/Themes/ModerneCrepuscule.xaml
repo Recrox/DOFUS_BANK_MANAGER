@@ -1,0 +1,68 @@
+<!-- Style Moderne, thème Crépuscule : « Aurore », verre prune sur un coucher de soleil, dégradé orange → rose -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="FormesModerne.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+    <!-- Fond : halos orange et magenta sur un prune profond -->
+    <DrawingBrush x:Key="Bg" Stretch="Fill">
+        <DrawingBrush.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Geometry="M0,0 H1 V1 H0 Z">
+                    <GeometryDrawing.Brush>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#2A0F24" Offset="0"/>
+                            <GradientStop Color="#120711" Offset="1"/>
+                        </LinearGradientBrush>
+                    </GeometryDrawing.Brush>
+                </GeometryDrawing>
+                <GeometryDrawing Geometry="M0,0 H1 V1 H0 Z">
+                    <GeometryDrawing.Brush>
+                        <RadialGradientBrush Center="0.1,0.0" GradientOrigin="0.1,0.0" RadiusX="0.7" RadiusY="0.8">
+                            <GradientStop Color="#C2410C" Offset="0"/>
+                            <GradientStop Color="#00C2410C" Offset="1"/>
+                        </RadialGradientBrush>
+                    </GeometryDrawing.Brush>
+                </GeometryDrawing>
+                <GeometryDrawing Geometry="M0,0 H1 V1 H0 Z">
+                    <GeometryDrawing.Brush>
+                        <RadialGradientBrush Center="0.95,1" GradientOrigin="0.95,1" RadiusX="0.65" RadiusY="0.75">
+                            <GradientStop Color="#B3BE185D" Offset="0"/>
+                            <GradientStop Color="#00BE185D" Offset="1"/>
+                        </RadialGradientBrush>
+                    </GeometryDrawing.Brush>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingBrush.Drawing>
+    </DrawingBrush>
+    <LinearGradientBrush x:Key="HeaderBg" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#D95A2312" Offset="0"/>
+        <GradientStop Color="#D9331428" Offset="0.55"/>
+        <GradientStop Color="#D9561A3E" Offset="1"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="Surface" Color="#D9241020"/>
+    <SolidColorBrush x:Key="Surface2" Color="#F0331A2C"/>
+    <SolidColorBrush x:Key="Border" Color="#33FFB4A0"/>
+    <SolidColorBrush x:Key="Text" Color="#FFF1EC"/>
+    <SolidColorBrush x:Key="TextMuted" Color="#D2A9B4"/>
+    <LinearGradientBrush x:Key="AccentBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#FB923C" Offset="0"/>
+        <GradientStop Color="#F43F5E" Offset="0.55"/>
+        <GradientStop Color="#D946EF" Offset="1"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="AccentSolid" Color="#FDA574"/>
+    <SolidColorBrush x:Key="AccentBorder" Color="#FB7185"/>
+    <SolidColorBrush x:Key="AccentText" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="InputBg" Color="#E6160812"/>
+    <SolidColorBrush x:Key="RowBg" Color="#00000000"/>
+    <SolidColorBrush x:Key="RowAlt" Color="#0FFFFFFF"/>
+    <SolidColorBrush x:Key="HoverBg" Color="#26FB7185"/>
+    <SolidColorBrush x:Key="Selection" Color="#59F43F5E"/>
+    <SolidColorBrush x:Key="ScrollThumb" Color="#66FB7185"/>
+    <SolidColorBrush x:Key="Ok" Color="#86EFAC"/>
+    <SolidColorBrush x:Key="Missing" Color="#FF8FA3"/>
+    <SolidColorBrush x:Key="Warning" Color="#FCD34D"/>
+    <SolidColorBrush x:Key="TabBg" Color="#00000000"/>
+    <SolidColorBrush x:Key="TabBorder" Color="#00000000"/>
+    <DropShadowEffect x:Key="AccentGlow" Color="#F43F5E" BlurRadius="22" ShadowDepth="0" Opacity="0.7"/>
+</ResourceDictionary>

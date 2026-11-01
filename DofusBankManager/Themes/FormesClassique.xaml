@@ -1,0 +1,13 @@
+<!-- Formes du style Classique : arrondis, police et effets, communs aux thèmes Jour, Crépuscule et Nuit -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <CornerRadius x:Key="RadiusXl">14</CornerRadius>
+    <CornerRadius x:Key="RadiusLg">12</CornerRadius>
+    <CornerRadius x:Key="RadiusMd">10</CornerRadius>
+    <CornerRadius x:Key="RadiusSm">8</CornerRadius>
+    <CornerRadius x:Key="RadiusXs">6</CornerRadius>
+    <FontFamily x:Key="AppFont">Segoe UI</FontFamily>
+    <!-- Pas d'ombre ni de lueur -->
+    <x:Null x:Key="CardShadow"/>
+    <x:Null x:Key="AccentGlow"/>
+</ResourceDictionary>

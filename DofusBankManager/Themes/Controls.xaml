@@ -1,6 +1,7 @@
-<!--
-  Styles des contrôles, communs aux trois thèmes. Les couleurs viennent du thème actif
-  (Jour, Crepuscule ou Nuit) via DynamicResource : changer de thème met tout à jour à chaud.
+﻿<!--
+  Styles des contrôles, communs aux deux styles (Classique, Moderne) et aux trois thèmes. Les couleurs, arrondis
+  (RadiusXl…RadiusXs), police (AppFont) et effets (CardShadow, AccentGlow) viennent du thème actif via DynamicResource :
+  changer de style ou de thème met tout à jour à chaud.
 -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
@@ -18,6 +19,8 @@
     <Geometry x:Key="TabChasse">M12,4 A8,8 0 1 1 11.99,4 Z M12,1 V7 M12,17 V23 M1,12 H7 M17,12 H23</Geometry>
     <Geometry x:Key="TabFm">M3,21 L14,10 M18,2 V7 M15.5,4.5 H20.5 M20,11 V14 M18.5,12.5 H21.5 M9,4 V6 M8,5 H10</Geometry>
     <Geometry x:Key="TabJournal">M9,6 H21 M9,12 H21 M9,18 H21 M4,6 H4.1 M4,12 H4.1 M4,18 H4.1</Geometry>
+    <!-- Bouton de style : étincelles -->
+    <Geometry x:Key="IconStyle">M10,3 L11.8,8.2 L17,10 L11.8,11.8 L10,17 L8.2,11.8 L3,10 L8.2,8.2 Z M18,14 L18.9,16.1 L21,17 L18.9,17.9 L18,20 L17.1,17.9 L15,17 L17.1,16.1 Z</Geometry>
     <Geometry x:Key="IconNuit">M20,14.5 A8.5,8.5 0 1 1 9.5,4 A7,7 0 0 0 20,14.5 Z</Geometry>
 
     <!-- Boutons -->
@@ -35,8 +38,8 @@
                 <ControlTemplate TargetType="Button">
                     <Grid>
                         <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10"/>
-                        <Border x:Name="Shine" Background="White" Opacity="0" CornerRadius="10"/>
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{DynamicResource RadiusMd}"/>
+                        <Border x:Name="Shine" Background="White" Opacity="0" CornerRadius="{DynamicResource RadiusMd}"/>
                         <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>
                     <ControlTemplate.Triggers>
@@ -61,6 +64,8 @@
         <Setter Property="BorderBrush" Value="{DynamicResource AccentBorder}"/>
         <Setter Property="Foreground" Value="{DynamicResource AccentText}"/>
         <Setter Property="FontWeight" Value="Bold"/>
+        <!-- Style Moderne : halo de la couleur d'accent (aucun en Classique) -->
+        <Setter Property="Effect" Value="{DynamicResource AccentGlow}"/>
     </Style>
 
     <!-- Option du menu de thème : Tag="selected" pour l'option active -->
@@ -73,8 +78,8 @@
                 <ControlTemplate TargetType="Button">
                     <Grid>
                         <Border x:Name="Bd" Background="{DynamicResource Surface2}" BorderBrush="{DynamicResource Border}"
-                                BorderThickness="1" CornerRadius="10"/>
-                        <Border x:Name="Shine" Background="White" Opacity="0" CornerRadius="10"/>
+                                BorderThickness="1" CornerRadius="{DynamicResource RadiusMd}"/>
+                        <Border x:Name="Shine" Background="White" Opacity="0" CornerRadius="{DynamicResource RadiusMd}"/>
                         <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
                     </Grid>
                     <ControlTemplate.Triggers>
@@ -106,8 +111,8 @@
                 <ControlTemplate TargetType="ToggleButton">
                     <Grid>
                         <Border x:Name="Bd" Background="{DynamicResource InputBg}" BorderBrush="{DynamicResource Border}"
-                                BorderThickness="1" CornerRadius="8"/>
-                        <Border x:Name="Shine" Background="White" Opacity="0" CornerRadius="8"/>
+                                BorderThickness="1" CornerRadius="{DynamicResource RadiusSm}"/>
+                        <Border x:Name="Shine" Background="White" Opacity="0" CornerRadius="{DynamicResource RadiusSm}"/>
                         <ContentPresenter Margin="9,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Grid>
                     <ControlTemplate.Triggers>
@@ -140,7 +145,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
                     <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="1" CornerRadius="8">
+                            BorderThickness="1" CornerRadius="{DynamicResource RadiusSm}">
                         <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
                     </Border>
@@ -194,7 +199,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBoxItem">
-                    <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Padding="10,6">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="{DynamicResource RadiusXs}" Padding="10,6">
                         <ContentPresenter/>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -226,7 +231,7 @@
                                       IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
-                                    <Border x:Name="Bd" CornerRadius="8" BorderThickness="1"
+                                    <Border x:Name="Bd" CornerRadius="{DynamicResource RadiusSm}" BorderThickness="1"
                                             Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ComboBox}}"
                                             BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ComboBox}}">
                                         <Path HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0"
@@ -249,7 +254,7 @@
                         <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
                                AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
                             <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
-                                    CornerRadius="10" Margin="0,4,0,0" Padding="4"
+                                    CornerRadius="{DynamicResource RadiusMd}" Margin="0,4,0,0" Padding="4"
                                     MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                                     MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                 <ScrollViewer>
@@ -274,11 +279,11 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
-                                CornerRadius="12" Padding="6" Margin="0,0,0,10">
+                                CornerRadius="{DynamicResource RadiusLg}" Padding="6" Margin="0,0,0,10">
                             <TabPanel IsItemsHost="True"/>
                         </Border>
                         <Border Grid.Row="1" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}"
-                                BorderThickness="1" CornerRadius="12" Padding="12">
+                                BorderThickness="1" CornerRadius="{DynamicResource RadiusLg}" Padding="12">
                             <ContentPresenter ContentSource="SelectedContent"/>
                         </Border>
                     </Grid>
@@ -296,9 +301,9 @@
             <Setter.Value>
                 <ControlTemplate TargetType="TabItem">
                     <Grid Margin="0,0,6,0">
-                        <Border x:Name="Bd" Background="{DynamicResource Surface2}" BorderBrush="{DynamicResource Border}"
-                                BorderThickness="1" CornerRadius="10"/>
-                        <Border x:Name="Shine" Background="White" Opacity="0" CornerRadius="10"/>
+                        <Border x:Name="Bd" Background="{DynamicResource TabBg}" BorderBrush="{DynamicResource TabBorder}"
+                                BorderThickness="1" CornerRadius="{DynamicResource RadiusMd}"/>
+                        <Border x:Name="Shine" Background="White" Opacity="0" CornerRadius="{DynamicResource RadiusMd}"/>
                         <!-- Icône facultative : une Geometry dans Tag, tracée de la couleur du texte -->
                         <StackPanel Orientation="Horizontal" Margin="16,8,18,8" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <Path x:Name="TabIcon" Data="{TemplateBinding Tag}" Width="16" Height="16" Stretch="Uniform"
@@ -315,6 +320,7 @@
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}"/>
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBorder}"/>
+                            <Setter TargetName="Bd" Property="Effect" Value="{DynamicResource AccentGlow}"/>
                             <!-- Sur l'en-tête seulement : le Foreground du TabItem se propagerait au contenu de l'onglet -->
                             <Setter TargetName="HeaderText" Property="TextElement.Foreground" Value="{DynamicResource AccentText}"/>
                             <Setter TargetName="TabIcon" Property="Stroke" Value="{DynamicResource AccentText}"/>
@@ -486,7 +492,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="ToolTip">
                     <Border Background="{DynamicResource Surface2}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
-                            CornerRadius="8" Padding="10,6">
+                            CornerRadius="{DynamicResource RadiusSm}" Padding="10,6">
                         <ContentPresenter/>
                     </Border>
                 </ControlTemplate>
