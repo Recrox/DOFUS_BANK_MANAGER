@@ -1304,6 +1304,89 @@
                         </StackPanel>
                         <Grid Grid.Row="1">
                             <DataGrid x:Name="HuntGroupGrid" RowHeight="NaN" MinRowHeight="38">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                        <Setter Property="DetailsVisibility" Value="{Binding Expanded, Converter={StaticResource Visible}}"/>
+                                    </Style>
+                                </DataGrid.RowStyle>
+                                <!-- Tableau déroulant : tous les drops du groupe avec leurs infos -->
+                                <DataGrid.RowDetailsTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="28,0,12,10" Padding="10,6" CornerRadius="8" Background="{DynamicResource Surface2}"
+                                                BorderBrush="{DynamicResource Border}" BorderThickness="1" Grid.IsSharedSizeScope="True">
+                                            <StackPanel>
+                                                <StackPanel.Resources>
+                                                    <Style x:Key="DropHead" TargetType="TextBlock">
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                                        <Setter Property="Margin" Value="0,0,16,4"/>
+                                                    </Style>
+                                                    <Style x:Key="DropCell" TargetType="TextBlock">
+                                                        <Setter Property="Margin" Value="0,0,16,0"/>
+                                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                                    </Style>
+                                                </StackPanel.Resources>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition SharedSizeGroup="DIcon"/>
+                                                        <ColumnDefinition SharedSizeGroup="DName"/>
+                                                        <ColumnDefinition SharedSizeGroup="DChance"/>
+                                                        <ColumnDefinition SharedSizeGroup="DMonsters"/>
+                                                        <ColumnDefinition SharedSizeGroup="DPp"/>
+                                                        <ColumnDefinition SharedSizeGroup="DMax"/>
+                                                        <ColumnDefinition SharedSizeGroup="DPrice"/>
+                                                        <ColumnDefinition SharedSizeGroup="DValue"/>
+                                                        <ColumnDefinition SharedSizeGroup="DState"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="1" Text="Objet" Style="{StaticResource DropHead}"/>
+                                                    <TextBlock Grid.Column="2" Text="Chance" Style="{StaticResource DropHead}"/>
+                                                    <TextBlock Grid.Column="3" Text="Monstres" Style="{StaticResource DropHead}"
+                                                               ToolTip="Nombre de monstres du groupe qui peuvent le donner"/>
+                                                    <TextBlock Grid.Column="4" Text="PP min." Style="{StaticResource DropHead}"
+                                                               ToolTip="Prospection de groupe minimale pour qu'il puisse tomber"/>
+                                                    <TextBlock Grid.Column="5" Text="Max / combat" Style="{StaticResource DropHead}"/>
+                                                    <TextBlock Grid.Column="6" Text="Prix u." Style="{StaticResource DropHead}"/>
+                                                    <TextBlock Grid.Column="7" Text="Valeur / combat" Style="{StaticResource DropHead}"/>
+                                                    <TextBlock Grid.Column="8" Text="État" Style="{StaticResource DropHead}"/>
+                                                </Grid>
+                                                <ItemsControl ItemsSource="{Binding DropDetails}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid x:Name="Line" Margin="0,1">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition SharedSizeGroup="DIcon"/>
+                                                                    <ColumnDefinition SharedSizeGroup="DName"/>
+                                                                    <ColumnDefinition SharedSizeGroup="DChance"/>
+                                                                    <ColumnDefinition SharedSizeGroup="DMonsters"/>
+                                                                    <ColumnDefinition SharedSizeGroup="DPp"/>
+                                                                    <ColumnDefinition SharedSizeGroup="DMax"/>
+                                                                    <ColumnDefinition SharedSizeGroup="DPrice"/>
+                                                                    <ColumnDefinition SharedSizeGroup="DValue"/>
+                                                                    <ColumnDefinition SharedSizeGroup="DState"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <Image Source="{Binding ItemId, Converter={StaticResource Icon}}" Width="24" Height="24" Margin="0,0,8,0"/>
+                                                                <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" Style="{StaticResource DropCell}"/>
+                                                                <TextBlock Grid.Column="2" Text="{Binding Chance}" FontWeight="Bold"
+                                                                           Foreground="{DynamicResource AccentSolid}" Style="{StaticResource DropCell}"/>
+                                                                <TextBlock Grid.Column="3" Text="{Binding Monsters}" Style="{StaticResource DropCell}"/>
+                                                                <TextBlock Grid.Column="4" Text="{Binding Prospection}" Style="{StaticResource DropCell}"/>
+                                                                <TextBlock Grid.Column="5" Text="{Binding MaxPerFight}" Style="{StaticResource DropCell}"/>
+                                                                <TextBlock Grid.Column="6" Text="{Binding Price}" Style="{StaticResource DropCell}"/>
+                                                                <TextBlock Grid.Column="7" Text="{Binding Value}" FontWeight="Bold" Style="{StaticResource DropCell}"/>
+                                                                <TextBlock Grid.Column="8" Text="{Binding State}" Style="{StaticResource DropCell}"/>
+                                                            </Grid>
+                                                            <DataTemplate.Triggers>
+                                                                <DataTrigger Binding="{Binding Muted}" Value="True">
+                                                                    <Setter TargetName="Line" Property="Opacity" Value="0.5"/>
+                                                                </DataTrigger>
+                                                            </DataTemplate.Triggers>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGrid.RowDetailsTemplate>
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Monstres (niveaux)" Binding="{Binding Monsters}" Width="*" MinWidth="200">
                                         <DataGridTextColumn.ElementStyle>
@@ -1332,20 +1415,20 @@
                                             </Style>
                                         </DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
-                                    <!-- Drops officiels (fichier de langue « monsterdrops ») : détail au survol -->
-                                    <DataGridTextColumn Header="Drops (taux du jeu)" Binding="{Binding OfficialDrops}" Width="220">
-                                        <DataGridTextColumn.ElementStyle>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                                                <Setter Property="ToolTip" Value="{Binding OfficialDetail}"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding OfficialDetail}" Value="">
-                                                        <Setter Property="ToolTip" Value="{x:Null}"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </DataGridTextColumn.ElementStyle>
-                                    </DataGridTextColumn>
+                                    <!-- Drops officiels (fichier de langue « monsterdrops ») : la flèche déplie le tableau complet -->
+                                    <DataGridTemplateColumn Header="Drops (taux du jeu)" Width="260" SortMemberPath="OfficialDrops">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <DockPanel VerticalAlignment="Center">
+                                                    <ToggleButton DockPanel.Dock="Left" Style="{StaticResource ExpandToggle}"
+                                                                  ToolTip="Afficher tous les drops du groupe"
+                                                                  IsChecked="{Binding Expanded, Mode=OneWay}" Click="HuntDropsToggle_Click"
+                                                                  Visibility="{Binding HasDropDetails, Converter={StaticResource Visible}}"/>
+                                                    <TextBlock Text="{Binding OfficialDrops}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="Drops estimés" Binding="{Binding DropValue, StringFormat={}{0:N0}}" Width="104"/>
                                     <DataGridTextColumn Header="Archi" Binding="{Binding Archi}" Width="130">
                                         <DataGridTextColumn.ElementStyle>

@@ -9,15 +9,22 @@ using DofusBankManager.Hunt;
 namespace DofusBankManager;
 
 public sealed record HuntGroupRow(long Id, string Monsters, int Count, int TotalLevel, string Stars, double? Xp,
-    string XpText, string Drops, string OfficialDrops, string OfficialDetail, double? DropValue, bool HasArchi, string Archi,
-    long? ArchiPrice);
+    string XpText, string Drops, string OfficialDrops, IReadOnlyList<DropDetailRow> DropDetails, bool Expanded,
+    double? DropValue, bool HasArchi, string Archi, long? ArchiPrice)
+{
+    public bool HasDropDetails => DropDetails.Count > 0;
+}
+
+/// <summary>Ligne du tableau déroulant des drops d'un groupe. Muted : bloqué ou sous condition (non compté).</summary>
+public sealed record DropDetailRow(int ItemId, string Name, string Chance, string Monsters, string Prospection,
+    string MaxPerFight, string Price, string Value, string State, bool Muted);
 
 /// <summary>
 /// Drop officiel d'un objet sur un groupe : meilleure chance parmi ses monstres (Count = nombre de monstres qui le donnent),
 /// valeur espérée par combat (0 si bloqué par la prospection du groupe ou soumis à une condition).
 /// </summary>
-sealed record GroupDrop(int ItemId, double Chance, int Count, double Value, bool Priced, int MinProspection, bool Blocked,
-    bool Conditional);
+sealed record GroupDrop(int ItemId, double Chance, int Count, double Value, double? Price, int MinProspection,
+    int MaxPerFight, bool Blocked, bool Conditional);
 
 public sealed record ArchiRow(string Time, DateTime TimeSort, string Name, int Level, string Map, long? Price, string PriceSeen);
 
@@ -193,9 +200,29 @@ public partial class MainWindow
             if (d.MaxPerFight > 0) expected = Math.Min(d.MaxPerFight, expected);
             var price = DropPrice(d.ItemId);
             return new GroupDrop(d.ItemId, x.Max(y => y.Chance), x.Count(), blocked || d.Conditional ? 0 : expected * (price ?? 0),
-                price != null, d.MinProspection, blocked, d.Conditional);
-        }).OrderByDescending(d => d.Value).ThenByDescending(d => d.Chance).ToList();
+                price, d.MinProspection, d.MaxPerFight, blocked, d.Conditional);
+        }).OrderBy(d => d.Conditional).ThenBy(d => d.Blocked)
+            .ThenByDescending(d => d.Value).ThenByDescending(d => d.Chance).ToList();
     }
+
+    /// <summary>Groupes dont le tableau des drops est déplié (la grille est reconstruite à chaque rafraîchissement).</summary>
+    readonly HashSet<long> _expandedGroups = new();
+
+    void HuntDropsToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not HuntGroupRow row) return;
+        if (!_expandedGroups.Remove(row.Id)) _expandedGroups.Add(row.Id);
+        RefreshHunt();
+    }
+
+    DropDetailRow DetailRow(GroupDrop d) => new(d.ItemId, _data!.GetItem(d.ItemId).Name,
+        d.Conditional ? "—" : Percent(d.Chance), d.Count > 1 ? $"×{d.Count}" : "1",
+        d.MinProspection > 0 ? d.MinProspection.ToString("N0") : "—",
+        d.MaxPerFight > 0 ? d.MaxPerFight.ToString() : "∞",
+        d.Price is { } p ? p.ToString("N0") : "?",
+        d.Blocked || d.Conditional ? "—" : d.Price != null ? d.Value.ToString("N0") : "sans prix",
+        d.Conditional ? "Sous condition" : d.Blocked ? $"🔒 PP {d.MinProspection:N0}" : "OK",
+        d.Blocked || d.Conditional);
 
     /// <summary>Prix unitaire d'un drop : HDV, sinon prix marchand (cartes TTG) de la période, sinon le dernier relevé.</summary>
     double? DropPrice(int itemId)
@@ -274,23 +301,17 @@ public partial class MainWindow
             // Drops officiels (fichier de langue) : remplacent l'estimation apprise quand le groupe en a
             var official = OfficialDrops(g, prospection);
             var open = official.Where(d => !d.Blocked && !d.Conditional).ToList();
-            var officialText = official.Count == 0 ? "" : open.Count == 0 ? "aucun (prospection trop basse)"
-                : string.Join(", ", open.Take(4).Select(DropLabel));
-            var detail = official.Count == 0 ? "" : string.Join("\n", new[]
-            {
-                string.Join("\n", open.Select(d => DropLabel(d) + (d.Priced ? $" → {d.Value:N0} k" : " → sans prix"))),
-                string.Join("\n", official.Where(d => d.Blocked && !d.Conditional)
-                    .Select(d => $"🔒 {DropLabel(d)} (prospection {d.MinProspection} requise)")),
-                official.Any(d => d.Conditional)
-                    ? "Sous condition (non comptés) : " + string.Join(", ", official.Where(d => d.Conditional).Select(d => _data.GetItem(d.ItemId).Name))
-                    : "",
-            }.Where(s => s.Length > 0));
+            int blockedCount = official.Count(d => d.Blocked && !d.Conditional), conditional = official.Count(d => d.Conditional);
+            var officialText = official.Count == 0 ? "" : $"{open.Count} drop(s)"
+                + (open.Count > 0 ? $" · {DropLabel(open[0])}" : "")
+                + (blockedCount > 0 ? $" · {blockedCount} 🔒" : "") + (conditional > 0 ? $" · {conditional} sous condition" : "");
             double? dropValue = official.Count > 0 ? open.Sum(d => d.Value) : drops.Count > 0 ? drops.Sum(d => d.Value) : null;
 
             var archi = g.Monsters.FirstOrDefault(m => _data.GetMonster(m.Id).IsArchi);
             long? archiPrice = archi != null ? _pda?.Prices.GetValueOrDefault(PdaTracker.Key(archi.Id, PdaTracker.Archi))?.Price : null;
             return new HuntGroupRow(g.SpriteId, names, g.Monsters.Count, g.Monsters.Sum(m => m.Level),
-                g.Bonus > 0 ? $"+{g.Bonus} %" : "", xp, xpText, dropText, officialText, detail, dropValue,
+                g.Bonus > 0 ? $"+{g.Bonus} %" : "", xp, xpText, dropText, officialText,
+                official.Select(DetailRow).ToList(), _expandedGroups.Contains(g.SpriteId), dropValue,
                 archi != null, archi != null ? _data.GetMonster(archi.Id).Name : "", archiPrice);
         }).ToList();
         SetRows(HuntGroupGrid, groups);
