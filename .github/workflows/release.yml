@@ -4,7 +4,8 @@
 #   - si <Version> du .csproj est plus récente que la dernière Release (MAJEUR ou MINEUR augmenté à la main),
 #     c'est elle qui est publiée ;
 #   - sinon, le CORRECTIF de la dernière Release est augmenté automatiquement (1.4.0 -> 1.4.1).
-# La version calculée est passée à la compilation : aucun commit n'est poussé par ce workflow.
+# La version calculée est passée à la compilation, puis écrite dans le .csproj par un commit « [skip ci] »
+# (qui ne relance pas ce workflow) : après un git pull, la version locale est celle publiée.
 name: Release
 
 on:
@@ -65,3 +66,25 @@ jobs:
             --target "${{ github.sha }}" `
             --title $tag `
             --generate-notes
+
+      - name: Reporter la version dans le .csproj
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $csproj = "DofusBankManager/DofusBankManager.csproj"
+          # Repartir du main à jour : un autre commit a pu arriver pendant la construction
+          git fetch origin main
+          git checkout -B main origin/main
+          $current = [version](([xml](Get-Content $csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1)
+          # Jamais de retour en arrière (ex. MINEUR augmenté à la main entre-temps)
+          if ($current -ge [version]$version) { "Le .csproj est déjà en $current : rien à faire."; exit 0 }
+
+          $text = [IO.File]::ReadAllText($csproj)
+          $text = [regex]::Replace($text, '<Version>[^<]*</Version>', "<Version>$version</Version>")
+          [IO.File]::WriteAllText($csproj, $text, [Text.UTF8Encoding]::new($true))
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add $csproj
+          git commit -m "Version $version [skip ci]"
+          git push origin main

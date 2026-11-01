@@ -40,10 +40,12 @@ Le fichier est créé dans `dist\DofusBankManager-Setup.msi`. WiX Toolset est r�
 
 ### Publier une nouvelle version
 
-1. Augmentez `<Version>` dans [DofusBankManager.csproj](DofusBankManager/DofusBankManager.csproj), par exemple `1.2.0`.
-2. Committez et poussez sur `main`.
+Chaque push sur `main` publie une Release, via le workflow [release.yml](.github/workflows/release.yml) :
 
-C'est tout : le workflow [release.yml](.github/workflows/release.yml) construit l'installateur sur GitHub, crée le tag `v1.2.0` et publie la Release avec le `.msi`. Suivez son avancement dans l'onglet **Actions** du dépôt (environ 3 minutes). Si la Release de cette version existe déjà, il ne fait rien. On peut aussi le relancer à la main : Actions › Release › **Run workflow**.
+- **Correctif** : rien à faire. Si `<Version>` dans [DofusBankManager.csproj](DofusBankManager/DofusBankManager.csproj) n'est pas plus récente que la dernière Release, le dernier chiffre est augmenté automatiquement (`1.6.0` publiée → `1.6.1`).
+- **Nouvelle fonctionnalité ou changement incompatible** : augmentez vous-même `<Version>` (`1.7.0`, `2.0.0`) avant de pousser ; c'est elle qui est publiée.
+
+Le workflow construit l'installateur, crée le tag (ex. `v1.6.1`), publie la Release avec le `.msi`, puis **écrit la version publiée dans le `.csproj`** par un commit « Version 1.6.1 [skip ci] » (qui ne relance pas le workflow). **Faites donc `git pull` après chaque publication**, avant de committer à nouveau : sinon votre version locale reste l'ancienne et votre prochain push sera refusé. Suivez l'avancement dans l'onglet **Actions** du dépôt (environ 3 minutes). On peut aussi le relancer à la main : Actions › Release › **Run workflow**.
 
 Changez au moins le 3e chiffre (`1.2.0` → `1.2.1`) : Windows Installer ignore le 4e.
 
@@ -154,6 +156,8 @@ Le panneau de détail d'une recette affiche :
 - le **prix** de chaque ingrédient (prix unitaire HDV × quantité) ;
 - le **coût total** de la recette, le montant à acheter pour les ingrédients manquants, et la marge si le prix HDV de l'objet est connu. Un ingrédient sans prix relevé est estimé par le coût de sa propre recette, quand celui-ci est connu ;
 - les **sous-recettes** : un ingrédient fabricable (ex. Brochet farci pour le Kralano) se déplie avec la flèche ▸. Les quantités affichées sont celles qu'il faut pour toute la recette.
+
+**Rentabilité** : la liste des recettes affiche pour chacune le **coût** (prix HDV des ingrédients, ou coût de leur sous-recette), le prix de **vente** de l'objet à l'HDV, le **bénéfice** (vert s'il est positif, rouge à perte) et la **marge** en pourcentage du coût. Toutes ces colonnes se trient d'un clic. Dans « Afficher », **Rentables** ne garde que les recettes à bénéfice positif, et **Coût et vente connus** toutes celles dont le bénéfice est calculable ; les deux sont triées du plus gros bénéfice au plus petit. Le coût reste vide tant qu'un ingrédient n'a pas de prix : plus le groupe relève de prix, plus la liste se remplit.
 
 ### Onglet Brisage
 

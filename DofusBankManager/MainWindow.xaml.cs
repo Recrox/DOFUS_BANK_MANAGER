@@ -15,6 +15,16 @@ public sealed record RecipeRow(Recipe Recipe, string Name, int Level, string Typ
     public int Index { get; init; }
     /// <summary>Nombre de cases de la recette (ingrédients différents).</summary>
     public int Slots => Recipe.Ingredients.Count;
+
+    /// <summary>Coût de fabrication d'après les prix HDV (null si un ingrédient n'a pas de coût connu).</summary>
+    public double? Cost { get; init; }
+    /// <summary>Prix de vente unitaire de l'objet à l'HDV.</summary>
+    public double? Sell { get; init; }
+    public double? Profit => Sell - Cost;
+    /// <summary>Bénéfice rapporté au coût, en fraction (0,25 = +25 %).</summary>
+    public double? Margin => Cost > 0 ? Profit / Cost : null;
+    /// <summary>1 si rentable, -1 si à perte, 0 si inconnu : couleur de la colonne Bénéfice.</summary>
+    public int ProfitSign => Profit is { } p ? Math.Sign(p) : 0;
 }
 
 /// <summary>Ingrédient d'une recette. Children : ingrédients de sa propre recette (sous-recette), quantités totales.</summary>
@@ -512,7 +522,8 @@ public partial class MainWindow : Window
             var missingText = string.Join(", ", missing.Select(i =>
                 $"{i.Quantity - owned.GetValueOrDefault(i.ItemId)}× {_data.GetItem(i.ItemId).Name}"));
             return new RecipeRow(r, it.Name, it.Level, it.TypeName, string.Join(", ", r.Jobs),
-                craftable, missing.Count, missingText, r.Ingredients.Any(i => owned.ContainsKey(i.ItemId)));
+                craftable, missing.Count, missingText, r.Ingredients.Any(i => owned.ContainsKey(i.ItemId)))
+                { Cost = RecipeCost(r), Sell = UnitPrice(r.ResultId) };
         }).ToList();
 
         ApplyRecipeFilters();
@@ -537,6 +548,8 @@ public partial class MainWindow : Window
             1 => q.Where(r => r.MissingKinds <= 1),
             2 => q.Where(r => r.MissingKinds <= 2),
             3 => q.Where(r => r.UsesOwned),
+            5 => q.Where(r => r.Profit > 0),
+            6 => q.Where(r => r.Profit != null),
             _ => q
         };
         if (job != null && job != AllJobs) q = q.Where(r => r.Recipe.Jobs.Contains(job));
@@ -549,11 +562,15 @@ public partial class MainWindow : Window
             q = q.Where(r => Contains(r.Name, search) || Contains(r.Type, search)
                 || r.Recipe.Ingredients.Any(i => Contains(_data!.GetItem(i.ItemId).Name, search)));
 
-        var list = q.OrderByDescending(r => r.Craftable > 0).ThenBy(r => r.MissingKinds)
-            .ThenByDescending(r => r.Level).ThenBy(r => r.Name)
-            .Select((r, i) => r with { Index = i + 1 }).ToList();
+        // Modes « rentabilité » : les plus gros bénéfices en haut ; sinon les faisables d'abord
+        var ordered = ModeFilter.SelectedIndex >= 5
+            ? q.OrderByDescending(r => r.Profit).ThenBy(r => r.Name)
+            : q.OrderByDescending(r => r.Craftable > 0).ThenBy(r => r.MissingKinds).ThenByDescending(r => r.Level).ThenBy(r => r.Name);
+        var list = ordered.Select((r, i) => r with { Index = i + 1 }).ToList();
+        var selected = (RecipeGrid.SelectedItem as RecipeRow)?.Recipe;
         SetRows(RecipeGrid, list);
-        RecipeCount.Text = $"{list.Count} recette(s)";
+        RecipeGrid.SelectedItem = list.FirstOrDefault(r => r.Recipe == selected);
+        RecipeCount.Text = $"{list.Count} recette(s) · bénéfice calculable pour {_rows.Count(r => r.Profit != null)}";
     }
 
     bool _bankTypesUpdating;
@@ -612,9 +629,7 @@ public partial class MainWindow : Window
         _hdv.Changed += () =>
         {
             ApplyHdvFilters();
-            ApplyBankFilter();
-            ApplyBrisageFilters();
-            ApplyTtgFilters();
+            Refresh(); // coût, vente et bénéfice des recettes, puis banque, brisage, TTG…
             ShowTtgDetail();
             RecipeGrid_SelectionChanged(RecipeGrid, null!); // coûts du détail de la recette
         };
@@ -805,9 +820,12 @@ public partial class MainWindow : Window
         UnitPrice(itemId) ?? (depth < MaxRecipeDepth ? CraftCost(itemId, depth + 1) : null);
 
     /// <summary>Coût de fabrication d'une unité ; null si l'objet n'a pas de recette ou si un ingrédient n'a pas de coût connu.</summary>
-    double? CraftCost(int itemId, int depth = 0)
+    double? CraftCost(int itemId, int depth = 0) =>
+        _recipeByResult.TryGetValue(itemId, out var recipe) ? RecipeCost(recipe, depth) : null;
+
+    /// <summary>Coût d'une recette ; null si un ingrédient n'a pas de coût connu (prix HDV ou sous-recette).</summary>
+    double? RecipeCost(Recipe recipe, int depth = 0)
     {
-        if (!_recipeByResult.TryGetValue(itemId, out var recipe)) return null;
         double total = 0;
         foreach (var i in recipe.Ingredients)
         {

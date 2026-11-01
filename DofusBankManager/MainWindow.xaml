@@ -305,6 +305,10 @@
                             <ComboBoxItem Content="Il manque au plus 2 ingrédients"/>
                             <ComboBoxItem Content="Utilisant au moins 1 de mes ressources"/>
                             <ComboBoxItem Content="Toutes les recettes"/>
+                            <ComboBoxItem Content="Rentables (bénéfice positif)"
+                                          ToolTip="Coût et prix de vente connus, vente supérieure au coût. Triées par bénéfice."/>
+                            <ComboBoxItem Content="Coût et vente connus"
+                                          ToolTip="Toutes les recettes dont le bénéfice est calculable. Triées par bénéfice."/>
                         </ComboBox>
                         <TextBlock Text="Niveau" Style="{StaticResource Label}"/>
                         <TextBox x:Name="LevelMin" Width="58" Text="1" TextChanged="Filters_Changed" Padding="4,0" HorizontalContentAlignment="Center"/>
@@ -348,8 +352,21 @@
                             </DataGridTextColumn>
                             <DataGridTextColumn Header="Niv." Binding="{Binding Level}" Width="50"/>
                             <DataGridTextColumn Header="Cases" Binding="{Binding Slots}" Width="58"/>
-                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="130"/>
-                            <DataGridTextColumn Header="Métier" Binding="{Binding Jobs}" Width="170"/>
+                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="110">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Métier" Binding="{Binding Jobs}" Width="120">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        <Setter Property="ToolTip" Value="{Binding Jobs}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             <DataGridTextColumn Header="Faisable ×" Binding="{Binding Craftable}" Width="86">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
@@ -364,11 +381,58 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Header="Manquants" Binding="{Binding MissingText}" Width="220">
+                            <DataGridTextColumn Header="Manquants" Binding="{Binding MissingText}" Width="160">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Foreground" Value="{DynamicResource Missing}"/>
                                         <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        <Setter Property="ToolTip" Value="{Binding MissingText}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <!-- Rentabilité d'après les prix HDV : vide tant qu'un prix manque -->
+                            <DataGridTextColumn Header="Coût" Binding="{Binding Cost, StringFormat={}{0:N0}}" Width="90">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                        <Setter Property="ToolTip" Value="Prix HDV des ingrédients (ou coût de leur sous-recette). Vide si un ingrédient n'a pas de prix relevé."/>
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Vente" Binding="{Binding Sell, StringFormat={}{0:N0}}" Width="90">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                        <Setter Property="ToolTip" Value="Meilleur prix unitaire relevé à l'HDV pour l'objet fabriqué."/>
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Bénéfice" Binding="{Binding Profit, StringFormat={}{0:+#,0;-#,0;0}}" Width="96">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ProfitSign}" Value="1">
+                                                <Setter Property="Foreground" Value="{DynamicResource Ok}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ProfitSign}" Value="-1">
+                                                <Setter Property="Foreground" Value="{DynamicResource Missing}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Marge" Binding="{Binding Margin, StringFormat={}{0:+0%;-0%;0%}}" Width="70">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ProfitSign}" Value="1">
+                                                <Setter Property="Foreground" Value="{DynamicResource Ok}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ProfitSign}" Value="-1">
+                                                <Setter Property="Foreground" Value="{DynamicResource Missing}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
