@@ -54,6 +54,8 @@ public sealed class HuntCharacter(string stream, int number)
     public int? Level { get; set; }
     public int? Wisdom { get; set; }
     public int? Prospection { get; set; }
+    /// <summary>Initiative (onglet Fenêtres : ordre de jeu des personnages).</summary>
+    public int? Initiative { get; set; }
     /// <summary>Membres du groupe : identifiant -> (niveau, prospection). Vide hors groupe.</summary>
     public Dictionary<long, (int Level, int Prospection)> Party { get; } = new();
     public string MapId { get; set; } = "";
@@ -79,6 +81,9 @@ public sealed class HuntCharacter(string stream, int number)
     /// <summary>Niveau du groupe (somme des membres), sinon celui du personnage.</summary>
     public int? GroupLevel => Party.Count > 0 ? Party.Values.Sum(p => p.Level) : Level;
 }
+
+/// <summary>Évènements notifiés dans l'onglet Fenêtres.</summary>
+public enum GameNotice { Fight, Turn, Exchange, Party }
 
 sealed class HuntData
 {
@@ -149,6 +154,8 @@ public sealed class HuntTracker
     public event Action? Changed;
     public event Action<ArchiSighting>? ArchiSpotted;
     public event Action<string>? Log;
+    /// <summary>Évènement à notifier (onglet Fenêtres) pour le personnage d'une fenêtre.</summary>
+    public event Action<HuntCharacter, GameNotice>? Notice;
 
     public HuntTracker(GameData data, Func<long> savedCharacterId)
     {
@@ -304,9 +311,11 @@ public sealed class HuntTracker
         if (p.Length < 14) return;
         var c = Current;
         int? prospection = int.TryParse(p[8].Split(',')[0], out var pp) ? pp : null;
+        int? initiative = int.TryParse(p[7].Split(',')[0], out var ini) ? ini : null;
         int? wisdom = Total(p[13]);
-        if (prospection == c.Prospection && wisdom == c.Wisdom) return;
+        if (prospection == c.Prospection && wisdom == c.Wisdom && initiative == c.Initiative) return;
         c.Prospection = prospection ?? c.Prospection;
+        c.Initiative = initiative ?? c.Initiative;
         c.Wisdom = wisdom ?? c.Wisdom;
         Changed?.Invoke();
 
@@ -458,6 +467,21 @@ public sealed class HuntTracker
         c.InFight = true;
         c.UsedSpells.Clear();
         Changed?.Invoke();
+        Notice?.Invoke(c, GameNotice.Fight);
+    }
+
+    /// <summary>Demande d'échange : notifiée si elle est adressée au personnage de cette fenêtre (ou s'il est encore inconnu).</summary>
+    public void OnExchangeRequested(long target)
+    {
+        var c = Current;
+        if (c.Id == 0 || c.Id == target) Notice?.Invoke(c, GameNotice.Exchange);
+    }
+
+    /// <summary>Invitation de groupe : notifiée si le personnage de cette fenêtre est l'invité. Le nom n'est pas conservé.</summary>
+    public void OnPartyInvited(string invited)
+    {
+        var c = Current;
+        if (c.Name.Length == 0 || string.Equals(c.Name, invited, StringComparison.OrdinalIgnoreCase)) Notice?.Invoke(c, GameNotice.Party);
     }
 
     /// <summary>Économe : l'arme (corps-à-corps) compte comme un sort, sous l'identifiant 0 (sort « arme » du fichier de langue).</summary>
@@ -515,6 +539,7 @@ public sealed class HuntTracker
         c.LastMove = DateTime.Now;
         if (Pinned != null) Pinned = c.Stream;
         Changed?.Invoke();
+        Notice?.Invoke(c, GameNotice.Turn);
     }
 
     /// <summary>

@@ -287,3 +287,8 @@ input[type="range"] { -webkit-appearance: none; appearance: none; width: 110px; 
 input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
   background: var(--accent); border: 2px solid #fff; box-shadow: var(--accent-glow); transition: transform .12s; }
 input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+/* Fenêtres */
+input.hotkey { width: 150px; text-align: center; font-weight: 700; cursor: pointer; caret-color: transparent; }
+input.hotkey:focus { border-color: var(--accent-solid); box-shadow: var(--accent-glow); }
+.order { display: inline-grid; place-items: center; min-width: 26px; height: 26px; border-radius: 8px; background: var(--hover); font-weight: 800; }

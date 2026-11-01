@@ -5,7 +5,8 @@ namespace DofusBankManager.Hunt;
 
 /// <summary>
 /// Alerte archi-monstre : arpège cristallin montant (mi, si, mi, sol dièse), au timbre de cloche, synthétisé par
-/// l'application (aucun fichier son à distribuer). Le volume est appliqué aux échantillons (0 à 100).
+/// l'application (aucun fichier son à distribuer), et son plus court des notifications de l'onglet Fenêtres.
+/// Le volume est appliqué aux échantillons (0 à 100).
 /// </summary>
 public static class ArchiSound
 {
@@ -13,28 +14,36 @@ public static class ArchiSound
     /// <summary>Notes de l'arpège (Hz) et leur départ (s).</summary>
     static readonly (double Freq, double Start)[] Notes =
         [(659.25, 0), (987.77, 0.085), (1318.51, 0.17), (1661.22, 0.255), (2637.02, 0.34)];
+    /// <summary>Notification (combat, tour, échange, groupe) : deux notes, plus courte et plus douce.</summary>
+    static readonly (double Freq, double Start)[] NoticeNotes = [(1318.51, 0), (1975.53, 0.09)];
     /// <summary>Partiels d'une cloche : rapport de fréquence, amplitude, vitesse d'extinction.</summary>
     static readonly (double Ratio, double Amp, double Decay)[] Partials =
         [(1, 1, 3.2), (2, 0.32, 5), (3, 0.12, 7), (4.17, 0.07, 9), (5.43, 0.035, 12)];
 
     static SoundPlayer? _player; // gardé le temps de la lecture
 
-    public static void Play(int volume)
+    public static void Play(int volume) => Play(Wav(Notes, 1.6, volume));
+
+    /// <summary>Son des notifications de l'onglet Fenêtres, un peu moins fort que l'alerte archi-monstre.</summary>
+    public static void PlayNotice(int volume) => Play(Wav(NoticeNotes, 0.9, volume * 0.8));
+
+    static void Play(byte[]? wav)
     {
-        if (volume <= 0) return;
+        if (wav == null) return;
         _player?.Stop();
-        _player = new SoundPlayer(new MemoryStream(Wav(volume)));
+        _player = new SoundPlayer(new MemoryStream(wav));
         _player.Play();
     }
 
-    static byte[] Wav(int volume)
+    static byte[]? Wav((double Freq, double Start)[] notes, double seconds, double volume)
     {
-        int n = (int)(Rate * 1.6);
+        if (volume <= 0) return null;
+        int n = (int)(Rate * seconds);
         var samples = new double[n];
-        for (int k = 0; k < Notes.Length; k++)
+        for (int k = 0; k < notes.Length; k++)
         {
-            var (freq, start) = Notes[k];
-            double gain = k == Notes.Length - 1 ? 0.45 : 1; // dernière note : étincelle plus douce
+            var (freq, start) = notes[k];
+            double gain = k == notes.Length - 1 && notes.Length > 2 ? 0.45 : 1; // dernière note de l'arpège : étincelle plus douce
             for (int i = (int)(start * Rate); i < n; i++)
             {
                 double t = i / (double)Rate - start;

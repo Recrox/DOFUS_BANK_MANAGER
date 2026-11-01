@@ -75,6 +75,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         KeepColumnWidths(this);
+        InitOrganizer();
         _isAdmin = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
 
         _sniffer.Log += m => Ui(() => AddLog(m));

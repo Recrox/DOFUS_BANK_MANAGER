@@ -96,6 +96,7 @@ L'application **observe**. Elle n'agit jamais sur le jeu.
 
 - **Pas de clics, de touches ou de déplacements simulés**, pas de macro.
 - L'application **affiche** des informations. C'est toujours le joueur qui agit, à la main.
+- Gestion des fenêtres (onglet Fenêtres) : l'application peut **mettre au premier plan** une fenêtre du jeu, uniquement quand le joueur le demande (raccourci, clic sur une bulle ou un bouton), comme Alt+Tab. Elle ne lit que le titre des fenêtres et n'envoie **jamais** de touche, de clic ni de message à une fenêtre du jeu. Pas de « suivre le chef », pas de diffusion d'une touche à plusieurs fenêtres.
 - Une fonctionnalité qui ferait jouer à la place du joueur (crafter, déposer, vendre automatiquement) est **refusée**, même « juste pour tester ».
 
 C'est ce qui sépare un outil d'aide d'un bot. Les sanctions d'Ankama visent surtout cette catégorie.
@@ -112,7 +113,9 @@ Le trafic capturé contient des informations sensibles : nom de compte, ticket d
   - la sagesse et la prospection du personnage ;
   - la ligne du personnage en fin de combat (XP, kamas, objets) et les monstres affrontés ;
   - le niveau et la prospection des membres du groupe, jamais leur nom ;
-  - les sorts du personnage et ceux qu'il lance en combat (arme comprise) et son identifiant, jamais ceux des autres combattants.
+  - les sorts du personnage et ceux qu'il lance en combat (arme comprise) et son identifiant, jamais ceux des autres combattants ;
+  - l'initiative du personnage (As, onglet Fenêtres : ordre de jeu).
+- Pour les notifications de l'onglet Fenêtres sont aussi lus la demande d'échange (ERK : seul l'identifiant du destinataire, pour savoir si elle vise le personnage de la fenêtre) et l'invitation de groupe (PIK : seul le nom de l'invité, comparé à celui du personnage ; celui de l'invitant n'est pas lu). Rien n'en est gardé, journalisé ni affiché d'autre que « Demande d'échange » ou « Invitation de groupe ».
 
   Ces messages ne sont **jamais journalisés**, ni dans `packets.log` ni dans le journal de l'application, et rien n'en sort de la machine.
 - **Aucune donnée du joueur ne sort de la machine** : pas de télémétrie, pas d'envoi de la banque ni de l'inventaire. Les seules requêtes réseau autorisées sont :
@@ -146,7 +149,7 @@ Même passif, cet outil est un logiciel tiers. Les conditions d'utilisation d'An
 - **Interface** : deux styles (Classique, Moderne) et trois thèmes ([Themes/](DofusBankManager/Themes)), avec la police [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans), intégrée à l'application sous licence SIL Open Font License ([Fonts/OFL.txt](DofusBankManager/Fonts/OFL.txt)).
 - **Interface HTML** (bouton « HTML » en haut, retour par « Interface classique ») : une page HTML/CSS ([Web/](DofusBankManager/Web)) affichée par Microsoft Edge WebView2 (fourni avec Windows 11). Elle ne recalcule rien : elle affiche l'état de l'interface classique et lui renvoie les actions ([MainWindow.WebUi.cs](DofusBankManager/MainWindow.WebUi.cs)), donc les chiffres sont les mêmes. Tous les onglets y sont ; seuls les réglages du partage entre amis (onglet HDV) restent dans l'interface classique. La page est servie depuis l'exe (`https://app.local/`) : elle ne charge ni n'envoie rien vers l'extérieur (politique de sécurité de la page, navigation bloquée hors de l'application). Le choix est retenu dans `settings.json`.
 
-Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées, `settings.json` (style Classique ou Moderne, choisi par le bouton en haut, et thème Jour, Crépuscule ou Nuit), `fm.json` (historique FM), `fm_poids.json` (poids des stats), `hdv.json` (prix relevés), `pda.json` (prix des pierres d'âme par monstre), `marchands.json` (prix des cartes TTG chez les marchands), `chasse.json` (archi-monstres aperçus et combats), `monstres.json` (XP des monstres, facultatif : complète celle livrée avec l'application, voir l'onglet Combat) et `packets.log`.
+Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées, `settings.json` (style Classique ou Moderne, choisi par le bouton en haut, et thème Jour, Crépuscule ou Nuit), `fm.json` (historique FM), `fm_poids.json` (poids des stats), `hdv.json` (prix relevés), `pda.json` (prix des pierres d'âme par monstre), `marchands.json` (prix des cartes TTG chez les marchands), `chasse.json` (archi-monstres aperçus et combats), `organizer.json` (onglet Fenêtres : raccourcis, notifications, personnages exclus), `monstres.json` (XP des monstres, facultatif : complète celle livrée avec l'application, voir l'onglet Combat) et `packets.log`.
 
 ### Onglet HDV (hôtel de vente)
 
@@ -220,6 +223,16 @@ L'onglet affiche les **groupes de monstres de la map** où vous êtes (monstres,
 - **Économe** (challenge : chaque sort une seule fois par combat) : l'onglet affiche les sorts du personnage, et son arme (corps-à-corps, qui compte comme un sort), avec leurs icônes du jeu (fond, cadre et symbole lus dans le client installé, couleurs du fichier de langue des sorts) : normales tant qu'ils sont disponibles, grisées une fois lancés (comme un sort qu'on ne peut pas lancer), grisées et encadrées de rouge s'ils sont lancés deux fois (challenge raté). La liste repart de zéro à chaque entrée en combat (ou avec « Remettre à zéro »). Un échec critique compte comme un sort lancé. Les sorts du personnage sont envoyés par le jeu à la connexion, puis gardés d'une fois sur l'autre.
 
 Comme le reste, l'onglet ne fait qu'afficher : c'est toujours le joueur qui se déplace, qui choisit ses sorts et qui combat (règle 3).
+
+### Onglet Fenêtres (multi-compte)
+
+L'onglet liste les fenêtres Dofus Retro ouvertes (le personnage est lu dans le titre de la fenêtre) avec leur niveau, leur **initiative** et leur état (en combat ou non). Elles sont classées dans l'**ordre de jeu** : initiative décroissante, initiative inconnue en dernier. L'initiative est envoyée par le jeu à la connexion du personnage ou quand elle change (changer une pièce d'équipement suffit).
+
+- **Raccourcis** « Personnage suivant » et « Précédent » (par défaut Ctrl+Alt+→ et Ctrl+Alt+←, modifiables : cliquez dans le champ puis appuyez sur la combinaison) : ils marchent même quand le jeu a le focus et mettent au premier plan la fenêtre suivante dans l'ordre de jeu. Le bouton **Afficher** fait de même pour une fenêtre précise.
+- **Exclure** sort un personnage de la rotation (ex. un compte métier) ; le choix est retenu.
+- **Notifications** (chacune activable) : début de combat, début de votre tour, demande d'échange, invitation de groupe. Elles prennent la forme d'une **bulle** en bas à droite (elle ne prend pas le focus ; un clic affiche la fenêtre concernée), d'un **clignotement** dans la barre des tâches et d'un **son** (même volume que l'alerte archi-monstre). Rien n'est notifié pour la fenêtre déjà au premier plan.
+
+Comme le reste, l'onglet ne joue pas à votre place : il ne fait qu'afficher une fenêtre quand vous le demandez (règle 3).
 
 ### Onglet FM (forgemagie)
 

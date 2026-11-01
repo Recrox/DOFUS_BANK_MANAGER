@@ -46,6 +46,11 @@ public sealed record OwnedItem(int TemplateId, int Quantity, string Effects = ""
 ///   SL… / GJK / GA;300;… / GA;303;…   sorts du personnage, entrée en combat, sorts lancés et attaques à l'arme (partie Économe)
 ///   GA300{sort};{case} / GA303{case}  envoyés par le client : action du personnage de cette fenêtre (son identifiant)
 ///   GTS{id}|…                     début du tour d'un combattant (multi-compte : affiche le personnage qui joue)
+///
+/// Onglet Fenêtres (notifications ; lus, jamais journalisés ni conservés) :
+///   ERK{de}|{à}|{type}            demande d'échange : seul l'identifiant du destinataire est lu
+///   PIK{invitant}|{invité}        invitation de groupe : seul le nom de l'invité est lu (comparé au personnage de la
+///                                 fenêtre), celui de l'invitant est ignoré
 /// </summary>
 public sealed class DofusTracker
 {
@@ -116,6 +121,10 @@ public sealed class DofusTracker
     public event Action<long>? TurnStarted;
     /// <summary>Action de combat (message GA sans le préfixe) : "id;type;acteur;paramètres".</summary>
     public event Action<string>? GameAction;
+    /// <summary>Demande d'échange (message ERK) : identifiant du personnage à qui elle est adressée.</summary>
+    public event Action<long>? ExchangeRequested;
+    /// <summary>Invitation de groupe (message PIK) : nom du personnage invité (celui de l'invitant n'est pas lu).</summary>
+    public event Action<string>? PartyInvited;
 
     /// <summary>Codes des messages de forgemagie (fichier lang : INFOS_117, INFOS_183, INFOS_194).</summary>
     public static readonly int[] FmInfoCodes = [117, 183, 194];
@@ -184,6 +193,10 @@ public sealed class DofusTracker
         else if (msg.StartsWith("GJK")) FightJoined?.Invoke();
         else if (msg.StartsWith("GTS") && long.TryParse(msg[3..].Split('|')[0], out var fighter)) TurnStarted?.Invoke(fighter);
         else if (msg.StartsWith("GA") && (msg.Contains(';') || msg.StartsWith("GA303"))) GameAction?.Invoke(msg[2..]);
+        // Fenêtres : notifications d'échange et d'invitation de groupe
+        else if (msg.StartsWith("ERK") && msg[3..].Split('|') is [_, var to, ..] && long.TryParse(to, out var target))
+            ExchangeRequested?.Invoke(target);
+        else if (msg.StartsWith("PIK") && msg[3..].Split('|') is [_, var invited, ..]) PartyInvited?.Invoke(invited);
     }
 
     /// <summary>

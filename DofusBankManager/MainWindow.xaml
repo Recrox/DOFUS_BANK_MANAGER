@@ -1560,6 +1560,110 @@
                 </Grid>
             </TabItem>
 
+            <!-- Fenêtres : fenêtres du jeu, ordre de jeu par initiative, raccourcis et notifications -->
+            <TabItem Header="Fenêtres" Tag="{StaticResource TabFenetres}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <WrapPanel Margin="0,0,0,8">
+                        <TextBlock Text="Personnage suivant" Style="{StaticResource Label}" Margin="0,0,8,0"/>
+                        <TextBox x:Name="HotkeyNext" Width="150" IsReadOnly="True" HorizontalContentAlignment="Center"
+                                 PreviewKeyDown="Hotkey_PreviewKeyDown" TextChanged="Hotkey_Changed"
+                                 ToolTip="Cliquez ici puis appuyez sur la combinaison voulue (Suppr : aucun raccourci)"/>
+                        <TextBlock Text="Précédent" Style="{StaticResource Label}"/>
+                        <TextBox x:Name="HotkeyPrevious" Width="150" IsReadOnly="True" HorizontalContentAlignment="Center"
+                                 PreviewKeyDown="Hotkey_PreviewKeyDown" TextChanged="Hotkey_Changed"
+                                 ToolTip="Cliquez ici puis appuyez sur la combinaison voulue (Suppr : aucun raccourci)"/>
+                        <TextBlock Text="Les raccourcis marchent aussi en jeu ; ils ne font qu'afficher la fenêtre." Foreground="{DynamicResource TextMuted}"
+                                   VerticalAlignment="Center" Margin="14,0,0,0"/>
+                        <TextBlock x:Name="HotkeyStatus" Foreground="{DynamicResource Missing}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="14,0,0,0"/>
+                    </WrapPanel>
+
+                    <WrapPanel Grid.Row="1" Margin="0,0,0,8">
+                        <TextBlock Text="Notifier" Style="{StaticResource Label}" Margin="0,0,10,0"/>
+                        <CheckBox x:Name="NotifyFight" Content="Début de combat" Margin="0,0,14,0" Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"/>
+                        <CheckBox x:Name="NotifyTurn" Content="Début de votre tour" Margin="0,0,14,0" Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"/>
+                        <CheckBox x:Name="NotifyExchange" Content="Demande d'échange" Margin="0,0,14,0" Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"/>
+                        <CheckBox x:Name="NotifyParty" Content="Invitation de groupe" Margin="0,0,14,0" Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"/>
+                        <TextBlock Text="par" Style="{StaticResource Label}" Margin="8,0,10,0"/>
+                        <CheckBox x:Name="NotifyToast" Content="Bulle" Margin="0,0,14,0" Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"
+                                  ToolTip="En bas à droite de l'écran, sans prendre le focus ; un clic affiche la fenêtre"/>
+                        <CheckBox x:Name="NotifyFlash" Content="Clignotement" Margin="0,0,14,0" Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"
+                                  ToolTip="La fenêtre clignote dans la barre des tâches"/>
+                        <CheckBox x:Name="NotifySound" Content="Son" Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"
+                                  ToolTip="Même volume que l'alerte archi-monstre (onglet Combat)"/>
+                    </WrapPanel>
+
+                    <DockPanel Grid.Row="2" Margin="0,0,0,8">
+                        <TextBlock x:Name="OrganizerCount" DockPanel.Dock="Right" Foreground="{DynamicResource AccentSolid}" FontWeight="Bold"/>
+                        <TextBlock Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"
+                                   Text="Ordre de jeu : initiative décroissante. L'initiative est envoyée par le jeu à la connexion ou quand elle change (changer un équipement suffit). Excluez un personnage (compte métier) pour le sortir de la rotation."/>
+                    </DockPanel>
+
+                    <Grid Grid.Row="3">
+                        <DataGrid x:Name="OrganizerGrid">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Ordre" Binding="{Binding OrderText}" SortMemberPath="Order" Width="60" ElementStyle="{StaticResource IndexText}"/>
+                                <DataGridTextColumn Header="Personnage" Binding="{Binding Name}" Width="*" MinWidth="180">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Active}" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource AccentSolid}"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Niveau" Binding="{Binding Level}" Width="70"/>
+                                <DataGridTextColumn Header="Initiative" Binding="{Binding InitiativeText}" SortMemberPath="Initiative" Width="90">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentSolid}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="État" Binding="{Binding State}" Width="2*" MinWidth="160">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            <Setter Property="ToolTip" Value="{Binding State}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTemplateColumn Header="Exclure" Width="80" SortMemberPath="Excluded">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding Excluded, Mode=OneWay}" Click="OrganizerExclude_Click" HorizontalAlignment="Center"
+                                                      ToolTip="Sortir ce personnage de la rotation (ex. compte métier)"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="110" CanUserSort="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Content="Afficher" Click="OrganizerShow_Click" Padding="10,3" Margin="0"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock x:Name="OrganizerEmpty" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="40"
+                                   Foreground="{DynamicResource TextMuted}" FontSize="14"
+                                   Text="Aucune fenêtre Dofus Retro ouverte. Lancez le jeu : ses fenêtres apparaîtront ici."/>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
             <!-- Forgemagie : reliquat et historique des runes -->
             <TabItem Header="FM" Tag="{StaticResource TabFm}">
                 <Grid>

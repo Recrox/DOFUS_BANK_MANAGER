@@ -28,6 +28,8 @@ const TABS = [
   { key: 'combat', label: 'Combat', icon: '⌖', watch: ['HuntCharacterBox', 'HuntLevel', 'HuntGroupLevel', 'HuntWisdom', 'HuntProspection',
     'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
     'HuntSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid'] },
+  { key: 'windows', label: 'Fenêtres', icon: '⧉', watch: ['HotkeyNext', 'HotkeyPrevious', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
+    'NotifyExchange', 'NotifyParty', 'NotifyToast', 'NotifyFlash', 'NotifySound', 'OrganizerCount', 'OrganizerGrid'] },
   { key: 'fm', label: 'FM', icon: '✧', watch: ['FmItemCombo', 'FmItemName', 'FmReliquat', 'FmReliquatInput', 'FmStats',
     'FmHistoryGrid', 'FmEmpty'] },
   { key: 'journal', label: 'Journal', icon: '☰', watch: ['LogBox', 'LogPacketsBox'] },
@@ -394,6 +396,28 @@ Object.assign(views, {
       </div>`;
   },
 
+  windows() {
+    const hotkey = (name, label) => `<span class="lbl">${label}</span><input type="text" class="hotkey" readonly data-hotkey="${name}"
+      value="${esc(T(name))}" placeholder="aucun" title="Cliquez puis appuyez sur la combinaison voulue (Suppr : aucun raccourci)">`;
+    return `<div class="filters">${hotkey('HotkeyNext', 'Personnage suivant')}${hotkey('HotkeyPrevious', 'Précédent')}
+        <span class="muted">Les raccourcis marchent aussi en jeu ; ils ne font qu'afficher la fenêtre.</span>
+        ${T('HotkeyStatus') ? `<span class="bad strong">${esc(T('HotkeyStatus'))}</span>` : ''}</div>
+      <div class="filters"><span class="lbl">Notifier</span>${check('NotifyFight', 'Début de combat')}${check('NotifyTurn', 'Début de votre tour')}
+        ${check('NotifyExchange', "Demande d'échange")}${check('NotifyParty', 'Invitation de groupe')}
+        <span class="lbl">par</span>${check('NotifyToast', 'Bulle')}${check('NotifyFlash', 'Clignotement')}${check('NotifySound', 'Son')}</div>
+      <div class="filters"><span class="muted">Ordre de jeu : initiative décroissante. L'initiative est envoyée par le jeu à la connexion ou quand elle change.</span>
+        ${T('OrganizerCount') ? `<span class="chip accent">${esc(T('OrganizerCount'))}</span>` : ''}</div>
+      ${table('OrganizerGrid', [
+        { h: 'Ordre', k: 'Order', num: true, f: r => `<span class="order ${r.Excluded ? 'muted' : ''}">${esc(r.OrderText)}</span>` },
+        { h: 'Personnage', k: 'Name', f: r => `<span class="strong ${r.Active ? 'acc' : ''}">${esc(r.Name)}</span>${r.Active ? ' <span class="chip accent">au premier plan</span>' : ''}` },
+        { h: 'Niveau', k: 'Level', num: true },
+        { h: 'Initiative', k: 'Initiative', num: true, f: r => `<span class="acc strong">${esc(r.InitiativeText)}</span>` },
+        { h: 'État', k: 'State', f: r => `<span class="muted">${esc(r.State)}</span>` },
+        { h: 'Exclure', k: 'Excluded', f: r => `<label class="check"><input type="checkbox" ${r.Excluded ? 'checked' : ''} ${attrs({ act: 'row', grid: 'OrganizerGrid', i: r._i, handler: 'OrganizerExclude_Click' })}></label>` },
+        { h: '', f: r => `<button class="small primary" ${attrs({ act: 'row', grid: 'OrganizerGrid', i: r._i, handler: 'OrganizerShow_Click' })}>Afficher</button>` },
+      ], { select: false, empty: 'Aucune fenêtre Dofus Retro ouverte. Lancez le jeu : ses fenêtres apparaîtront ici.' })}`;
+  },
+
   journal() {
     return `<div class="filters">${check('LogPacketsBox', 'Journaliser les paquets (banque, inventaire, atelier : packets.log)')}</div>
       <pre class="log glass" id="log">${esc(T('LogBox'))}</pre>`;
@@ -477,6 +501,22 @@ document.addEventListener('click', e => {
       break;
     }
   }
+});
+
+// Raccourci : la combinaison pressée remplace la valeur (« Ctrl+Alt+Right ») ; Suppr ou Retour arrière l'efface
+const KEYS = { ArrowRight: 'Right', ArrowLeft: 'Left', ArrowUp: 'Up', ArrowDown: 'Down', ' ': 'Space', Escape: 'Escape',
+  PageUp: 'PageUp', PageDown: 'Next', Enter: 'Return' };
+document.addEventListener('keydown', e => {
+  const name = e.target.dataset?.hotkey;
+  if (!name) return;
+  e.preventDefault();
+  if (e.key === 'Delete' || e.key === 'Backspace') { post({ type: 'set', name, value: '' }); return; }
+  if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) return;
+  const key = KEYS[e.key] || (/^Digit\d$/.test(e.code) ? 'D' + e.code.slice(5) : /^Key[A-Z]$/.test(e.code) ? e.code.slice(3)
+    : /^F\d+$/.test(e.key) ? e.key : /^Numpad\d$/.test(e.code) ? 'NumPad' + e.code.slice(6) : null);
+  if (!key) return;
+  const mods = [e.ctrlKey && 'Ctrl', e.altKey && 'Alt', e.shiftKey && 'Shift', e.metaKey && 'Win'].filter(Boolean);
+  post({ type: 'set', name, value: mods.concat(key).join('+') });
 });
 
 // Saisie : envoyée après une courte pause ; listes et cases : tout de suite
