@@ -15,6 +15,8 @@
 
   <ItemGroup>
     <Resource Include="app.ico" />
+    <!-- Police Plus Jakarta Sans (SIL Open Font License, voir Fonts/OFL.txt) -->
+    <Resource Include="Fonts\*.ttf;Fonts\OFL.txt" />
     <!-- XP des monstres (grade 1) -->
     <EmbeddedResource Include="Data\monstres-xp.json" LogicalName="DofusBankManager.Data.monstres-xp.json" />
   </ItemGroup>

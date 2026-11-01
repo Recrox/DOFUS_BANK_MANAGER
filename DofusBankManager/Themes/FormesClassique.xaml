@@ -6,7 +6,8 @@
     <CornerRadius x:Key="RadiusMd">10</CornerRadius>
     <CornerRadius x:Key="RadiusSm">8</CornerRadius>
     <CornerRadius x:Key="RadiusXs">6</CornerRadius>
-    <FontFamily x:Key="AppFont">Segoe UI</FontFamily>
+    <!-- Plus Jakarta Sans, livrée avec l'application (Fonts/) -->
+    <FontFamily x:Key="AppFont">pack://application:,,,/Fonts/#Plus Jakarta Sans</FontFamily>
     <!-- Pas d'ombre ni de lueur -->
     <x:Null x:Key="CardShadow"/>
     <x:Null x:Key="AccentGlow"/>
