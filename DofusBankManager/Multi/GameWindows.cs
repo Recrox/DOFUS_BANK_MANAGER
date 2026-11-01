@@ -59,6 +59,8 @@ public static partial class GameWindows
         AttachThreadInput(self, target, true);
         try { BringWindowToTop(h); SetForegroundWindow(h); }
         finally { AttachThreadInput(self, target, false); }
+        // Dernier recours (Windows refuse parfois quand l'application n'est pas active) : bascule comme Alt+Tab
+        if (GetForegroundWindow() != h) SwitchToThisWindow(h, true);
     }
 
     /// <summary>Fait clignoter la fenêtre dans la barre des tâches jusqu'à ce qu'elle soit affichée.</summary>
@@ -91,5 +93,6 @@ public static partial class GameWindows
     [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int cmd);
     [DllImport("user32.dll")] static extern bool AttachThreadInput(uint from, uint to, bool attach);
     [DllImport("user32.dll")] static extern bool FlashWindowEx(ref FLASHWINFO info);
+    [DllImport("user32.dll")] static extern void SwitchToThisWindow(IntPtr h, bool altTab);
     [DllImport("kernel32.dll")] static extern uint GetCurrentThreadId();
 }

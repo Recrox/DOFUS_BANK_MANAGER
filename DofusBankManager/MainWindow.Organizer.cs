@@ -43,6 +43,7 @@ public partial class MainWindow
         NotifyToast.IsChecked = _organizer.ShowToast;
         NotifyFlash.IsChecked = _organizer.FlashTaskbar;
         NotifySound.IsChecked = _organizer.PlaySound;
+        NotifyAutoSwitch.IsChecked = _organizer.AutoSwitch;
         HotkeyNext.Text = _organizer.NextKey;
         HotkeyPrevious.Text = _organizer.PreviousKey;
         HotkeyMain.Text = _organizer.MainKey;
@@ -267,6 +268,7 @@ public partial class MainWindow
         _organizer.ShowToast = NotifyToast.IsChecked == true;
         _organizer.FlashTaskbar = NotifyFlash.IsChecked == true;
         _organizer.PlaySound = NotifySound.IsChecked == true;
+        _organizer.AutoSwitch = NotifyAutoSwitch.IsChecked == true;
         _organizer.Save();
     }
 
@@ -292,12 +294,36 @@ public partial class MainWindow
     }
 
     /// <summary>Notification d'un évènement de jeu, sauf si sa fenêtre est déjà au premier plan.</summary>
-    void OnGameNotice(HuntCharacter c, GameNotice notice)
+    /// <summary>Dernière notification (fenêtre, type, heure) : une invitation vue par deux de vos fenêtres n'est notifiée qu'une fois.</summary>
+    (IntPtr Window, GameNotice Notice, DateTime Time) _lastNotice;
+
+    void OnGameNotice(HuntCharacter c, GameNotice notice, string? target)
     {
+        // Personnage concerné : celui que nomme le message (l'invité), sinon celui de la connexion
+        var name = target ?? c.Name;
+        var windows = _windows.Count > 0 ? _windows : GameWindows.Find();
+        var window = windows.FirstOrDefault(w => name.Length > 0 && string.Equals(w.Name, name, StringComparison.OrdinalIgnoreCase));
+        // Invitation lancée par un de vos comptes vers un joueur qui n'est pas à vous : rien à signaler
+        if (window == null && target != null && !string.Equals(c.Name, target, StringComparison.OrdinalIgnoreCase)) return;
+        if (window != null && _lastNotice.Window == window.Handle && _lastNotice.Notice == notice
+            && DateTime.Now - _lastNotice.Time < TimeSpan.FromSeconds(3)) return;
+        if (window != null) _lastNotice = (window.Handle, notice, DateTime.Now);
+
+        // Invitation de groupe ou d'échange : la fenêtre de l'invité passe au premier plan (il n'a plus qu'à accepter)
+        if (_organizer.AutoSwitch && notice is GameNotice.Party or GameNotice.Exchange && window != null
+            && window.Handle != GameWindows.Foreground)
+        {
+            GameWindows.Focus(window.Handle);
+            RefreshWindows();
+        }
+
         if (!_organizer.Notify(notice)) return;
-        var window = (_windows.Count > 0 ? _windows : GameWindows.Find())
-            .FirstOrDefault(w => string.Equals(w.Name, c.Name, StringComparison.OrdinalIgnoreCase));
-        if (window != null && window.Handle == GameWindows.Foreground) return;
+        if (window != null && window.Handle == GameWindows.Foreground)
+        {
+            // Déjà sous les yeux (ou affichée à l'instant) : seulement le son, pour attirer l'attention
+            if (notice is GameNotice.Party or GameNotice.Exchange) PlayNoticeSound();
+            return;
+        }
 
         var text = notice switch
         {
@@ -307,13 +333,17 @@ public partial class MainWindow
             _ => "Invitation de groupe",
         };
         if (_organizer.ShowToast)
-            NoticeToast.Show(c.Label, text, window != null ? () => GameWindows.Focus(window.Handle) : null);
+            NoticeToast.Show(window?.Name is { Length: > 0 } n ? n : c.Label, text,
+                window != null ? () => GameWindows.Focus(window.Handle) : null);
         if (_organizer.FlashTaskbar && window != null) GameWindows.Flash(window.Handle);
-        // Plusieurs fenêtres entrent souvent en combat ensemble : un seul son
-        if (_organizer.PlaySound && DateTime.Now - _lastNoticeSound > TimeSpan.FromSeconds(1.5))
-        {
-            _lastNoticeSound = DateTime.Now;
-            try { ArchiSound.PlayNotice(_hunt?.SoundVolume ?? 70); } catch { }
-        }
+        PlayNoticeSound();
+    }
+
+    /// <summary>Plusieurs fenêtres entrent souvent en combat ensemble : un seul son.</summary>
+    void PlayNoticeSound()
+    {
+        if (!_organizer.PlaySound || DateTime.Now - _lastNoticeSound < TimeSpan.FromSeconds(1.5)) return;
+        _lastNoticeSound = DateTime.Now;
+        try { ArchiSound.PlayNotice(_hunt?.SoundVolume ?? 70); } catch { }
     }
 }

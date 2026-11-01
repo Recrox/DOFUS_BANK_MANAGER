@@ -29,7 +29,7 @@ const TABS = [
     'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
     'HuntSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid'] },
   { key: 'windows', label: 'Switcheur', icon: '⧉', watch: ['HotkeyNext', 'HotkeyPrevious', 'HotkeyMain', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
-    'NotifyExchange', 'NotifyParty', 'NotifyToast', 'NotifyFlash', 'NotifySound', 'OrganizerCount', 'OrganizerGrid', 'OverlayEnabled', 'OverlayEconome', 'OverlayGroups',
+    'NotifyExchange', 'NotifyParty', 'NotifyToast', 'NotifyFlash', 'NotifySound', 'NotifyAutoSwitch', 'OrganizerCount', 'OrganizerGrid', 'OverlayEnabled', 'OverlayEconome', 'OverlayGroups',
     'OverlayRotation', 'OverlayOpacity', 'OverlayOpacityText', 'OverlayMove', 'OrganizerSaveOrder', 'OrganizerResetOrder',
     'OrganizerOrderStatus'] },
   { key: 'fm', label: 'FM', icon: '✧', watch: ['FmItemCombo', 'FmItemName', 'FmReliquat', 'FmReliquatInput', 'FmStats',
@@ -413,7 +413,7 @@ Object.assign(views, {
         ${btn('OverlayMove', 'Déplacer', 'small')}</div>
       <div class="filters"><span class="lbl">Notifier</span>${check('NotifyFight', 'Début de combat')}${check('NotifyTurn', 'Début de votre tour')}
         ${check('NotifyExchange', "Demande d'échange")}${check('NotifyParty', 'Invitation de groupe')}
-        <span class="lbl">par</span>${check('NotifyToast', 'Bulle')}${check('NotifyFlash', 'Clignotement')}${check('NotifySound', 'Son')}</div>
+        <span class="lbl">par</span>${check('NotifyToast', 'Bulle')}${check('NotifyFlash', 'Clignotement')}${check('NotifySound', 'Son')}${check('NotifyAutoSwitch', 'Basculer sur la fenêtre invitée')}</div>
       <div class="filters"><span class="muted">Ordre de jeu : par initiative, ou à votre goût en glissant-déposant les lignes.</span>
         <span class="strong" style="color:${S.OrganizerOrderStatus?.c || 'inherit'}">${esc(T('OrganizerOrderStatus'))}</span>
         ${btn('OrganizerSaveOrder', "Enregistrer l'ordre", 'small primary')}${btn('OrganizerResetOrder', 'Ordre par initiative', 'small')}

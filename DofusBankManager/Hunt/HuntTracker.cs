@@ -154,8 +154,11 @@ public sealed class HuntTracker
     public event Action? Changed;
     public event Action<ArchiSighting>? ArchiSpotted;
     public event Action<string>? Log;
-    /// <summary>Évènement à notifier (onglet Switcheur) pour le personnage d'une fenêtre.</summary>
-    public event Action<HuntCharacter, GameNotice>? Notice;
+    /// <summary>
+    /// Évènement à notifier (onglet Switcheur) : personnage de la connexion, type, et nom du personnage concerné quand le
+    /// message le donne (invitation de groupe : l'invité), pour retrouver sa fenêtre même si son nom n'est pas encore connu.
+    /// </summary>
+    public event Action<HuntCharacter, GameNotice, string?>? Notice;
 
     public HuntTracker(GameData data, Func<long> savedCharacterId)
     {
@@ -467,22 +470,21 @@ public sealed class HuntTracker
         c.InFight = true;
         c.UsedSpells.Clear();
         Changed?.Invoke();
-        Notice?.Invoke(c, GameNotice.Fight);
+        Notice?.Invoke(c, GameNotice.Fight, null);
     }
 
     /// <summary>Demande d'échange : notifiée si elle est adressée au personnage de cette fenêtre (ou s'il est encore inconnu).</summary>
     public void OnExchangeRequested(long target)
     {
         var c = Current;
-        if (c.Id == 0 || c.Id == target) Notice?.Invoke(c, GameNotice.Exchange);
+        if (c.Id == 0 || c.Id == target) Notice?.Invoke(c, GameNotice.Exchange, null);
     }
 
-    /// <summary>Invitation de groupe : notifiée si le personnage de cette fenêtre est l'invité. Le nom n'est pas conservé.</summary>
-    public void OnPartyInvited(string invited)
-    {
-        var c = Current;
-        if (c.Name.Length == 0 || string.Equals(c.Name, invited, StringComparison.OrdinalIgnoreCase)) Notice?.Invoke(c, GameNotice.Party);
-    }
+    /// <summary>
+    /// Invitation de groupe, vue sur la fenêtre de l'invité (et sur celle de l'invitant si c'est un de vos comptes) : le nom
+    /// de l'invité sert seulement à trouver sa fenêtre ; il n'est pas conservé.
+    /// </summary>
+    public void OnPartyInvited(string invited) => Notice?.Invoke(Current, GameNotice.Party, invited);
 
     /// <summary>Économe : l'arme (corps-à-corps) compte comme un sort, sous l'identifiant 0 (sort « arme » du fichier de langue).</summary>
     public const int Weapon = 0;
@@ -539,7 +541,7 @@ public sealed class HuntTracker
         c.LastMove = DateTime.Now;
         if (Pinned != null) Pinned = c.Stream;
         Changed?.Invoke();
-        Notice?.Invoke(c, GameNotice.Turn);
+        Notice?.Invoke(c, GameNotice.Turn, null);
     }
 
     /// <summary>

@@ -27,6 +27,8 @@ public sealed class OrganizerSettings
     public bool ShowToast { get; set; } = true;
     public bool FlashTaskbar { get; set; } = true;
     public bool PlaySound { get; set; } = true;
+    /// <summary>Invitation de groupe ou demande d'échange : la fenêtre du personnage concerné passe au premier plan.</summary>
+    public bool AutoSwitch { get; set; } = true;
 
     /// <summary>Superposition en jeu : activée, blocs affichés, opacité et position (null : en haut à droite).</summary>
     public bool OverlayEnabled { get; set; }

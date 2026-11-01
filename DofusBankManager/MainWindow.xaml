@@ -1601,6 +1601,9 @@
                                   ToolTip="La fenêtre clignote dans la barre des tâches"/>
                         <CheckBox x:Name="NotifySound" Content="Son" Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"
                                   ToolTip="Même volume que l'alerte archi-monstre (onglet Combat)"/>
+                        <CheckBox x:Name="NotifyAutoSwitch" Content="Basculer sur la fenêtre invitée" Margin="18,0,0,0" FontWeight="SemiBold"
+                                  Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"
+                                  ToolTip="Invitation de groupe ou demande d'échange : la fenêtre du personnage concerné passe au premier plan. Vous acceptez toujours vous-même."/>
                     </WrapPanel>
 
                     <DockPanel Grid.Row="2" Margin="0,0,0,8">
