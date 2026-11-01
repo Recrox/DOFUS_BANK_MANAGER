@@ -96,6 +96,12 @@ public partial class MainWindow : Window
                 return;
             }
             UpdateTitle.Text = $"Nouvelle version {_update.Latest} disponible (vous avez la {UpdateChecker.CurrentText})";
+            if (_update.InstallerUrl == null)
+            {
+                // Release sans installateur joint : il ne reste que la page GitHub
+                UpdateText.Text = "L'installateur n'est pas joint à cette version : téléchargez-le depuis la page GitHub.";
+                UpdateActionButton.Content = "Ouvrir la page";
+            }
             UpdateBanner.Visibility = Visibility.Visible;
             AddLog($"Mise à jour disponible : {_update.Latest} ({_update.PageUrl}).");
         }
@@ -105,13 +111,77 @@ public partial class MainWindow : Window
         }
     }
 
-    void UpdateDownload_Click(object sender, RoutedEventArgs e)
+    /// <summary>Installateur téléchargé et vérifié, prêt à être lancé.</summary>
+    string? _installerPath;
+    CancellationTokenSource? _download;
+
+    async void UpdateAction_Click(object sender, RoutedEventArgs e)
+    {
+        if (_update == null) return;
+        if (_update.InstallerUrl == null) { UpdateNotes_Click(sender, e); return; }
+
+        if (_installerPath != null)
+        {
+            // L'installateur remplace l'application : elle doit être fermée pendant l'installation
+            try
+            {
+                UpdateChecker.StartInstaller(_installerPath);
+                AddLog($"Installation de la version {_update.Latest} lancée.");
+                Application.Current.Shutdown();
+            }
+            catch (Exception ex) { UpdateText.Text = "Impossible de lancer l'installateur : " + ex.Message; }
+            return;
+        }
+
+        _download = new CancellationTokenSource();
+        UpdateActionButton.IsEnabled = false;
+        UpdateLaterButton.Content = "Annuler";
+        UpdateProgress.Visibility = Visibility.Visible;
+        UpdateText.Text = "Téléchargement de l'installateur…";
+        var progress = new Progress<double>(p =>
+        {
+            UpdateProgressFill.Width = UpdateProgress.ActualWidth * p;
+            UpdateText.Text = $"Téléchargement de l'installateur… {p:P0}";
+        });
+        try
+        {
+            _installerPath = await UpdateChecker.DownloadAsync(_update, progress, _download.Token);
+            UpdateProgressFill.Width = UpdateProgress.ActualWidth;
+            UpdateText.Text = "Téléchargement terminé et vérifié. L'application se fermera pendant l'installation ; "
+                + "à la fin, laissez cochée « Lancer Dofus Bank Manager » pour la rouvrir.";
+            UpdateActionButton.Content = "Installer maintenant";
+            AddLog($"Installateur {_update.Latest} téléchargé : {_installerPath}");
+        }
+        catch (OperationCanceledException)
+        {
+            UpdateText.Text = "Téléchargement annulé.";
+            UpdateProgress.Visibility = Visibility.Collapsed;
+        }
+        catch (Exception ex)
+        {
+            UpdateText.Text = "Téléchargement impossible : " + ex.Message + " Réessayez, ou passez par « Nouveautés » pour le télécharger depuis GitHub.";
+            UpdateProgress.Visibility = Visibility.Collapsed;
+            AddLog("Téléchargement de la mise à jour impossible : " + ex.Message);
+        }
+        finally
+        {
+            _download = null;
+            UpdateActionButton.IsEnabled = true;
+            UpdateLaterButton.Content = "Plus tard";
+        }
+    }
+
+    void UpdateNotes_Click(object sender, RoutedEventArgs e)
     {
         try { UpdateChecker.OpenInBrowser(_update?.PageUrl ?? UpdateChecker.ReleasesPage); }
         catch (Exception ex) { AddLog("Ouverture du navigateur impossible : " + ex.Message); }
     }
 
-    void UpdateLater_Click(object sender, RoutedEventArgs e) => UpdateBanner.Visibility = Visibility.Collapsed;
+    void UpdateLater_Click(object sender, RoutedEventArgs e)
+    {
+        if (_download != null) { _download.Cancel(); return; } // « Annuler » pendant le téléchargement
+        UpdateBanner.Visibility = Visibility.Collapsed;
+    }
 
     // --- Forgemagie ---
 

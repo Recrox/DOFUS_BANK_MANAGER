@@ -185,12 +185,21 @@
         <Border x:Name="UpdateBanner" Grid.Row="1" Visibility="Collapsed" Background="{DynamicResource Surface2}"
                 BorderBrush="{DynamicResource AccentBorder}" BorderThickness="1" CornerRadius="12" Padding="14,10" Margin="0,0,0,12">
             <DockPanel>
-                <Button DockPanel.Dock="Right" Content="Plus tard" Click="UpdateLater_Click"/>
-                <Button DockPanel.Dock="Right" Content="Télécharger la mise à jour" Click="UpdateDownload_Click" Style="{StaticResource AccentButton}"/>
+                <Button x:Name="UpdateLaterButton" DockPanel.Dock="Right" Content="Plus tard" Click="UpdateLater_Click"/>
+                <Button x:Name="UpdateActionButton" DockPanel.Dock="Right" Content="Télécharger et installer" Click="UpdateAction_Click"
+                        Style="{StaticResource AccentButton}"/>
+                <Button DockPanel.Dock="Right" Content="Nouveautés" Click="UpdateNotes_Click"
+                        ToolTip="Ouvre la page de cette version sur GitHub"/>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock x:Name="UpdateTitle" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource AccentSolid}"/>
-                    <TextBlock Text="Téléchargez le nouvel installateur et lancez-le : il remplace l'ancienne version en gardant vos banques."
-                               Foreground="{DynamicResource TextMuted}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="UpdateText" Foreground="{DynamicResource TextMuted}" Margin="0,2,0,0" TextWrapping="Wrap"
+                               Text="L'application télécharge l'installateur puis le lance : il remplace cette version en gardant vos banques et vos prix."/>
+                    <!-- Progression du téléchargement : piste et remplissage, aux couleurs du thème -->
+                    <Grid x:Name="UpdateProgress" Height="6" Margin="0,8,12,0" Visibility="Collapsed">
+                        <Border Background="{DynamicResource InputBg}" CornerRadius="3"/>
+                        <Border x:Name="UpdateProgressFill" Background="{DynamicResource AccentSolid}" CornerRadius="3"
+                                HorizontalAlignment="Left" Width="0"/>
+                    </Grid>
                 </StackPanel>
             </DockPanel>
         </Border>
