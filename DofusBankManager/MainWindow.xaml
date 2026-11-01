@@ -1026,6 +1026,169 @@
                 </Grid>
             </TabItem>
 
+            <!-- Chasse : monstres de la map, archi-monstres aperçus, rentabilité des combats -->
+            <TabItem Header="Chasse" Tag="{StaticResource TabChasse}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="0.4*" MinWidth="300" MaxWidth="460"/>
+                    </Grid.ColumnDefinitions>
+
+                    <WrapPanel Grid.ColumnSpan="2" Margin="0,0,0,10">
+                        <TextBlock Text="Sagesse" Style="{StaticResource Label}" Margin="0,0,6,0"/>
+                        <TextBlock x:Name="HuntWisdom" Text="?" FontWeight="Bold" VerticalAlignment="Center"
+                                   ToolTip="Lue dans vos caractéristiques (ouvrez la fiche du personnage ou changez d'équipement si elle reste inconnue)"/>
+                        <TextBlock Text="Prospection" Style="{StaticResource Label}" Margin="18,0,6,0"/>
+                        <TextBlock x:Name="HuntProspection" Text="?" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Text="PP du groupe" Style="{StaticResource Label}" Margin="18,0,6,0"/>
+                        <TextBlock x:Name="HuntGroupProspection" Text="?" FontWeight="Bold" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource AccentSolid}"/>
+                        <CheckBox x:Name="HuntSound" Content="Alerte sonore archi-monstre" VerticalAlignment="Center" Margin="18,0,0,0"
+                                  IsChecked="True" Checked="HuntSound_Changed" Unchecked="HuntSound_Changed"/>
+                        <Button Content="Tester le son" Click="HuntTestSound_Click" Margin="8,0,0,0" Padding="10,3"/>
+                        <Button Content="Nouvelle session" Click="HuntNewSession_Click" Margin="8,0,0,0" Padding="10,3"
+                                ToolTip="Remet à zéro le calcul de rentabilité (les combats restent dans l'historique et servent aux estimations)"/>
+                        <TextBlock x:Name="HuntStatus" VerticalAlignment="Center" Margin="14,0,0,0" FontWeight="Bold"
+                                   Foreground="{DynamicResource Missing}"/>
+                    </WrapPanel>
+
+                    <!-- Gauche : la map, puis la rentabilité -->
+                    <Grid Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock x:Name="HuntMap" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,6"/>
+                        <Grid Grid.Row="1">
+                            <DataGrid x:Name="HuntGroupGrid">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Monstres (niveaux)" Binding="{Binding Monsters}" Width="*" MinWidth="200">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="Niv. total" Binding="{Binding TotalLevel}" Width="78"/>
+                                    <DataGridTextColumn Header="Étoiles" Binding="{Binding Stars}" Width="70"/>
+                                    <DataGridTextColumn Header="XP estimée" Binding="{Binding Xp, StringFormat={}{0:N0}}" Width="100"/>
+                                    <DataGridTextColumn Header="Drops observés" Binding="{Binding Drops}" Width="200">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                <Setter Property="ToolTip" Value="{Binding Drops}"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="Drops estimés" Binding="{Binding DropValue, StringFormat={}{0:N0}}" Width="104"/>
+                                    <DataGridTextColumn Header="Archi" Binding="{Binding Archi}" Width="130">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource Missing}"/>
+                                                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="Prix pierre" Binding="{Binding ArchiPrice, StringFormat={}{0:N0}}" Width="100"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <TextBlock x:Name="HuntEmpty" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="40"
+                                       Foreground="{DynamicResource TextMuted}" FontSize="14"
+                                       Text="Aucun groupe de monstres sur la map. Changez de map en jeu : les groupes présents s'afficheront ici."/>
+                        </Grid>
+
+                        <Border Grid.Row="2" Margin="0,10,0,0" Background="{DynamicResource Surface2}" BorderBrush="{DynamicResource Border}"
+                                BorderThickness="1" CornerRadius="12" Padding="14,10">
+                            <StackPanel>
+                                <TextBlock Text="Rentabilité de la session" FontWeight="Bold" Foreground="{DynamicResource AccentSolid}"/>
+                                <TextBlock x:Name="HuntSession" TextWrapping="Wrap" Foreground="{DynamicResource TextMuted}" Margin="0,4,0,6"/>
+                                <DataGrid x:Name="HuntProjection" MaxHeight="150" CanUserSortColumns="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Sur" Binding="{Binding Span}" Width="80"/>
+                                        <DataGridTextColumn Header="XP" Binding="{Binding Xp, StringFormat={}{0:N0}}" Width="*" MinWidth="100"/>
+                                        <DataGridTextColumn Header="Kamas" Binding="{Binding Kamas, StringFormat={}{0:N0}}" Width="*" MinWidth="100"/>
+                                        <DataGridTextColumn Header="Drops (HDV)" Binding="{Binding Drops, StringFormat={}{0:N0}}" Width="*" MinWidth="100"/>
+                                        <DataGridTextColumn Header="Total kamas" Binding="{Binding Total, StringFormat={}{0:N0}}" Width="*" MinWidth="110">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource Ok}"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <TextBlock x:Name="HuntLearned" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource TextMuted}" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Droite : archi-monstres aperçus et derniers combats -->
+                    <Grid Grid.Row="1" Grid.Column="1" Margin="10,0,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <DockPanel Margin="0,0,0,6">
+                            <Button DockPanel.Dock="Right" Content="Vider" Click="HuntClearArchis_Click" Padding="10,2"/>
+                            <TextBlock Text="Derniers archi-monstres vus" FontWeight="Bold" Foreground="{DynamicResource AccentSolid}"
+                                       VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <DataGrid x:Name="HuntArchiGrid" Grid.Row="1">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Vu" Binding="{Binding Time}" Width="90" SortMemberPath="TimeSort"/>
+                                <DataGridTextColumn Header="Archi-monstre" Binding="{Binding Name}" Width="*" MinWidth="130">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            <Setter Property="ToolTip" Value="{Binding Map, StringFormat=Map {0}}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Niv." Binding="{Binding Level}" Width="50"/>
+                                <DataGridTextColumn Header="Prix pierre" Binding="{Binding Price, StringFormat={}{0:N0}}" Width="96">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentSolid}"/>
+                                            <Setter Property="ToolTip" Value="{Binding PriceSeen, StringFormat=Relevé {0}}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock Grid.Row="2" Text="Combats de la session" FontWeight="Bold" Foreground="{DynamicResource AccentSolid}"
+                                   Margin="0,12,0,6"/>
+                        <DataGrid x:Name="HuntFightGrid" Grid.Row="3">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Heure" Binding="{Binding Time}" Width="62" SortMemberPath="TimeSort"/>
+                                <DataGridTextColumn Header="Monstres" Binding="{Binding Monsters}" Width="*" MinWidth="120">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            <Setter Property="ToolTip" Value="{Binding Drops}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="XP" Binding="{Binding Xp, StringFormat={}{0:N0}}" Width="80"/>
+                                <DataGridTextColumn Header="Kamas" Binding="{Binding Kamas, StringFormat={}{0:N0}}" Width="72"/>
+                                <DataGridTextColumn Header="Drops" Binding="{Binding DropValue, StringFormat={}{0:N0}}" Width="80"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
             <!-- Forgemagie : reliquat et historique des runes -->
             <TabItem Header="FM" Tag="{StaticResource TabFm}">
                 <Grid>

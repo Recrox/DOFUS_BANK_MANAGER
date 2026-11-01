@@ -7,6 +7,8 @@ namespace DofusBankManager.Net;
 public sealed class Snapshot
 {
     public string Character { get; set; } = "";
+    /// <summary>Identifiant du personnage en jeu : sert à retrouver sa ligne dans les résultats de combat (GE).</summary>
+    public long CharacterId { get; set; }
     public long BankKamas { get; set; }
     public DateTime BankUpdatedAt { get; set; }
     /// <summary>uid de l'objet -> (template, quantité)</summary>
@@ -34,6 +36,13 @@ public sealed record OwnedItem(int TemplateId, int Quantity, string Effects = ""
 ///   ECK3                          ouverture d'un atelier (craft / forgemagie)
 ///   EmKO+uid|qté|tpl|effets       objet de l'atelier mis à jour (décimal)
 ///   Ec...                         résultat d'une action d'atelier
+///
+/// Onglet Chasse (lus, jamais journalisés : ils contiennent aussi des noms de joueurs, qui sont ignorés) :
+///   GDM|map|…                     changement de map
+///   GM|+…;-3;…|-id                sprites de la map : seuls les groupes de monstres (type -3) sont retenus
+///   As…                           caractéristiques du personnage (sagesse, prospection)
+///   GE…                           fin de combat : seule la ligne du personnage (XP, kamas, drops) et les monstres sont lus
+///   PM+…|PM~…|PM-id / PV          membres du groupe : seuls le niveau et la prospection sont lus
 /// </summary>
 public sealed class DofusTracker
 {
@@ -80,6 +89,17 @@ public sealed class DofusTracker
     /// <summary>Contenu de la boutique d'un marchand consultée (message EL sans le préfixe).</summary>
     public event Action<string>? ShopList;
 
+    /// <summary>Nouvelle map (identifiant).</summary>
+    public event Action<string>? MapChanged;
+    /// <summary>Sprites ajoutés/retirés de la map (message GM sans le préfixe).</summary>
+    public event Action<string>? MapSprites;
+    /// <summary>Caractéristiques du personnage (message As sans le préfixe).</summary>
+    public event Action<string>? CharacterStats;
+    /// <summary>Fin de combat (message GE sans le préfixe).</summary>
+    public event Action<string>? FightEnded;
+    /// <summary>Membres du groupe ajoutés/modifiés/retirés (message PM sans le préfixe) ; null : groupe quitté.</summary>
+    public event Action<string?>? PartyChanged;
+
     /// <summary>Codes des messages de forgemagie (fichier lang : INFOS_117, INFOS_183, INFOS_194).</summary>
     public static readonly int[] FmInfoCodes = [117, 183, 194];
 
@@ -89,7 +109,8 @@ public sealed class DofusTracker
     /// Messages de banque, d'inventaire et d'atelier (forgemagie), les seuls autorisés dans le
     /// journal de diagnostic. Ils ne contiennent que des objets et leurs caractéristiques.
     /// ASK est exclu : il contient le nom du personnage. Tout le reste (connexion, ticket,
-    /// messages privés…) ne doit jamais être écrit sur disque.
+    /// messages privés…) ne doit jamais être écrit sur disque. Les messages de l'onglet Chasse (GDM, GM, As, GE, PM)
+    /// contiennent des noms de joueurs : ils n'y figurent pas non plus.
     /// </summary>
     public static bool IsLoggable(string msg) =>
         msg.StartsWith("ECK") || msg.StartsWith("EL") || msg.StartsWith("EsK") || msg == "EV"
@@ -133,6 +154,13 @@ public sealed class DofusTracker
         else if (InCraft && msg.StartsWith("Ec")) CraftResult?.Invoke(msg[2..]);
         else if (InCraft && msg.StartsWith("Im"))
             foreach (var code in InfoCodes(msg)) CraftInfo?.Invoke(code);
+        // Chasse
+        else if (msg.StartsWith("GDM|")) MapChanged?.Invoke(msg.Split('|')[1]);
+        else if (msg.StartsWith("GM|")) MapSprites?.Invoke(msg[3..]);
+        else if (msg.StartsWith("As") && !msg.StartsWith("ASK")) CharacterStats?.Invoke(msg[2..]);
+        else if (msg.StartsWith("GE") && msg.Length > 2 && char.IsDigit(msg[2])) FightEnded?.Invoke(msg[2..]);
+        else if (msg.StartsWith("PM") && msg.Length > 2) PartyChanged?.Invoke(msg[2..]);
+        else if (msg == "PV" || msg.StartsWith("PV|")) PartyChanged?.Invoke(null);
     }
 
     /// <summary>
@@ -173,6 +201,11 @@ public sealed class DofusTracker
             // Changement de personnage : on recharge sa dernière banque connue
             State = LoadSnapshot(name) ?? new Snapshot { Character = name };
             BankChanged?.Invoke();
+        }
+        if (long.TryParse(parts[1], out var id) && id != State.CharacterId)
+        {
+            State.CharacterId = id;
+            SaveSnapshot();
         }
         State.Inventory.Clear();
         var items = parts.LastOrDefault(p => p.Contains('~')) ?? "";

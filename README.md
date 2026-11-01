@@ -105,6 +105,13 @@ C'est ce qui sépare un outil d'aide d'un bot. Les sanctions d'Ankama visent sur
 Le trafic capturé contient des informations sensibles : nom de compte, ticket de connexion, messages privés.
 
 - **Ne lire que les messages utiles** à la banque et à l'inventaire (voir [DofusTracker.cs](DofusBankManager/Net/DofusTracker.cs)). Les autres sont ignorés.
+- Exception, pour l'onglet Chasse : sont aussi lus la map (`GDM`, `GM`), les caractéristiques du personnage (`As`), les fins de combat (`GE`) et le groupe (`PM`, `PV`). Ces messages contiennent aussi des noms de joueurs. On n'en garde que :
+  - les groupes de monstres de la map (modèles, niveaux, étoiles), jamais les autres sprites (joueurs, PNJ, marchands) ;
+  - la sagesse et la prospection du personnage ;
+  - la ligne du personnage en fin de combat (XP, kamas, objets) et les monstres affrontés ;
+  - le niveau et la prospection des membres du groupe, jamais leur nom.
+
+  Ces messages ne sont **jamais journalisés**, ni dans `packets.log` ni dans le journal de l'application, et rien n'en sort de la machine.
 - **Aucune donnée du joueur ne sort de la machine** : pas de télémétrie, pas d'envoi de la banque ni de l'inventaire. Les seules requêtes réseau autorisées sont :
   - le téléchargement des données du jeu depuis le CDN d'Ankama ([GameData.cs](DofusBankManager/Data/GameData.cs)) ;
   - la lecture de la dernière Release GitHub du projet pour vérifier la version, et le téléchargement de son installateur quand l'utilisateur le demande ([UpdateChecker.cs](DofusBankManager/UpdateChecker.cs)) ;
@@ -133,7 +140,7 @@ Même passif, cet outil est un logiciel tiers. Les conditions d'utilisation d'An
 - **Données du jeu** ([Data/GameData.cs](DofusBankManager/Data/GameData.cs)) : les fichiers `items`, `crafts`, `skills`, `jobs`, `effects` et `monsters` sont décodés par un mini-interpréteur AS2 ([Data/Avm1.cs](DofusBankManager/Data/Avm1.cs)).
 - **Forgemagie** ([Fm/FmTracker.cs](DofusBankManager/Fm/FmTracker.cs)) : voir ci-dessous.
 
-Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées, `settings.json` (thème), `fm.json` (historique FM), `fm_poids.json` (poids des stats), `hdv.json` (prix relevés), `pda.json` (prix des pierres d'âme par monstre), `marchands.json` (prix des cartes TTG chez les marchands) et `packets.log`.
+Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées, `settings.json` (thème), `fm.json` (historique FM), `fm_poids.json` (poids des stats), `hdv.json` (prix relevés), `pda.json` (prix des pierres d'âme par monstre), `marchands.json` (prix des cartes TTG chez les marchands), `chasse.json` (archi-monstres aperçus et combats) et `packets.log`.
 
 ### Onglet HDV (hôtel de vente)
 
@@ -187,6 +194,16 @@ Une même liste mélange les catégories : celle d'un Bulbuisson contient des pi
 - **Mes pierres** : vos pierres pleines (banque et inventaire) avec leur contenu. La valeur estimée d'une pierre est le prix relevé le plus haut parmi ses monstres.
 
 Le panneau de détail montre l'évolution du prix du monstre sélectionné. Les noms des monstres viennent du fichier de langue `monsters`.
+
+### Onglet Chasse
+
+L'onglet affiche les **groupes de monstres de la map** où vous êtes (monstres, niveaux, étoiles), votre **sagesse**, votre **prospection** et celle du **groupe** (somme des membres, lue dans les messages de groupe ; la vôtre seule hors groupe).
+
+- **Archi-monstres** : quand un groupe contenant un archi-monstre apparaît sur la map, une alerte sonore retentit (case « Alerte sonore archi-monstre »). L'historique liste les derniers archi-monstres vus, avec leur niveau, la map et le dernier prix relevé de leur pierre (onglet PDA). Un même archi sur la même map n'est signalé qu'une fois toutes les 10 minutes.
+- **XP et drops estimés** : les données du jeu ne contiennent ni l'XP ni les drops des monstres. L'application les **apprend de vos fins de combat** : l'XP gagnée est ramenée sans sagesse, puis répartie entre les monstres selon leur niveau ; les objets obtenus sont attribués aux monstres du combat, d'où une fréquence observée. Pour un groupe de la map, l'XP estimée applique votre sagesse actuelle et les étoiles du groupe. Ce sont des **estimations** : elles se précisent au fil des combats, et ne tiennent compte ni de la taille du groupe ni de l'écart de niveau.
+- **Rentabilité** : la session additionne l'XP, les kamas et les drops (au prix unitaire HDV) de vos combats, puis projette ce rythme sur 30, 60 et 120 minutes. « Nouvelle session » repart de zéro ; après plus d'une heure sans combat, une nouvelle session s'ouvre d'elle-même.
+
+Comme le reste, l'onglet ne fait qu'afficher : c'est toujours le joueur qui se déplace et qui combat (règle 3).
 
 ### Onglet FM (forgemagie)
 

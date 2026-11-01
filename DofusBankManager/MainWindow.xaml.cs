@@ -362,6 +362,7 @@ public partial class MainWindow : Window
         // TTG et PDA avant l'HDV : la synchronisation avec le groupe partage aussi leurs prix
         InitTtg(_data);
         InitPda(_data);
+        InitHunt(_data);
         InitHdv(_data);
         _usage = _data.Recipes.SelectMany(r => r.Ingredients.Select(i => i.ItemId).Distinct())
             .GroupBy(id => id).ToDictionary(g => g.Key, g => g.Count());
@@ -532,6 +533,7 @@ public partial class MainWindow : Window
         ApplyBrisageFilters();
         ApplyTtgFilters();
         ApplyPdaFilters();
+        RefreshHunt();
     }
 
     void ApplyRecipeFilters()

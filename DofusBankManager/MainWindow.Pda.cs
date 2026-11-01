@@ -24,7 +24,7 @@ public partial class MainWindow
     {
         _pda = new PdaTracker(data);
         _pda.Log += AddLog;
-        _pda.Changed += () => { ApplyPdaFilters(); ShowPdaDetail(); };
+        _pda.Changed += () => { ApplyPdaFilters(); ShowPdaDetail(); RefreshHunt(); };
         _tracker.HdvOffers += _pda.OnOffers;
         _tracker.HdvOfferMove += _pda.OnOfferMove;
         _tracker.HdvAverage += _pda.OnAverage;
