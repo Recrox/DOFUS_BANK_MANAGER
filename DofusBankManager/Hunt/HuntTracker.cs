@@ -48,6 +48,7 @@ public sealed class FightRecord
 public sealed class HuntCharacter(string stream, int number)
 {
     public string Stream { get; } = stream;
+    public int Number { get; } = number;
     public long Id { get; set; }
     public string Name { get; set; } = "";
     public int? Level { get; set; }
@@ -59,6 +60,11 @@ public sealed class HuntCharacter(string stream, int number)
     public Dictionary<long, MapGroup> Groups { get; } = new();
     /// <summary>Dernier changement de map : la fenêtre où l'on joue est celle qui bouge.</summary>
     public DateTime LastMove { get; set; }
+    /// <summary>Dernier message reçu sur cette connexion.</summary>
+    public DateTime LastActivity { get; set; } = DateTime.Now;
+
+    /// <summary>Connexion qui a donné quelque chose d'utile (un personnage, des stats ou une map).</summary>
+    public bool HasData => Name.Length > 0 || Wisdom != null || Prospection != null || MapId.Length > 0;
 
     public string Label => Name.Length > 0 ? Name : $"Connexion {number}";
 
@@ -104,11 +110,15 @@ public sealed class HuntTracker
     /// <summary>Connexion choisie dans la liste ; null : la fenêtre où l'on joue (dernier changement de map).</summary>
     public string? Pinned { get; set; }
 
-    public IReadOnlyCollection<HuntCharacter> Characters => _characters.Values;
+    /// <summary>Personnages des fenêtres ouvertes (les connexions sans rien d'utile ne sont pas listées).</summary>
+    public IEnumerable<HuntCharacter> Characters => _characters.Values.Where(c => c.HasData);
 
     /// <summary>Personnage affiché.</summary>
     public HuntCharacter? Shown =>
-        Pinned != null && _characters.TryGetValue(Pinned, out var c) ? c : _characters.Values.MaxBy(x => x.LastMove);
+        Pinned != null && _characters.TryGetValue(Pinned, out var c) ? c : Characters.MaxBy(x => x.LastMove);
+
+    /// <summary>Sans message pendant ce délai, une connexion est considérée comme fermée (fermeture non vue).</summary>
+    static readonly TimeSpan Inactive = TimeSpan.FromMinutes(20);
 
     public IReadOnlyList<ArchiSighting> Archis => _store.Archis;
     public IReadOnlyList<FightRecord> Fights => _store.Fights;
@@ -136,8 +146,32 @@ public sealed class HuntTracker
         get
         {
             if (!_characters.TryGetValue(Stream, out var c))
-                _characters[Stream] = c = new HuntCharacter(Stream, _characters.Count + 1);
+            {
+                Prune();
+                // Numéro libre le plus petit : « Connexion 1 », « Connexion 2 »… même après des fermetures
+                int n = Enumerable.Range(1, _characters.Count + 1).First(i => _characters.Values.All(x => x.Number != i));
+                _characters[Stream] = c = new HuntCharacter(Stream, n);
+            }
+            c.LastActivity = DateTime.Now;
             return c;
+        }
+    }
+
+    /// <summary>Fenêtre de jeu fermée ou déconnectée : son personnage disparaît de la liste.</summary>
+    public void OnStreamClosed(string stream)
+    {
+        if (!_characters.Remove(stream)) return;
+        if (Pinned == stream) Pinned = null;
+        Changed?.Invoke();
+    }
+
+    /// <summary>Oublie les connexions muettes depuis longtemps (fermeture non vue par la capture).</summary>
+    public void Prune()
+    {
+        foreach (var key in _characters.Where(kv => DateTime.Now - kv.Value.LastActivity > Inactive).Select(kv => kv.Key).ToList())
+        {
+            _characters.Remove(key);
+            if (Pinned == key) Pinned = null;
         }
     }
 
@@ -162,6 +196,12 @@ public sealed class HuntTracker
         c.Name = name;
         if (level > 0) c.Level = level;
         c.Party.Clear();
+        // Reconnexion : le même personnage sur une ancienne connexion (fermeture non vue) est retiré
+        foreach (var old in _characters.Where(kv => kv.Value != c && kv.Value.Id == id).Select(kv => kv.Key).ToList())
+        {
+            _characters.Remove(old);
+            if (Pinned == old) Pinned = c.Stream;
+        }
         Changed?.Invoke();
     }
 
@@ -318,7 +358,10 @@ public sealed class HuntTracker
                     + "Lancez l'application avant de choisir votre personnage (ou revenez à la sélection des personnages).");
             return;
         }
+        // Personnage retrouvé sans l'avoir vu à la sélection : sa ligne donne son identifiant et son nom
         if (c.Id == 0) c.Id = me;
+        if (c.Name.Length == 0) c.Name = line0[2];
+        if (c.Level == null && int.TryParse(line0[3], out var lvl)) c.Level = lvl;
 
         var fight = new FightRecord
         {

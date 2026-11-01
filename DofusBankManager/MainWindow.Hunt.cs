@@ -34,6 +34,7 @@ public partial class MainWindow
         _hunt.Changed += RefreshHunt;
         _hunt.ArchiSpotted += OnArchiSpotted;
         _tracker.CharacterSelected += _hunt.OnCharacterSelected;
+        _sniffer.StreamClosed += stream => Ui(() => _hunt.OnStreamClosed(stream));
         _tracker.LevelUp += _hunt.OnLevelUp;
         _tracker.MapChanged += _hunt.OnMapChanged;
         _tracker.MapSprites += s => Safe(() => _hunt.OnSprites(s));
@@ -149,9 +150,13 @@ public partial class MainWindow
         MonsterLearning Get(int id) => result.TryGetValue(id, out var l) ? l : result[id] = new MonsterLearning();
     }
 
+    /// <summary>Position et zone d'une map (identifiant reçu du jeu).</summary>
+    string MapText(string mapId) => int.TryParse(mapId, out var id) ? _data!.MapLabel(id) : $"map {mapId}";
+
     void RefreshHunt()
     {
         if (!_ready || _data == null || _hunt == null) return;
+        _hunt.Prune();
         var learned = Learn();
         var labels = _hunt.Characters.Select(CharacterLabel).Order().ToList();
         if (!HuntCharacterBox.Items.OfType<ComboBoxItem>().Skip(1).Select(i => i.Content as string).Order().SequenceEqual(labels))
@@ -199,7 +204,7 @@ public partial class MainWindow
         }).ToList();
         SetRows(HuntGroupGrid, groups);
         HuntMap.Text = me?.MapId.Length > 0
-            ? $"{me.Label} · map {me.MapId} · {groups.Count} groupe(s)"
+            ? $"{me.Label} · {MapText(me.MapId)} · {groups.Count} groupe(s)"
             : "Map inconnue : changez de map en jeu";
         HuntEmpty.Visibility = groups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         if (!groups.Any(g => g.HasArchi)) HuntStatus.Text = "";
@@ -208,7 +213,7 @@ public partial class MainWindow
         SetRows(HuntArchiGrid, _hunt.Archis.Select(a =>
         {
             var price = _pda?.Prices.GetValueOrDefault(PdaTracker.Key(a.MonsterId, PdaTracker.Archi));
-            return new ArchiRow(Ago(a.Time), a.Time, _data.GetMonster(a.MonsterId).Name, a.Level, a.MapId,
+            return new ArchiRow(Ago(a.Time), a.Time, _data.GetMonster(a.MonsterId).Name, a.Level, MapText(a.MapId),
                 price?.Price, price != null ? Ago(price.SeenAt) : "");
         }).ToList());
 

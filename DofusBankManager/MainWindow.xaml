@@ -810,6 +810,11 @@
                         <CheckBox x:Name="TtgShowAll" Content="Toutes les cartes du jeu" VerticalAlignment="Center" Margin="14,0,0,0"
                                   Checked="TtgFilters_Changed" Unchecked="TtgFilters_Changed"
                                   ToolTip="Affiche aussi les cartes et paquets dont le prix n'a pas encore été relevé"/>
+                        <TextBlock Text="Période" Style="{StaticResource Label}"
+                                   ToolTip="Nombre de jours de prix marchands retenus pour « Meilleur » et la liste des offres"/>
+                        <TextBox x:Name="TtgDaysBox" Width="46" Text="7" TextChanged="TtgFilters_Changed" Padding="2,0"
+                                 HorizontalContentAlignment="Center"/>
+                        <TextBlock Text="jours" Style="{StaticResource Label}" Margin="6,0,0,0"/>
                         <TextBlock x:Name="TtgCount" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource TextMuted}"/>
                         <TextBlock x:Name="TtgCollection" VerticalAlignment="Center" Margin="14,0,0,0" FontWeight="Bold"
                                    Foreground="{DynamicResource AccentSolid}"
@@ -858,7 +863,7 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Header="Meilleur 7 j" Binding="{Binding BestPrice, StringFormat={}{0:N0}}" Width="96"/>
+                            <DataGridTextColumn x:Name="TtgBestColumn" Header="Meilleur 7 j" Binding="{Binding BestPrice, StringFormat={}{0:N0}}" Width="104"/>
                             <DataGridTextColumn Header="Vu" Binding="{Binding Seen}" Width="110" SortMemberPath="SeenAt">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
@@ -889,6 +894,32 @@
                                     Margin="0,10,0,0" HorizontalAlignment="Left"/>
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <StackPanel>
+                                    <!-- Offres de la période, de la moins chère à la plus chère -->
+                                    <TextBlock x:Name="TtgOffersTitle" Text="Offres vues" Foreground="{DynamicResource TextMuted}" FontWeight="SemiBold"
+                                               Margin="0,12,0,4"/>
+                                    <ItemsControl x:Name="TtgOffers">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                                                        CornerRadius="8" Padding="8,5" Margin="0,0,0,4">
+                                                    <StackPanel>
+                                                        <DockPanel>
+                                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Seen}" FontSize="11"
+                                                                       Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+                                                            <TextBlock FontWeight="Bold" Foreground="{DynamicResource AccentSolid}">
+                                                                <Run Text="{Binding Price, Mode=OneWay}"/><Run Text=" · " Foreground="{DynamicResource TextMuted}"/><Run
+                                                                    Text="{Binding Quantity, Mode=OneWay, StringFormat={}{0} en vente}" FontWeight="Normal"
+                                                                    Foreground="{DynamicResource TextMuted}"/>
+                                                            </TextBlock>
+                                                        </DockPanel>
+                                                        <TextBlock Text="{Binding Merchant}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding Where}" FontSize="11" Foreground="{DynamicResource TextMuted}"
+                                                                   TextWrapping="Wrap" Style="{StaticResource HideWhenEmpty}"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                     <TextBlock Text="Prix chez les marchands" Foreground="{DynamicResource TextMuted}" FontWeight="SemiBold" Margin="0,12,0,4"/>
                                     <local:PriceChart x:Name="TtgMerchantChart" Height="160"/>
                                     <TextBlock Text="Prix unitaire à l'HDV" Foreground="{DynamicResource TextMuted}" FontWeight="SemiBold" Margin="0,12,0,4"/>
@@ -1167,7 +1198,7 @@
                                         <Style TargetType="TextBlock">
                                             <Setter Property="FontWeight" Value="SemiBold"/>
                                             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                                            <Setter Property="ToolTip" Value="{Binding Map, StringFormat=Map {0}}"/>
+                                            <Setter Property="ToolTip" Value="{Binding Map}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>

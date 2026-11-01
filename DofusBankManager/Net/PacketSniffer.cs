@@ -20,6 +20,8 @@ public sealed class PacketSniffer : IDisposable
 
     /// <summary>Message texte complet reçu (clé du flux, contenu).</summary>
     public event Action<string, string>? MessageReceived;
+    /// <summary>Flux TCP fermé (FIN ou RST) : clé du flux.</summary>
+    public event Action<string>? StreamClosed;
     public event Action<string>? Log;
     /// <summary>Premier segment d'un flux entrant analysé : (serveur ip:port, flux texte ?, premier octet).</summary>
     public event Action<string, bool, byte>? StreamClassified;
@@ -112,6 +114,14 @@ public sealed class PacketSniffer : IDisposable
 
         var key = $"{b[12]}.{b[13]}.{b[14]}.{b[15]}:{srcPort} > {b[16]}.{b[17]}.{b[18]}.{b[19]}:{dstPort}";
         int payloadStart = t + dataOffset, payloadLen = total - payloadStart;
+
+        // Fermeture (dans un sens ou l'autre) : la fenêtre de jeu correspondante est fermée ou déconnectée
+        if (fin || rst)
+        {
+            var reverse = $"{b[16]}.{b[17]}.{b[18]}.{b[19]}:{dstPort} > {b[12]}.{b[13]}.{b[14]}.{b[15]}:{srcPort}";
+            StreamClosed?.Invoke(key);
+            StreamClosed?.Invoke(reverse);
+        }
 
         List<string>? messages = null;
         bool classified = false;

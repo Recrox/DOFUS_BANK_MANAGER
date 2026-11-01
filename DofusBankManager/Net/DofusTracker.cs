@@ -88,6 +88,8 @@ public sealed class DofusTracker
     public event Action<string>? HdvOfferMove;
     /// <summary>Contenu de la boutique d'un marchand consultée (message EL sans le préfixe).</summary>
     public event Action<string>? ShopList;
+    /// <summary>Boutique d'un marchand ouverte : identifiant de son sprite sur la map.</summary>
+    public event Action<long>? ShopOpened;
 
     /// <summary>Nouvelle map (identifiant).</summary>
     public event Action<string>? MapChanged;
@@ -231,6 +233,9 @@ public sealed class DofusTracker
         int end = body.IndexOf('|');
         if (end >= 0) body = body[..end];
         _exchangeType = int.TryParse(body, out var t) ? t : -1;
+        // Boutique d'un marchand : "ECK4|id du marchand sur la map"
+        if (_exchangeType == ShopExchangeType && end >= 0 && long.TryParse(msg.AsSpan(3 + end + 1), out var seller))
+            ShopOpened?.Invoke(seller);
         Log?.Invoke($"Échange ouvert (type {_exchangeType}){(_exchangeType == BankExchangeType ? " : banque" : "")}.");
         if (InCraft) CraftOpened?.Invoke();
     }

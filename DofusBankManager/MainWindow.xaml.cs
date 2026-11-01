@@ -409,7 +409,9 @@ public partial class MainWindow : Window
         {
             if (_streamsWithMessages.Add(stream))
                 AddLog($"Messages texte reçus sur {stream}.");
-            if (_hunt != null) _hunt.Stream = stream; // multi-compte : suivi de chasse par fenêtre
+            // Multi-compte : chasse et marchands sont suivis par fenêtre de jeu
+            if (_hunt != null) _hunt.Stream = stream;
+            if (_merchants != null) _merchants.Stream = stream;
             try { _tracker.Handle(msg); }
             catch (Exception ex) { AddLog($"Paquet ignoré ({ex.Message}) : {msg[..Math.Min(80, msg.Length)]}"); }
         });

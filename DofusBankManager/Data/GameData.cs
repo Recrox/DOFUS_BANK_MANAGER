@@ -21,6 +21,12 @@ public sealed record MonsterInfo(int Id, string Name, int RaceId, string Race, i
     public bool IsArchi => RaceId == 78;
 }
 
+/// <summary>Map (fichier de langue « maps ») : coordonnées et zone, ex. « [4,-18] Amakna (Village d'Amakna) ».</summary>
+public sealed record MapInfo(int Id, int X, int Y, string Area, string SubArea)
+{
+    public string Label => $"[{X},{Y}] {Area}" + (SubArea.Length > 0 && SubArea != Area ? $" ({SubArea})" : "");
+}
+
 public sealed record Recipe(int ResultId, IReadOnlyList<Ingredient> Ingredients, IReadOnlyList<string> Jobs);
 
 /// <summary>Effet d'objet. Characteristic est commune au bonus et au malus d'une même stat (ex. +Force / -Force).</summary>
@@ -34,9 +40,9 @@ public sealed class GameData
 {
     const string DefaultDataUrl = "https://dofusretro.cdn.ankama.com/static-data/612/";
     const string Lang = "fr";
-    static readonly string[] Files = ["items", "crafts", "skills", "jobs", "effects", "monsters"];
+    static readonly string[] Files = ["items", "crafts", "skills", "jobs", "effects", "monsters", "maps"];
     /// <summary>Fichiers dont l'absence n'empêche pas de démarrer (ajoutés après coup, peut-être pas encore en cache).</summary>
-    static readonly string[] Optional = ["monsters"];
+    static readonly string[] Optional = ["monsters", "maps"];
 
     public static string AppDir { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DofusBankManager");
@@ -46,12 +52,16 @@ public sealed class GameData
     public List<string> JobNames { get; } = new();
     public Dictionary<int, EffectInfo> Effects { get; } = new();
     public Dictionary<int, MonsterInfo> Monsters { get; } = new();
+    public Dictionary<int, MapInfo> Maps { get; } = new();
 
     public ItemInfo GetItem(int id) =>
         Items.TryGetValue(id, out var it) ? it : new ItemInfo(id, $"Objet #{id}", 0, 0, "?", 0);
 
     public MonsterInfo GetMonster(int id) =>
         Monsters.TryGetValue(id, out var m) ? m : new MonsterInfo(id, $"Monstre #{id}", -1, "?", 0, 0);
+
+    /// <summary>Position et zone d'une map, ex. « [4,-18] Amakna (Village d'Amakna) » ; l'identifiant si la map est inconnue.</summary>
+    public string MapLabel(int id) => Maps.TryGetValue(id, out var m) ? m.Label : $"map {id}";
 
     /// <summary>Libellé d'un effet avec sa valeur, ex. « +12 en force ».</summary>
     public string FormatEffect(int effectId, int value)
@@ -157,6 +167,24 @@ public sealed class GameData
                         race, races.GetValueOrDefault(race, "?"),
                         levels.DefaultIfEmpty().Min(), levels.DefaultIfEmpty().Max());
                 }
+        }
+
+        // Maps : MA.m[id] = { x, y, sa: sous-zone }, MA.sa[id] = { n: nom, a: zone }, MA.a[id] = { n: nom }
+        if (paths.TryGetValue("maps", out var mapsPath)
+            && Avm1.Run(await File.ReadAllBytesAsync(mapsPath)).GetValueOrDefault("MA") is AsObject MA)
+        {
+            static Dictionary<int, AsObject> Table(AsObject? o) => o == null ? new()
+                : o.Where(kv => kv.Value is AsObject && int.TryParse(kv.Key, out _)).ToDictionary(kv => int.Parse(kv.Key), kv => (AsObject)kv.Value!);
+            var areas = Table(MA.GetValueOrDefault("a") as AsObject);
+            var subAreas = Table(MA.GetValueOrDefault("sa") as AsObject);
+            foreach (var (id, m) in Table(MA.GetValueOrDefault("m") as AsObject))
+            {
+                var sa = subAreas.GetValueOrDefault((int)Avm1.ToNum(m.GetValueOrDefault("sa")));
+                var area = sa != null ? areas.GetValueOrDefault((int)Avm1.ToNum(sa.GetValueOrDefault("a"))) : null;
+                data.Maps[id] = new MapInfo(id, (int)Avm1.ToNum(m.GetValueOrDefault("x")), (int)Avm1.ToNum(m.GetValueOrDefault("y")),
+                    area != null ? Avm1.ToStr(area.GetValueOrDefault("n")) : "",
+                    sa != null ? Avm1.ToStr(sa.GetValueOrDefault("n")) : "");
+            }
         }
 
         data.JobNames.AddRange(data.Recipes.SelectMany(r => r.Jobs).Distinct().Order());

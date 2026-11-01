@@ -105,8 +105,10 @@ C'est ce qui sépare un outil d'aide d'un bot. Les sanctions d'Ankama visent sur
 Le trafic capturé contient des informations sensibles : nom de compte, ticket de connexion, messages privés.
 
 - **Ne lire que les messages utiles** à la banque et à l'inventaire (voir [DofusTracker.cs](DofusBankManager/Net/DofusTracker.cs)). Les autres sont ignorés.
-- Exception, pour l'onglet Chasse : sont aussi lus la map (`GDM`, `GM`), les caractéristiques du personnage (`As`), les fins de combat (`GE`) et le groupe (`PM`, `PV`). Ces messages contiennent aussi des noms de joueurs. On n'en garde que :
-  - les groupes de monstres de la map (modèles, niveaux, étoiles), jamais les autres sprites (joueurs, PNJ, marchands) ;
+- Exception, pour les onglets Chasse et TTG : sont aussi lus la map (`GDM`, `GM`), les caractéristiques du personnage (`As`), les fins de combat (`GE`) et le groupe (`PM`, `PV`). Ces messages contiennent aussi des noms de joueurs. On n'en garde que :
+  - les groupes de monstres de la map (modèles, niveaux, étoiles) ;
+  - les joueurs en mode marchand (pseudo et case) : pour une boutique consultée, ils sont enregistrés avec ses prix de cartes TTG, sur ce PC seulement, **jamais partagés** ;
+  - aucun autre sprite (joueurs, PNJ…) ;
   - la sagesse et la prospection du personnage ;
   - la ligne du personnage en fin de combat (XP, kamas, objets) et les monstres affrontés ;
   - le niveau et la prospection des membres du groupe, jamais leur nom.
@@ -137,7 +139,7 @@ Même passif, cet outil est un logiciel tiers. Les conditions d'utilisation d'An
 - **Capture** ([Net/PacketSniffer.cs](DofusBankManager/Net/PacketSniffer.cs)) : socket brute Windows (`SIO_RCVALL`), sans Npcap. Les flux TCP sont réassemblés, puis découpés en messages sur `\0`.
 - **Pare-feu** ([Net/FirewallRule.cs](DofusBankManager/Net/FirewallRule.cs)) : sans autorisation, Windows bloque le trafic entrant vers une socket brute, et seuls les messages envoyés par le client sont visibles. Au démarrage de la capture, l'appli ajoute donc la règle entrante « Dofus Bank Manager », limitée à son exécutable. Pour la retirer : `netsh advfirewall firewall delete rule name="Dofus Bank Manager"`.
 - **Protocole** ([Net/DofusTracker.cs](DofusBankManager/Net/DofusTracker.cs)) : `ECK5` ouvre la banque, `EL…` donne son contenu, `EsK…` ses mouvements. `ASK` / `OAKO` / `OR` / `OQ` suivent l'inventaire.
-- **Données du jeu** ([Data/GameData.cs](DofusBankManager/Data/GameData.cs)) : les fichiers `items`, `crafts`, `skills`, `jobs`, `effects` et `monsters` sont décodés par un mini-interpréteur AS2 ([Data/Avm1.cs](DofusBankManager/Data/Avm1.cs)).
+- **Données du jeu** ([Data/GameData.cs](DofusBankManager/Data/GameData.cs)) : les fichiers `items`, `crafts`, `skills`, `jobs`, `effects`, `monsters` et `maps` (coordonnées et zones) sont décodés par un mini-interpréteur AS2 ([Data/Avm1.cs](DofusBankManager/Data/Avm1.cs)).
 - **Forgemagie** ([Fm/FmTracker.cs](DofusBankManager/Fm/FmTracker.cs)) : voir ci-dessous.
 
 Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées, `settings.json` (thème), `fm.json` (historique FM), `fm_poids.json` (poids des stats), `hdv.json` (prix relevés), `pda.json` (prix des pierres d'âme par monstre), `marchands.json` (prix des cartes TTG chez les marchands), `chasse.json` (archi-monstres aperçus et combats) et `packets.log`.
@@ -180,9 +182,9 @@ Chaque ligne indique aussi le nombre d'exemplaires possédés, si l'objet est fa
 
 L'onglet liste les cartes (commune, rare, épique, unique) et les paquets de cartes, dans l'ordre du classeur (No.). Il indique combien vous en possédez (banque et inventaire) et l'avancement de votre collection. Comme dans l'onglet HDV, seules les cartes avec un prix relevé s'affichent ; cochez « Toutes les cartes du jeu » pour voir toute la collection.
 
-Les **prix marchands** se relèvent quand vous ouvrez la boutique d'un joueur en mode marchand : l'application lit la liste des objets en vente (`ECK4` puis `EL…`) et retient, pour chaque carte, le prix le plus bas de cette boutique. Le marchand n'est pas enregistré. Comme pour l'HDV, rien n'est demandé au serveur : seules les boutiques que vous consultez donnent un prix. Si le partage entre amis est activé (onglet HDV), ces prix sont partagés avec le groupe, sans le marchand ; les relevés venus du groupe sont marqués « groupe ».
+Les **prix marchands** se relèvent quand vous ouvrez la boutique d'un joueur en mode marchand : l'application lit la liste des objets en vente (`ECK4` puis `EL…`) et retient, pour chaque carte, le prix le plus bas de cette boutique, avec le **pseudo du marchand**, sa **map** (coordonnées et zone) et sa **case**, lus sur la map. Ces trois informations restent sur votre PC et ne sont **jamais partagées**. Comme pour l'HDV, rien n'est demandé au serveur : seules les boutiques que vous consultez donnent un prix. Si le partage entre amis est activé (onglet HDV), ces prix sont partagés avec le groupe, sans le marchand ; les relevés venus du groupe sont marqués « groupe ».
 
-Le panneau de détail montre l'évolution du prix chez les marchands et à l'HDV. L'onglet HDV affiche aussi un graphique de l'évolution du prix unitaire pour l'objet sélectionné.
+Le panneau de détail liste les **offres vues sur la période** (7 jours par défaut, champ « Période »), de la moins chère à la plus chère, avec le marchand, sa position et la date ; puis l'évolution du prix chez les marchands et à l'HDV. Les relevés d'avant cette version, et ceux venus du groupe, n'ont pas de marchand. L'onglet HDV affiche aussi un graphique de l'évolution du prix unitaire pour l'objet sélectionné.
 
 ### Onglet PDA (pierres d'âme)
 
@@ -199,8 +201,8 @@ Le panneau de détail montre l'évolution du prix du monstre sélectionné. Les 
 
 L'onglet affiche les **groupes de monstres de la map** où vous êtes (monstres, niveau du groupe, étoiles), votre **niveau**, votre **sagesse**, votre **prospection**, et le niveau et la prospection du **groupe** (somme des membres, lue dans les messages de groupe ; les vôtres seuls hors groupe).
 
-- **Multi-compte** : chaque fenêtre de jeu est suivie séparément. La liste « Personnage » choisit celle à afficher ; « Fenêtre active (auto) » suit la fenêtre qui vient de changer de map. La rentabilité est celle du personnage affiché, avec le total de tous les personnages en dessous.
-- **Lancez l'application avant de choisir votre personnage** : c'est à ce moment qu'elle apprend son identifiant, nécessaire pour retrouver sa ligne dans les résultats de combat. Sinon, seuls les combats en solo sont comptés (revenir à la sélection des personnages suffit).
+- **Multi-compte** : chaque fenêtre de jeu est suivie séparément. La liste « Personnage » choisit celle à afficher ; « Fenêtre active (auto) » suit la fenêtre qui vient de changer de map. La rentabilité est celle du personnage affiché, avec le total de tous les personnages en dessous. Une fenêtre fermée ou déconnectée disparaît de la liste ; après une reconnexion, le personnage reprend sa place.
+- **Lancez l'application avant de choisir votre personnage** : c'est à ce moment qu'elle apprend son identifiant, nécessaire pour retrouver sa ligne dans les résultats de combat. Sinon, seuls les combats en solo sont comptés (revenir à la sélection des personnages suffit), et le nom du personnage n'apparaît qu'après son premier combat en solo. De même, la sagesse et la prospection ne sont envoyées par le jeu qu'à la connexion ou quand elles changent : changer une pièce d'équipement suffit à les faire apparaître.
 
 - **Archi-monstres** : quand un groupe contenant un archi-monstre apparaît sur la map, une alerte sonore retentit (case « Alerte sonore archi-monstre »). L'historique liste les derniers archi-monstres vus, avec leur niveau, la map et le dernier prix relevé de leur pierre (onglet PDA). Un même archi sur la même map n'est signalé qu'une fois toutes les 10 minutes.
 - **XP et drops estimés** : les données du jeu ne contiennent ni l'XP ni les drops des monstres. L'application les **apprend de vos fins de combat** : l'XP gagnée est ramenée sans sagesse, puis répartie entre les monstres selon leur niveau ; les objets obtenus sont attribués aux monstres du combat, d'où une fréquence observée. Pour un groupe de la map, l'XP estimée applique votre sagesse actuelle et les étoiles du groupe. Ce sont des **estimations** : elles se précisent au fil des combats, et ne tiennent compte ni de la taille du groupe ni de l'écart de niveau.

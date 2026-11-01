@@ -13,6 +13,13 @@ public sealed class MerchantSnapshot
     public int Quantity { get; set; }
     /// <summary>Vrai si le relevé vient d'un autre membre du groupe (partage des prix).</summary>
     public bool Shared { get; set; }
+    /// <summary>
+    /// Pseudo du marchand, sa map et sa case : gardés sur ce PC seulement, pour retrouver la boutique.
+    /// Jamais envoyés au partage entre amis (HdvSync n'envoie que la carte, le prix, la quantité et la date).
+    /// </summary>
+    public string? Merchant { get; set; }
+    public int? MapId { get; set; }
+    public int? Cell { get; set; }
 }
 
 public sealed class MerchantPrice
@@ -22,15 +29,21 @@ public sealed class MerchantPrice
 
     [JsonIgnore] public MerchantSnapshot? Last => History.LastOrDefault();
 
-    /// <summary>Meilleur prix vu ces 7 derniers jours (les marchands changent souvent).</summary>
-    [JsonIgnore] public long? BestRecent => History.Where(s => DateTime.Now - s.Time < TimeSpan.FromDays(7))
-        .Select(s => (long?)s.Price).Min();
+    /// <summary>Relevés de ces derniers jours (les marchands changent souvent).</summary>
+    public IEnumerable<MerchantSnapshot> Recent(int days) => History.Where(s => DateTime.Now - s.Time < TimeSpan.FromDays(days));
+
+    /// <summary>Meilleur prix vu ces derniers jours.</summary>
+    public long? BestRecent(int days) => Recent(days).Select(s => (long?)s.Price).Min();
 }
+
+/// <summary>Marchand présent sur la map : pseudo et case.</summary>
+sealed record MapMerchant(string Name, int Cell);
 
 /// <summary>
 /// Prix des cartes et paquets de cartes TTG, relevés passivement quand le joueur consulte la boutique
 /// d'un marchand en jeu. Aucune requête n'est envoyée (README, règles 1 et 3) : seules les boutiques
-/// consultées donnent un prix. Le marchand n'est pas enregistré, seulement l'objet, son prix et la date.
+/// consultées donnent un prix. Le pseudo et la position du marchand (lus sur la map, message GM de type -5)
+/// sont gardés sur ce PC pour retrouver la boutique ; ils ne sont jamais partagés.
 /// </summary>
 public sealed class MerchantTracker
 {
@@ -58,6 +71,59 @@ public sealed class MerchantTracker
 
     public bool IsCard(int tpl) => CardTypes.Contains(_data.GetItem(tpl).TypeId);
 
+    /// <summary>Par fenêtre de jeu (multi-compte) : sa map, ses marchands visibles, la boutique ouverte.</summary>
+    sealed class Window
+    {
+        public int? MapId;
+        public Dictionary<long, MapMerchant> Merchants = new();
+        public (string Name, int Cell, int? MapId)? Shop;
+    }
+
+    readonly Dictionary<string, Window> _windows = new();
+
+    /// <summary>Connexion du message en cours de traitement (à renseigner avant chaque message).</summary>
+    public string Stream { get; set; } = "";
+
+    Window Current => _windows.TryGetValue(Stream, out var w) ? w : _windows[Stream] = new Window();
+
+    public void OnStreamClosed(string stream) => _windows.Remove(stream);
+
+    public void OnMapChanged(string mapId)
+    {
+        var w = Current;
+        w.MapId = int.TryParse(mapId, out var id) ? id : null;
+        w.Merchants.Clear();
+    }
+
+    /// <summary>
+    /// Sprites de la map : seuls les marchands sont retenus, "+cellule;direction;…;id;pseudo;-5;…" ;
+    /// "-id" quand l'un d'eux part. Les autres sprites sont ignorés.
+    /// </summary>
+    public void OnSprites(string body)
+    {
+        var w = Current;
+        foreach (var s in body.Split('|'))
+        {
+            if (s.Length < 2) continue;
+            if (s[0] == '-')
+            {
+                if (long.TryParse(s.AsSpan(1), out var gone)) w.Merchants.Remove(gone);
+                continue;
+            }
+            if (s[0] is not ('+' or '~')) continue;
+            var f = s[1..].Split(';');
+            if (f.Length >= 6 && f[5] == "-5" && long.TryParse(f[3], out var id) && int.TryParse(f[0], out var cell))
+                w.Merchants[id] = new MapMerchant(f[4], cell);
+        }
+    }
+
+    /// <summary>Boutique ouverte : le marchand est retrouvé parmi les sprites de la map.</summary>
+    public void OnShopOpened(long seller)
+    {
+        var w = Current;
+        w.Shop = w.Merchants.TryGetValue(seller, out var m) ? (m.Name, m.Cell, w.MapId) : (null!, 0, w.MapId);
+    }
+
     /// <summary>Boutique d'un marchand : "uid;qté;tpl;effets;prix|…" (prix unitaire).</summary>
     public void OnShopList(string body)
     {
@@ -78,6 +144,7 @@ public sealed class MerchantTracker
         }
 
         // Un relevé par carte : le lot le moins cher de cette boutique
+        var shop = Current.Shop;
         var now = DateTime.Now;
         int recorded = 0;
         foreach (var g in lots.Where(l => IsCard(l.Tpl)).GroupBy(l => l.Tpl))
@@ -86,7 +153,11 @@ public sealed class MerchantTracker
             if (!Prices.TryGetValue(g.Key, out var p)) Prices[g.Key] = p = new MerchantPrice { TemplateId = g.Key };
             // Même boutique rouverte aussitôt : pas de doublon
             if (p.Last is { } last && now - last.Time < TimeSpan.FromMinutes(1) && last.Price == best.Price) continue;
-            var snap = new MerchantSnapshot { Time = now, Price = best.Price, Quantity = g.Sum(l => l.Qty) };
+            var snap = new MerchantSnapshot
+            {
+                Time = now, Price = best.Price, Quantity = g.Sum(l => l.Qty),
+                Merchant = shop?.Name, MapId = shop?.MapId, Cell = shop?.Name != null ? shop.Value.Cell : null,
+            };
             p.History.Add(snap);
             if (p.History.Count > MaxHistory) p.History.RemoveRange(0, p.History.Count - MaxHistory);
             Observed?.Invoke(g.Key, snap);

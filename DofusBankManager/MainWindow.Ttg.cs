@@ -11,6 +11,9 @@ public sealed record TtgRow(int ItemId, int? Number, string Name, string Rarity,
     public int Index { get; init; }
 }
 
+/// <summary>Offre vue chez un marchand : prix, quantité, pseudo et position (« groupe » si elle vient du partage).</summary>
+public sealed record TtgOfferRow(string Price, int Quantity, string Merchant, string Where, string Seen);
+
 /// <summary>
 /// Onglet TTG : cartes et paquets de cartes, avec leur prix chez les marchands (relevé quand le joueur
 /// consulte une boutique en jeu), leur prix HDV et la collection du joueur (banque et inventaire).
@@ -25,6 +28,10 @@ public partial class MainWindow
         _merchants.Log += AddLog;
         _merchants.Changed += () => { ApplyTtgFilters(); ShowTtgDetail(); };
         _tracker.ShopList += _merchants.OnShopList;
+        _tracker.ShopOpened += _merchants.OnShopOpened;
+        _tracker.MapChanged += _merchants.OnMapChanged;
+        _tracker.MapSprites += _merchants.OnSprites;
+        _sniffer.StreamClosed += stream => Ui(() => _merchants.OnStreamClosed(stream));
 
         TtgRarity.Items.Add("Toutes les raretés");
         foreach (var t in Ttg.MerchantTracker.CardTypes)
@@ -32,7 +39,14 @@ public partial class MainWindow
         TtgRarity.SelectedIndex = 0;
     }
 
-    void TtgFilters_Changed(object sender, RoutedEventArgs e) => ApplyTtgFilters();
+    void TtgFilters_Changed(object sender, RoutedEventArgs e)
+    {
+        ApplyTtgFilters();
+        ShowTtgDetail();
+    }
+
+    /// <summary>Période des prix marchands retenus (« Meilleur N j » et liste des offres), 7 jours par défaut.</summary>
+    int TtgDays => int.TryParse(TtgDaysBox?.Text, out var d) && d > 0 ? Math.Min(d, 365) : 7;
 
     /// <summary>Numéro de la carte dans le classeur : « “Krtek” - No.007 » -> 7.</summary>
     static int? CardNumber(string name) =>
@@ -50,12 +64,14 @@ public partial class MainWindow
         var owned = s.Bank.Values.Concat(s.Inventory.Values)
             .GroupBy(i => i.TemplateId).ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
 
+        int days = TtgDays;
+        TtgBestColumn.Header = $"Meilleur {days} j";
         var all = _data.Items.Values.Where(i => types.Contains(i.TypeId)).Select(it =>
         {
             var m = _merchants.Prices.GetValueOrDefault(it.Id);
             var last = m?.Last;
             return new TtgRow(it.Id, CardNumber(it.Name), it.Name, it.TypeName, owned.GetValueOrDefault(it.Id),
-                last?.Price, m?.BestRecent, last != null ? Ago(last.Time) + (last.Shared ? " · groupe" : "") : "", last?.Time ?? DateTime.MinValue,
+                last?.Price, m?.BestRecent(days),last != null ? Ago(last.Time) + (last.Shared ? " · groupe" : "") : "", last?.Time ?? DateTime.MinValue,
                 UnitPrice(it.Id));
         }).ToList();
 
@@ -99,12 +115,22 @@ public partial class MainWindow
 
         TtgDetailTitle.Text = row.Name;
         TtgDetailIcon.Source = ItemIcons.Get(row.ItemId);
+        int days = TtgDays;
         var lines = new List<string> { $"{row.Rarity} · {row.Owned} possédé(s)" };
         lines.Add(m?.Last is { } last
-            ? $"Marchand : {Kamas(last.Price)} ({Ago(last.Time)}, {last.Quantity} en vente) · meilleur sur 7 j : {Kamas(m.BestRecent)}"
+            ? $"Marchand : {Kamas(last.Price)} ({Ago(last.Time)}, {last.Quantity} en vente) · meilleur sur {days} j : {Kamas(m.BestRecent(days))}"
             : "Marchand : pas encore vu. Consultez la boutique d'un marchand qui la vend.");
         lines.Add(hdv?.UnitPrice is { } u ? $"HDV : {Kamas(u)} ({Ago(hdv.SeenAt)})" : "HDV : pas de prix relevé.");
         TtgDetailSub.Text = string.Join("\n", lines);
+
+        // Offres vues sur la période, de la moins chère à la plus chère, avec le marchand et sa position
+        var offers = m?.Recent(days).OrderBy(s => s.Price).ThenByDescending(s => s.Time).Select(s => new TtgOfferRow(
+            Kamas(s.Price), s.Quantity,
+            s.Merchant ?? (s.Shared ? "groupe" : "?"),
+            s.MapId is { } map ? _data.MapLabel(map) + (s.Cell is { } c ? $" · case {c}" : "") : "",
+            Ago(s.Time))).ToList() ?? [];
+        TtgOffersTitle.Text = $"Offres vues ces {days} jours ({offers.Count})";
+        TtgOffers.ItemsSource = offers;
 
         TtgMerchantChart.Points = m?.History.Select(sn => (sn.Time, (double)sn.Price)).ToList() ?? [];
         TtgHdvChart.Points = hdv?.History
