@@ -352,6 +352,8 @@ public partial class MainWindow : Window
     async Task InitAsync()
     {
         UpdateCaptureUi();
+        // Interface HTML choisie au lancement précédent
+        if (ThemeManager.HtmlUi) _ = ShowWebUiAsync();
         _ = CheckUpdatesAsync();
         try
         {

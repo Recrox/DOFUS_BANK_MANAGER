@@ -21,6 +21,14 @@ public static class ThemeManager
 
     public static string Current { get; private set; } = Crepuscule;
     public static string Style { get; private set; } = Classique;
+    /// <summary>Interface HTML/CSS (WebView2) au lieu de l'interface WPF, retenue d'un lancement à l'autre.</summary>
+    public static bool HtmlUi { get; private set; }
+
+    public static void SetHtmlUi(bool html)
+    {
+        HtmlUi = html;
+        Save();
+    }
 
     public static event Action? Changed;
 
@@ -34,6 +42,7 @@ public static class ThemeManager
         }
         catch { }
         Style = settings.Style == Moderne ? Moderne : Classique;
+        HtmlUi = settings.HtmlUi;
         Apply(settings.Theme, save: false);
     }
 
@@ -73,7 +82,7 @@ public static class ThemeManager
         try
         {
             Directory.CreateDirectory(GameData.AppDir);
-            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(new Settings { Theme = Current, Style = Style }));
+            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(new Settings { Theme = Current, Style = Style, HtmlUi = HtmlUi }));
         }
         catch { }
     }
@@ -82,6 +91,7 @@ public static class ThemeManager
     {
         public string Theme { get; set; } = Crepuscule;
         public string Style { get; set; } = Classique;
+        public bool HtmlUi { get; set; }
     }
 
     [DllImport("dwmapi.dll")]

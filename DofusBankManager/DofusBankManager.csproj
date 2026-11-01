@@ -19,6 +19,12 @@
     <Resource Include="Fonts\*.ttf;Fonts\OFL.txt" />
     <!-- XP des monstres (grade 1) -->
     <EmbeddedResource Include="Data\monstres-xp.json" LogicalName="DofusBankManager.Data.monstres-xp.json" />
+    <!-- Interface HTML/CSS : servie depuis l'exe sous https://app.local/ -->
+    <EmbeddedResource Include="Web\*" LogicalName="web/%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
   </ItemGroup>
 
 </Project>

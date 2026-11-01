@@ -103,7 +103,9 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Grid Margin="16">
+    <Grid>
+    <!-- Interface WPF ; masquée quand l'interface HTML (WebHost) est affichée -->
+    <Grid x:Name="WpfRoot" Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -143,6 +145,9 @@
                     <Button Content="Relancer" Click="RestartButton_Click"
                             ToolTip="Ferme puis rouvre l'application (ex. après une mise à jour ou une modification de fm_poids.json)"/>
 
+                    <!-- Bascule vers l'interface HTML/CSS (WebView2) -->
+                    <Button x:Name="WebUiButton" Content="HTML" Click="WebUiButton_Click" Padding="12,8" Margin="10,0,0,0"
+                            ToolTip="Passer à l'interface HTML/CSS (mêmes données, autre présentation ; retour par « Interface classique »)"/>
                     <!-- Style de l'interface : Classique (bois et orange) ou Moderne (verre et dégradés) -->
                     <Button x:Name="StyleButton" Click="StyleButton_Click" Padding="12,8" Margin="10,0,0,0"
                             ToolTip="Basculer entre le style classique et le style moderne">
@@ -197,7 +202,7 @@
                 <Button x:Name="UpdateLaterButton" DockPanel.Dock="Right" Content="Plus tard" Click="UpdateLater_Click"/>
                 <Button x:Name="UpdateActionButton" DockPanel.Dock="Right" Content="Télécharger et installer" Click="UpdateAction_Click"
                         Style="{StaticResource AccentButton}"/>
-                <Button DockPanel.Dock="Right" Content="Nouveautés" Click="UpdateNotes_Click"
+                <Button x:Name="UpdateNotesButton" DockPanel.Dock="Right" Content="Nouveautés" Click="UpdateNotes_Click"
                         ToolTip="Ouvre la page de cette version sur GitHub"/>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock x:Name="UpdateTitle" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource AccentSolid}"/>
@@ -213,7 +218,7 @@
             </DockPanel>
         </Border>
 
-        <TabControl Grid.Row="2">
+        <TabControl x:Name="MainTabs" Grid.Row="2">
             <!-- Contenu de la banque -->
             <TabItem Header="Banque" Tag="{StaticResource TabBanque}">
                 <Grid>
@@ -364,7 +369,7 @@
                                 Background="{DynamicResource Surface2}" BorderBrush="{DynamicResource AccentBorder}" BorderThickness="1">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock x:Name="IngredientChipText" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                                <Button Content="✕" Click="IngredientChipClear_Click" Padding="8,2" Margin="6,0,0,0"
+                                <Button x:Name="IngredientChipClear" Content="✕" Click="IngredientChipClear_Click" Padding="8,2" Margin="6,0,0,0"
                                         ToolTip="Retirer ce filtre"/>
                             </StackPanel>
                         </Border>
@@ -888,7 +893,7 @@
                                 <local:PriceChart x:Name="HdvChart" Height="160"/>
                                 <TextBlock Text="Historique des relevés" Foreground="{DynamicResource TextMuted}" FontWeight="SemiBold" Margin="0,12,0,0"/>
                             </StackPanel>
-                            <Button DockPanel.Dock="Bottom" Content="Oublier ce prix" Click="HdvForget_Click" Margin="0,10,0,0" HorizontalAlignment="Left"/>
+                            <Button x:Name="HdvForget" DockPanel.Dock="Bottom" Content="Oublier ce prix" Click="HdvForget_Click" Margin="0,10,0,0" HorizontalAlignment="Left"/>
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <ItemsControl x:Name="HdvHistory">
                                     <ItemsControl.ItemTemplate>
@@ -1235,8 +1240,8 @@
                                    Foreground="{DynamicResource AccentSolid}"/>
                         <CheckBox x:Name="HuntSound" Content="Alerte sonore archi-monstre" VerticalAlignment="Center" Margin="18,0,0,0"
                                   IsChecked="True" Checked="HuntSound_Changed" Unchecked="HuntSound_Changed"/>
-                        <Button Content="Tester le son" Click="HuntTestSound_Click" Margin="8,0,0,0" Padding="10,3"/>
-                        <Button Content="Nouvelle session" Click="HuntNewSession_Click" Margin="8,0,0,0" Padding="10,3"
+                        <Button x:Name="HuntTestSound" Content="Tester le son" Click="HuntTestSound_Click" Margin="8,0,0,0" Padding="10,3"/>
+                        <Button x:Name="HuntNewSession" Content="Nouvelle session" Click="HuntNewSession_Click" Margin="8,0,0,0" Padding="10,3"
                                 ToolTip="Remet à zéro le calcul de rentabilité (les combats restent dans l'historique et servent aux estimations)"/>
                         <TextBlock x:Name="HuntStatus" VerticalAlignment="Center" Margin="14,0,0,0" FontWeight="Bold"
                                    Foreground="{DynamicResource Missing}"/>
@@ -1255,7 +1260,7 @@
                                     CornerRadius="{DynamicResource RadiusLg}" Padding="12,8" Margin="0,0,0,10">
                                 <StackPanel>
                                     <DockPanel>
-                                        <Button DockPanel.Dock="Right" Content="Remettre à zéro" Click="EconomeReset_Click" Padding="10,2"
+                                        <Button x:Name="EconomeReset" DockPanel.Dock="Right" Content="Remettre à zéro" Click="EconomeReset_Click" Padding="10,2"
                                                 ToolTip="Efface les sorts lancés (sinon fait automatiquement à l'entrée en combat)"/>
                                         <TextBlock VerticalAlignment="Center" TextWrapping="Wrap">
                                             <Run Text="Économe" FontWeight="Bold" Foreground="{DynamicResource AccentSolid}"/><Run
@@ -1491,7 +1496,7 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <DockPanel Margin="0,0,0,6">
-                            <Button DockPanel.Dock="Right" Content="Vider" Click="HuntClearArchis_Click" Padding="10,2"/>
+                            <Button x:Name="HuntClearArchis" DockPanel.Dock="Right" Content="Vider" Click="HuntClearArchis_Click" Padding="10,2"/>
                             <TextBlock Text="Derniers archi-monstres vus" FontWeight="Bold" Foreground="{DynamicResource AccentSolid}"
                                        VerticalAlignment="Center"/>
                         </DockPanel>
@@ -1678,5 +1683,8 @@
                          HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap"/>
             </TabItem>
         </TabControl>
+    </Grid>
+    <!-- Interface HTML/CSS (WebView2, créé à la demande) -->
+    <ContentControl x:Name="WebHost" Visibility="Collapsed"/>
     </Grid>
 </Window>
