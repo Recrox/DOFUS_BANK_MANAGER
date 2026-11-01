@@ -22,6 +22,9 @@ public sealed record MonsterInfo(int Id, string Name, int RaceId, string Race, i
 }
 
 /// <summary>Map (fichier de langue « maps ») : coordonnées et zone, ex. « [4,-18] Amakna (Village d'Amakna) ».</summary>
+/// <summary>Icône d'un sort, comme dans le jeu : fond (icons/back), symbole (icons/up) et leurs couleurs (champ « i » du fichier de langue).</summary>
+public sealed record SpellLook(int Back, int Up, int Background, int Frame, int Print);
+
 public sealed record MapInfo(int Id, int X, int Y, string Area, string SubArea)
 {
     public string Label => $"[{X},{Y}] {Area}" + (SubArea.Length > 0 && SubArea != Area ? $" ({SubArea})" : "");
@@ -55,6 +58,8 @@ public sealed class GameData
     public Dictionary<int, MapInfo> Maps { get; } = new();
     /// <summary>Noms des sorts (fichier de langue « spells »).</summary>
     public Dictionary<int, string> Spells { get; } = new();
+    /// <summary>Icônes des sorts (fond, symbole, couleurs à l'état normal).</summary>
+    public Dictionary<int, SpellLook> SpellLooks { get; } = new();
 
     public ItemInfo GetItem(int id) =>
         Items.TryGetValue(id, out var it) ? it : new ItemInfo(id, $"Objet #{id}", 0, 0, "?", 0);
@@ -189,11 +194,20 @@ public sealed class GameData
             }
         }
 
-        // Sorts : S[id] = { n: nom, … }
+        // Sorts : S[id] = { n: nom, i: { b: fond, up: symbole, bc/fc/pc: couleurs du fond, du cadre et du symbole }, … }
         if (paths.TryGetValue("spells", out var spellsPath)
             && Avm1.Run(await File.ReadAllBytesAsync(spellsPath)).GetValueOrDefault("S") is AsObject S)
             foreach (var (k, v) in S)
-                if (v is AsObject o && int.TryParse(k, out var sid)) data.Spells[sid] = Avm1.ToStr(o.GetValueOrDefault("n"));
+                if (v is AsObject o && int.TryParse(k, out var sid))
+                {
+                    data.Spells[sid] = Avm1.ToStr(o.GetValueOrDefault("n"));
+                    if (o.GetValueOrDefault("i") is AsObject i)
+                    {
+                        static int First(object? c) => c is List<object?> { Count: > 0 } l ? (int)Avm1.ToNum(l[0]) : 0xFFFFFF;
+                        data.SpellLooks[sid] = new SpellLook((int)Avm1.ToNum(i.GetValueOrDefault("b")), (int)Avm1.ToNum(i.GetValueOrDefault("up")),
+                            First(i.GetValueOrDefault("bc")), First(i.GetValueOrDefault("fc")), First(i.GetValueOrDefault("pc")));
+                    }
+                }
 
         data.JobNames.AddRange(data.Recipes.SelectMany(r => r.Jobs).Distinct().Order());
         log($"Données du jeu : {data.Items.Count} objets, {data.Recipes.Count} recettes.");

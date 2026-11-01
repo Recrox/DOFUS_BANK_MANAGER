@@ -28,7 +28,6 @@ public partial class MainWindow
 
     void InitBrisage(GameData data)
     {
-        _brisageSettings = RuneBreaking.LoadSettings();
         foreach (var stat in ItemStats.All.Where(s => s.Main))
         {
             var box = new CheckBox { Content = stat.Name, VerticalAlignment = VerticalAlignment.Center, MinWidth = 104 };
@@ -69,8 +68,6 @@ public partial class MainWindow
     }
 
     void BrisageFilters_Changed(object sender, RoutedEventArgs e) => ApplyBrisageFilters();
-
-    BrisageSettings _brisageSettings = new();
 
     /// <summary>« 2 », « 0,4 » : quantité estimée de runes, entière pour les grosses, décimale pour les simples.</summary>
     static string RuneQuantity(double q) => q == Math.Floor(q) ? $"{q:0}" : $"≈{q:0.#}";
@@ -134,21 +131,6 @@ public partial class MainWindow
         }
         BrisageDetailTotal.Text = string.Join("\n", lines);
         BrisageDetailTotal.SetResourceReference(TextBlock.ForegroundProperty, gain is < 0 ? "Missing" : gain is > 0 ? "Ok" : "Text");
-    }
-
-    void BrisageSettings_Click(object sender, RoutedEventArgs e)
-    {
-        try { UpdateChecker.OpenInBrowser(RuneBreaking.SettingsPath); }
-        catch (Exception ex) { AddLog("Ouverture impossible : " + ex.Message); }
-    }
-
-    /// <summary>Relit brisage.json après une modification à la main.</summary>
-    void BrisageReload_Click(object sender, RoutedEventArgs e)
-    {
-        _brisageSettings = RuneBreaking.LoadSettings();
-        AddLog($"Brisage : coefficient {_brisageSettings.Coefficient} %, niveau {(_brisageSettings.AvecNiveau ? "compté" : "ignoré")}.");
-        ApplyBrisageFilters();
-        ShowBrisageDetail();
     }
 
     void BrisageReset_Click(object sender, RoutedEventArgs e)
@@ -217,7 +199,7 @@ public partial class MainWindow
                 double? craftCost = CraftCost(x.Item.Id), hdvPrice = UnitPrice(x.Item.Id);
 
                 // Runes estimées et leur valeur à l'HDV (runes sans prix comptées 0)
-                var runes = RuneBreaking.Estimate(_data, x.Item.Level, x.Stats, _brisageSettings);
+                var runes = RuneBreaking.Estimate(_data, x.Item.Level, x.Stats);
                 var priced = runes.Where(r => UnitPrice(r.ItemId) != null).ToList();
                 double? value = priced.Count > 0 ? priced.Sum(r => r.Quantity * UnitPrice(r.ItemId)!.Value) : null;
                 // À comparer : son prix de vente pour un objet possédé, son coût de fabrication sinon

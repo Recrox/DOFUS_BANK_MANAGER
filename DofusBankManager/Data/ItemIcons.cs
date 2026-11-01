@@ -43,27 +43,43 @@ public static class ItemIcons
 }
 
 /// <summary>
-/// Icônes des sorts, rendues depuis les fichiers du client installé (clips/spells/icons/up/&lt;sort&gt;.swf) :
-/// un glyphe blanc, que le jeu pose sur un fond coloré. Lecture seule : le jeu n'est jamais modifié.
+/// Icônes des sorts, comme dans le jeu, rendues depuis les fichiers du client installé : le fond
+/// (clips/spells/icons/back/&lt;b&gt;.swf : « _spellBackground » et « _spellFrame ») puis le symbole
+/// (icons/up/&lt;up&gt;.swf : « _spellPrint »), colorés selon le fichier de langue des sorts.
+/// Lecture seule : le jeu n'est jamais modifié.
 /// </summary>
 public static class SpellIcons
 {
     static readonly string IconsDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Ankama", "Retro", "resources", "app", "retroclient", "clips", "spells", "icons", "up");
+        "Ankama", "Retro", "resources", "app", "retroclient", "clips", "spells", "icons");
 
     static readonly Dictionary<int, ImageSource?> Cache = new();
 
-    public static ImageSource? Get(int spellId)
+    static Color Rgb(int c) => Color.FromRgb((byte)(c >> 16), (byte)(c >> 8), (byte)c);
+
+    static Drawing? Load(string dir, int id, Dictionary<string, Color> tints)
+    {
+        var path = Path.Combine(IconsDir, dir, id + ".swf");
+        return File.Exists(path) ? SwfRenderer.Render(File.ReadAllBytes(path), tints) : null;
+    }
+
+    public static ImageSource? Get(int spellId, SpellLook? look)
     {
         if (Cache.TryGetValue(spellId, out var img)) return img;
         img = null;
-        var path = Path.Combine(IconsDir, spellId + ".swf");
         try
         {
-            if (File.Exists(path) && SwfRenderer.Render(File.ReadAllBytes(path)) is { } drawing)
+            // Sans données de langue : symbole blanc sur fond gris, comme un sort sans élément
+            look ??= new SpellLook(1, spellId, 0x6E6E6E, 0xFFFFFF, 0xFFFFFF);
+            var group = new DrawingGroup();
+            if (Load("back", look.Back, new() { ["_spellBackground"] = Rgb(look.Background), ["_spellFrame"] = Rgb(look.Frame) }) is { } back)
+                group.Children.Add(back);
+            if (Load("up", look.Up, new() { ["_spellPrint"] = Rgb(look.Print) }) is { } print)
+                group.Children.Add(print);
+            if (group.Children.Count > 0)
             {
-                var di = new DrawingImage(drawing);
+                var di = new DrawingImage(group);
                 di.Freeze();
                 img = di;
             }

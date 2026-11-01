@@ -1,19 +1,7 @@
-using System.IO;
-using System.Text.Json;
-
 namespace DofusBankManager.Data;
 
 /// <summary>Rune obtenue au brisage : objet (pour son prix HDV), nom et quantité estimée.</summary>
 public sealed record RuneYield(int ItemId, string Name, double Quantity);
-
-/// <summary>Réglages de l'estimation (brisage.json, modifiable à la main).</summary>
-public sealed class BrisageSettings
-{
-    /// <summary>Coefficient de brisage, en %. 31 : un objet niveau 100 à 104 de vitalité donne environ 1 Ra Vi.</summary>
-    public double Coefficient { get; set; } = 31;
-    /// <summary>Si faux, le niveau de l'objet n'entre pas dans le calcul (compté comme 100).</summary>
-    public bool AvecNiveau { get; set; } = true;
-}
 
 /// <summary>
 /// Estimation des runes obtenues en brisant un objet. Aucune formule officielle n'existe pour Retro : on applique
@@ -21,10 +9,12 @@ public sealed class BrisageSettings
 ///   poids de runes = jet × poids par point × niveau de l'objet × coefficient / 10 000
 /// puis ce poids est réparti en runes, de la plus grosse (Ra) à la plus petite (rune simple, quantité décimale).
 /// Le poids d'une rune est sa valeur × poids par point, arrondi à l'entier supérieur (Ra Vi : 30 × 0,25 → 8).
-/// Le coefficient se règle dans brisage.json en comparant avec un vrai brisage.
 /// </summary>
 public static class RuneBreaking
 {
+    /// <summary>Coefficient de brisage, en % : la Coiffe du Kitsou (niveau 61, 150 de vitalité) donne 1 Ra Vi.</summary>
+    const double Coefficient = 36;
+
     sealed record Line(double PointWeight, (string Rune, int Value)[] Runes);
 
     /// <summary>Caractéristique (voir ItemStats) -> poids par point et runes, de la plus petite à la plus grosse.</summary>
@@ -73,30 +63,14 @@ public static class RuneBreaking
         return cache.Ids;
     }
 
-    public static string SettingsPath => Path.Combine(GameData.AppDir, "brisage.json");
-
-    /// <summary>Réglages enregistrés ; le fichier est créé avec les valeurs par défaut s'il n'existe pas.</summary>
-    public static BrisageSettings LoadSettings()
-    {
-        try
-        {
-            if (File.Exists(SettingsPath))
-                return JsonSerializer.Deserialize<BrisageSettings>(File.ReadAllText(SettingsPath)) ?? new();
-            Directory.CreateDirectory(GameData.AppDir);
-            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(new BrisageSettings(), new JsonSerializerOptions { WriteIndented = true }));
-        }
-        catch { }
-        return new();
-    }
-
     /// <summary>Runes estimées pour un objet de ce niveau et ces caractéristiques (les malus ne donnent rien).</summary>
-    public static List<RuneYield> Estimate(GameData data, int level, IReadOnlyDictionary<int, int> stats, BrisageSettings settings)
+    public static List<RuneYield> Estimate(GameData data, int level, IReadOnlyDictionary<int, int> stats)
     {
         var result = new List<RuneYield>();
         foreach (var (characteristic, value) in stats.OrderBy(kv => ItemStats.Order(kv.Key)))
         {
             if (value <= 0 || !Table.TryGetValue(characteristic, out var line)) continue;
-            double weight = value * line.PointWeight * (settings.AvecNiveau ? level : 100) * settings.Coefficient / 10_000;
+            double weight = value * line.PointWeight * level * Coefficient / 10_000;
 
             // De la plus grosse rune à la plus petite ; le reste va en runes simples (quantité décimale)
             for (int i = line.Runes.Length - 1; i >= 0 && weight > 0; i--)

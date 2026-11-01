@@ -41,10 +41,13 @@ public sealed class SwfRenderer
         }
     }
 
+    /// <summary>Couleurs imposées aux clips nommés (comme setRGB en Flash), ex. « _spellBackground » des icônes de sorts.</summary>
+    IReadOnlyDictionary<string, Color>? _tints;
+
     /// <summary>Rend la première image du SWF ; null si rien de dessinable.</summary>
-    public static Drawing? Render(byte[] swf)
+    public static Drawing? Render(byte[] swf, IReadOnlyDictionary<string, Color>? tints = null)
     {
-        var r = new SwfRenderer(swf);
+        var r = new SwfRenderer(swf) { _tints = tints };
         var group = r.RenderTimeline(r._rootTags, ColorTx.Identity, 0);
         return group.Children.Count > 0 ? group : null;
     }
@@ -98,7 +101,7 @@ public sealed class SwfRenderer
         return group;
     }
 
-    static void PlaceObject(int code, byte[] data, SortedDictionary<int, (int, Matrix, ColorTx, bool)> display)
+    void PlaceObject(int code, byte[] data, SortedDictionary<int, (int, Matrix, ColorTx, bool)> display)
     {
         var r = new BitReader(data, 0);
         int flags = r.U8();
@@ -112,7 +115,8 @@ public sealed class SwfRenderer
         if ((flags & 0x04) != 0) cur.Item2 = r.ReadMatrix();
         if ((flags & 0x08) != 0) cur.Item3 = r.ReadCxForm(true);
         if ((flags & 0x10) != 0) r.U16();
-        if ((flags & 0x20) != 0) r.ReadString();
+        if ((flags & 0x20) != 0 && r.ReadString() is var name && _tints != null && _tints.TryGetValue(name, out var tint))
+            cur.Item3 = ColorTx.Fill(tint);
         if ((flags & 0x40) != 0) cur.Item4 = true; // ClipDepth : objet masque, non dessiné
         if (cur.Item1 >= 0) display[depth] = cur;
     }
@@ -329,6 +333,9 @@ public sealed class SwfRenderer
     {
         public static ColorTx Identity => new(1, 1, 1, 1, 0, 0, 0, 0);
 
+        /// <summary>Remplace la couleur en gardant la transparence (setRGB).</summary>
+        public static ColorTx Fill(Color c) => new(0, 0, 0, 1, c.R, c.G, c.B, 0);
+
         /// <summary>Applique this puis parent.</summary>
         public ColorTx Then(ColorTx p) => new(Rm * p.Rm, Gm * p.Gm, Bm * p.Bm, Am * p.Am,
             Ra * p.Rm + p.Ra, Ga * p.Gm + p.Ga, Ba * p.Bm + p.Ba, Aa * p.Am + p.Aa);
@@ -374,9 +381,11 @@ public sealed class SwfRenderer
         public string ReadString()
         {
             Align();
+            int start = Pos;
             while (Pos < d.Length && d[Pos] != 0) Pos++;
+            var s = System.Text.Encoding.UTF8.GetString(d, start, Pos - start);
             Pos++;
-            return "";
+            return s;
         }
 
         public void ReadRect()

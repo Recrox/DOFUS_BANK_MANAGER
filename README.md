@@ -143,7 +143,7 @@ Même passif, cet outil est un logiciel tiers. Les conditions d'utilisation d'An
 - **Données du jeu** ([Data/GameData.cs](DofusBankManager/Data/GameData.cs)) : les fichiers `items`, `crafts`, `skills`, `jobs`, `effects`, `monsters` et `maps` (coordonnées et zones) sont décodés par un mini-interpréteur AS2 ([Data/Avm1.cs](DofusBankManager/Data/Avm1.cs)).
 - **Forgemagie** ([Fm/FmTracker.cs](DofusBankManager/Fm/FmTracker.cs)) : voir ci-dessous.
 
-Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées, `settings.json` (thème), `fm.json` (historique FM), `fm_poids.json` (poids des stats), `hdv.json` (prix relevés), `pda.json` (prix des pierres d'âme par monstre), `marchands.json` (prix des cartes TTG chez les marchands), `chasse.json` (archi-monstres aperçus et combats), `brisage.json` (coefficient de l'estimation des runes) et `packets.log`.
+Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées, `settings.json` (thème), `fm.json` (historique FM), `fm_poids.json` (poids des stats), `hdv.json` (prix relevés), `pda.json` (prix des pierres d'âme par monstre), `marchands.json` (prix des cartes TTG chez les marchands), `chasse.json` (archi-monstres aperçus et combats) et `packets.log`.
 
 ### Onglet HDV (hôtel de vente)
 
@@ -181,7 +181,7 @@ Chaque ligne indique aussi le nombre d'exemplaires possédés, si l'objet est fa
 
 **Runes estimées** : chaque objet affiche les runes qu'il devrait donner, leur valeur au prix unitaire HDV et le **gain** du brisage (valeur des runes moins le prix HDV de l'objet pour vos objets, moins son coût de fabrication pour les recettes). Le panneau de droite détaille chaque rune : quantité, prix par unité, total. Le champ **Quantité à briser** (par défaut, et avec **Max** : tous les exemplaires possédés) multiplie les runes, leur valeur et le gain.
 
-Aucune formule officielle n'existe pour Retro : c'est une **estimation**. Pour chaque caractéristique, poids de runes = jet × poids par point × niveau de l'objet × coefficient / 10 000, réparti de la plus grosse rune (Ra) à la plus petite (quantité décimale pour les runes simples). Le coefficient par défaut (31 %) donne environ 1 Ra Vi pour 104 de vitalité sur un objet niveau 100. Comparez avec un vrai brisage, puis ajustez `Coefficient` (et `AvecNiveau`) avec le bouton **Réglages**, et cliquez sur **Recharger**. Le brisage reste à faire à la main, en jeu (règle 3).
+Aucune formule officielle n'existe pour Retro : c'est une **estimation**. Pour chaque caractéristique, poids de runes = jet × poids par point × niveau de l'objet × 36 % / 100, réparti de la plus grosse rune (Ra) à la plus petite (quantité décimale pour les runes simples). Exemple : la Coiffe du Kitsou (niveau 61, 150 de vitalité) donne 1 Ra Vi. Le brisage reste à faire à la main, en jeu (règle 3).
 
 ### Onglet TTG (cartes)
 
@@ -213,7 +213,7 @@ L'onglet affiche les **groupes de monstres de la map** où vous êtes (monstres,
 - **XP et drops estimés** : les données du jeu ne contiennent ni l'XP ni les drops des monstres. L'application les **apprend de vos fins de combat** : l'XP gagnée est ramenée sans sagesse, puis répartie entre les monstres selon leur niveau ; les objets obtenus sont attribués aux monstres du combat, d'où une fréquence observée. Pour un groupe de la map, l'XP estimée applique votre sagesse actuelle et les étoiles du groupe. Ce sont des **estimations** : elles se précisent au fil des combats, et ne tiennent compte ni de la taille du groupe ni de l'écart de niveau.
 - **Rentabilité** : la session additionne l'XP, les kamas et les drops (au prix unitaire HDV) de vos combats, puis projette ce rythme sur 30, 60 et 120 minutes. « Nouvelle session » repart de zéro ; après plus d'une heure sans combat, une nouvelle session s'ouvre d'elle-même.
 
-- **Économe** (challenge : chaque sort une seule fois par combat) : l'onglet affiche les sorts du personnage avec leurs icônes du jeu (lues dans le client installé) : normales tant qu'ils sont disponibles, grisées une fois lancés (comme un sort qu'on ne peut pas lancer), en rouge s'ils sont lancés deux fois (challenge raté). La liste repart de zéro à chaque entrée en combat (ou avec « Remettre à zéro »). Un échec critique compte comme un sort lancé. Les sorts du personnage sont envoyés par le jeu à la connexion, puis gardés d'une fois sur l'autre.
+- **Économe** (challenge : chaque sort une seule fois par combat) : l'onglet affiche les sorts du personnage avec leurs icônes du jeu (fond, cadre et symbole lus dans le client installé, couleurs du fichier de langue des sorts) : normales tant qu'ils sont disponibles, grisées une fois lancés (comme un sort qu'on ne peut pas lancer), grisées et encadrées de rouge s'ils sont lancés deux fois (challenge raté). La liste repart de zéro à chaque entrée en combat (ou avec « Remettre à zéro »). Un échec critique compte comme un sort lancé. Les sorts du personnage sont envoyés par le jeu à la connexion, puis gardés d'une fois sur l'autre.
 
 Comme le reste, l'onglet ne fait qu'afficher : c'est toujours le joueur qui se déplace, qui choisit ses sorts et qui combat (règle 3).
 

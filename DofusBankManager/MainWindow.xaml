@@ -662,7 +662,7 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <!-- Runes estimées (voir brisage.json) et leur valeur à l'HDV -->
+                                <!-- Runes estimées (voir RuneBreaking.cs) et leur valeur à l'HDV -->
                                 <DataGridTextColumn Header="Runes ≈" Binding="{Binding RunesText}" Width="180">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -727,11 +727,7 @@
                                     <TextBlock x:Name="BrisageDetailTotal" FontWeight="Bold" TextWrapping="Wrap"/>
                                 </Border>
                                 <TextBlock FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,8,0,6"
-                                           Text="Estimation : aucune formule officielle pour Retro. Réglez le coefficient dans brisage.json en comparant avec un vrai brisage, puis « Recharger »."/>
-                                <StackPanel Orientation="Horizontal">
-                                    <Button Content="Réglages" Click="BrisageSettings_Click" Padding="10,3"/>
-                                    <Button Content="Recharger" Click="BrisageReload_Click" Padding="10,3" Margin="6,0,0,0"/>
-                                </StackPanel>
+                                           Text="Estimation : aucune formule officielle pour Retro (Coiffe du Kitsou, niveau 61, 150 Vi ≈ 1 Ra Vi)."/>
                             </StackPanel>
                             <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
                                 <ItemsControl x:Name="BrisageRunes">
@@ -1266,38 +1262,38 @@
                                             </ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
-                                            <!-- Comme la barre de sorts du jeu : glyphe blanc sur fond coloré, grisé une fois lancé -->
+                                            <!-- Comme la barre de sorts du jeu : icône du sort (fond et cadre colorés, symbole), grisée une fois lancé -->
                                             <DataTemplate>
-                                                <Border x:Name="Tile" Width="44" Height="44" CornerRadius="8" Margin="0,0,6,6" BorderThickness="2"
-                                                        Background="{DynamicResource AccentBrush}" BorderBrush="{DynamicResource AccentBorder}"
-                                                        ToolTip="{Binding Tip}">
-                                                    <Grid>
-                                                        <Image x:Name="Glyph" Source="{Binding Icon}" Margin="4" Stretch="Uniform"/>
-                                                        <!-- Sans icône (client introuvable) : le nom du sort -->
-                                                        <TextBlock Text="{Binding Name}" FontSize="9" TextWrapping="Wrap" TextAlignment="Center"
-                                                                   VerticalAlignment="Center" Foreground="White" Margin="2">
-                                                            <TextBlock.Style>
-                                                                <Style TargetType="TextBlock">
-                                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding Icon}" Value="{x:Null}">
-                                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </TextBlock.Style>
-                                                        </TextBlock>
-                                                    </Grid>
-                                                </Border>
+                                                <Grid x:Name="Tile" Width="44" Height="44" Margin="0,0,6,6" ToolTip="{Binding Tip}">
+                                                    <Image x:Name="Glyph" Source="{Binding Icon}" Stretch="Uniform"/>
+                                                    <!-- Sort déjà lancé : voile gris, comme un sort qu'on ne peut pas lancer en jeu -->
+                                                    <Border x:Name="Veil" Background="#99707070" Visibility="Collapsed"/>
+                                                    <!-- Sort lancé deux fois : cadre rouge (challenge raté) -->
+                                                    <Border x:Name="Fail" BorderBrush="{DynamicResource Missing}" BorderThickness="3" Visibility="Collapsed"/>
+                                                    <!-- Sans icône (client introuvable) : le nom du sort -->
+                                                    <TextBlock Text="{Binding Name}" FontSize="9" TextWrapping="Wrap" TextAlignment="Center"
+                                                               VerticalAlignment="Stretch" Foreground="White" Padding="2"
+                                                               Background="{DynamicResource AccentBrush}">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Icon}" Value="{x:Null}">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </Grid>
                                                 <DataTemplate.Triggers>
                                                     <DataTrigger Binding="{Binding State}" Value="0">
-                                                        <Setter TargetName="Tile" Property="Background" Value="{DynamicResource TextMuted}"/>
-                                                        <Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource Border}"/>
-                                                        <Setter TargetName="Tile" Property="Opacity" Value="0.4"/>
+                                                        <Setter TargetName="Veil" Property="Visibility" Value="Visible"/>
+                                                        <Setter TargetName="Tile" Property="Opacity" Value="0.6"/>
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding State}" Value="-1">
-                                                        <Setter TargetName="Tile" Property="Background" Value="{DynamicResource Missing}"/>
-                                                        <Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource Missing}"/>
+                                                        <Setter TargetName="Veil" Property="Visibility" Value="Visible"/>
+                                                        <Setter TargetName="Fail" Property="Visibility" Value="Visible"/>
                                                     </DataTrigger>
                                                 </DataTemplate.Triggers>
                                             </DataTemplate>

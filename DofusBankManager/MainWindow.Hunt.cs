@@ -272,7 +272,8 @@ public partial class MainWindow
         EconomeSpells.ItemsSource = spells.Select(id => new EconomeSpell(id,
             _data!.Spells.GetValueOrDefault(id) is { Length: > 0 } n ? n : $"Sort {id}",
             twice.Contains(id) ? "Lancé 2 fois !" : used.Contains(id) ? "Déjà lancé" : "Disponible",
-            twice.Contains(id) ? -1 : used.Contains(id) ? 0 : 1)).ToList();
+            twice.Contains(id) ? -1 : used.Contains(id) ? 0 : 1,
+            _data.SpellLooks.GetValueOrDefault(id))).ToList();
 
         int left = spells.Count(id => !used.Contains(id));
         EconomeStatus.Text = spells.Count == 0
@@ -286,8 +287,8 @@ public partial class MainWindow
 }
 
 /// <summary>Sort de la partie Économe. State : 1 disponible, 0 déjà lancé, -1 lancé plusieurs fois (challenge raté).</summary>
-public sealed record EconomeSpell(int Id, string Name, string Status, int State)
+public sealed record EconomeSpell(int Id, string Name, string Status, int State, SpellLook? Look)
 {
-    public System.Windows.Media.ImageSource? Icon => SpellIcons.Get(Id);
+    public System.Windows.Media.ImageSource? Icon => SpellIcons.Get(Id, Look);
     public string Tip => $"{Name} : {Status}";
 }
