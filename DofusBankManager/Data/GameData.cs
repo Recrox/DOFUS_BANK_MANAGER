@@ -40,9 +40,9 @@ public sealed class GameData
 {
     const string DefaultDataUrl = "https://dofusretro.cdn.ankama.com/static-data/612/";
     const string Lang = "fr";
-    static readonly string[] Files = ["items", "crafts", "skills", "jobs", "effects", "monsters", "maps"];
+    static readonly string[] Files = ["items", "crafts", "skills", "jobs", "effects", "monsters", "maps", "spells"];
     /// <summary>Fichiers dont l'absence n'empêche pas de démarrer (ajoutés après coup, peut-être pas encore en cache).</summary>
-    static readonly string[] Optional = ["monsters", "maps"];
+    static readonly string[] Optional = ["monsters", "maps", "spells"];
 
     public static string AppDir { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DofusBankManager");
@@ -53,6 +53,8 @@ public sealed class GameData
     public Dictionary<int, EffectInfo> Effects { get; } = new();
     public Dictionary<int, MonsterInfo> Monsters { get; } = new();
     public Dictionary<int, MapInfo> Maps { get; } = new();
+    /// <summary>Noms des sorts (fichier de langue « spells »).</summary>
+    public Dictionary<int, string> Spells { get; } = new();
 
     public ItemInfo GetItem(int id) =>
         Items.TryGetValue(id, out var it) ? it : new ItemInfo(id, $"Objet #{id}", 0, 0, "?", 0);
@@ -186,6 +188,12 @@ public sealed class GameData
                     sa != null ? Avm1.ToStr(sa.GetValueOrDefault("n")) : "");
             }
         }
+
+        // Sorts : S[id] = { n: nom, … }
+        if (paths.TryGetValue("spells", out var spellsPath)
+            && Avm1.Run(await File.ReadAllBytesAsync(spellsPath)).GetValueOrDefault("S") is AsObject S)
+            foreach (var (k, v) in S)
+                if (v is AsObject o && int.TryParse(k, out var sid)) data.Spells[sid] = Avm1.ToStr(o.GetValueOrDefault("n"));
 
         data.JobNames.AddRange(data.Recipes.SelectMany(r => r.Jobs).Distinct().Order());
         log($"Données du jeu : {data.Items.Count} objets, {data.Recipes.Count} recettes.");

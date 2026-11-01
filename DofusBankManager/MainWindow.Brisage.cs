@@ -75,11 +75,32 @@ public partial class MainWindow
     /// <summary>« 2 », « 0,4 » : quantité estimée de runes, entière pour les grosses, décimale pour les simples.</summary>
     static string RuneQuantity(double q) => q == Math.Floor(q) ? $"{q:0}" : $"≈{q:0.#}";
 
-    void BrisageGrid_SelectionChanged(object sender, SelectionChangedEventArgs e) => ShowBrisageDetail();
+    void BrisageGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Nouvel objet : on propose de briser tous les exemplaires possédés (au moins 1)
+        if (BrisageGrid.SelectedItem is BrisageRow row && row.ItemId != _brisageDetailItem)
+        {
+            _brisageDetailItem = row.ItemId;
+            BrisageBreakCount.Text = Math.Max(1, row.Owned).ToString(); // déclenche ShowBrisageDetail
+            BrisageBreakMax.IsEnabled = row.Owned > 0;
+        }
+        ShowBrisageDetail();
+    }
 
-    /// <summary>Runes de l'objet sélectionné : quantité, prix unitaire HDV, total, puis comparaison.</summary>
+    int? _brisageDetailItem;
+
+    void BrisageBreakCount_Changed(object sender, TextChangedEventArgs e) => ShowBrisageDetail();
+
+    void BrisageBreakMax_Click(object sender, RoutedEventArgs e)
+    {
+        if (BrisageGrid.SelectedItem is BrisageRow { Owned: > 0 } row) BrisageBreakCount.Text = row.Owned.ToString();
+    }
+
+    /// <summary>Runes de N exemplaires de l'objet sélectionné : quantité, prix unitaire HDV, total, puis comparaison.</summary>
     void ShowBrisageDetail()
     {
+        // Pendant le chargement de la fenêtre (TextChanged du champ « Quantité à briser »), le panneau n'est pas encore créé
+        if (!_ready) return;
         if (_data == null || BrisageGrid.SelectedItem is not BrisageRow row)
         {
             BrisageDetailTitle.Text = "Sélectionnez un objet";
@@ -87,29 +108,32 @@ public partial class MainWindow
             BrisageDetailTotal.Text = "";
             return;
         }
+        int n = int.TryParse(BrisageBreakCount.Text, out var c) && c > 0 ? Math.Min(c, 100_000) : 1;
         BrisageDetailIcon.Source = ItemIcons.Get(row.ItemId);
         BrisageDetailTitle.Text = row.Name;
-        BrisageDetailSub.Text = $"Niveau {row.Level} · {row.Type}\n{row.Stats}";
+        BrisageDetailSub.Text = $"Niveau {row.Level} · {row.Type}" + (row.Owned > 0 ? $" · {row.Owned} possédé(s)" : "") + $"\n{row.Stats}";
         BrisageRunes.ItemsSource = row.Runes.Select(r =>
         {
             var unit = UnitPrice(r.ItemId);
-            return new RuneRow(r.ItemId, r.Name, RuneQuantity(r.Quantity), unit, unit * r.Quantity);
+            return new RuneRow(r.ItemId, r.Name, RuneQuantity(Math.Round(r.Quantity * n, 2)), unit, unit * r.Quantity * n);
         }).ToList();
 
         int unpriced = row.Runes.Count(r => UnitPrice(r.ItemId) == null);
+        double? gain = row.Gain * n;
         var lines = new List<string>();
         if (row.Runes.Count == 0) lines.Add("Aucune caractéristique ne donne de rune.");
         else
         {
-            lines.Add($"Valeur des runes : {Kamas(row.RunesValue)}"
+            string each = n > 1 ? $" pour {n} objets" : "";
+            lines.Add($"Valeur des runes{each} : {Kamas(row.RunesValue * n)}"
                 + (unpriced > 0 ? $" ({unpriced} rune(s) sans prix HDV, comptée(s) 0)" : ""));
             var label = BrisageSource.SelectedIndex == 0 ? "Prix HDV de l'objet" : row.CraftCost != null ? "Coût de fabrication" : "Prix HDV de l'objet";
-            lines.Add(row.Reference is { } reference ? $"{label} : {Kamas(reference)}" : $"{label} : inconnu");
-            if (row.Gain is { } gain)
-                lines.Add($"Gain du brisage : {(gain >= 0 ? "+" : "")}{Kamas(gain)}");
+            lines.Add(row.Reference is { } reference ? $"{label}{each} : {Kamas(reference * n)}" : $"{label} : inconnu");
+            if (gain is { } g)
+                lines.Add($"Gain du brisage{each} : {(g >= 0 ? "+" : "")}{Kamas(g)}");
         }
         BrisageDetailTotal.Text = string.Join("\n", lines);
-        BrisageDetailTotal.SetResourceReference(TextBlock.ForegroundProperty, row.Gain is < 0 ? "Missing" : row.Gain is > 0 ? "Ok" : "Text");
+        BrisageDetailTotal.SetResourceReference(TextBlock.ForegroundProperty, gain is < 0 ? "Missing" : gain is > 0 ? "Ok" : "Text");
     }
 
     void BrisageSettings_Click(object sender, RoutedEventArgs e)

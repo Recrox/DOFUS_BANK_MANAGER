@@ -48,6 +48,8 @@ sealed record MapMerchant(string Name, int Cell);
 public sealed class MerchantTracker
 {
     const int MaxHistory = 100;
+    /// <summary>Une même carte chez un même marchand n'est relevée qu'une fois dans ce délai.</summary>
+    static readonly TimeSpan MerchantRepeat = TimeSpan.FromHours(1);
 
     /// <summary>Carte commune, rare, épique, unique, paquet de cartes.</summary>
     public static readonly int[] CardTypes = [119, 120, 121, 122, 123];
@@ -153,6 +155,8 @@ public sealed class MerchantTracker
             if (!Prices.TryGetValue(g.Key, out var p)) Prices[g.Key] = p = new MerchantPrice { TemplateId = g.Key };
             // Même boutique rouverte aussitôt : pas de doublon
             if (p.Last is { } last && now - last.Time < TimeSpan.FromMinutes(1) && last.Price == best.Price) continue;
+            // Même carte chez le même marchand vue il y a moins d'une heure : relevé inchangé
+            if (shop?.Name is { } seller && p.History.Any(s => s.Merchant == seller && now - s.Time < MerchantRepeat)) continue;
             var snap = new MerchantSnapshot
             {
                 Time = now, Price = best.Price, Quantity = g.Sum(l => l.Qty),

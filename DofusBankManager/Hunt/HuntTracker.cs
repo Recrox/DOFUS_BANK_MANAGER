@@ -63,6 +63,12 @@ public sealed class HuntCharacter(string stream, int number)
     /// <summary>Dernier message reçu sur cette connexion.</summary>
     public DateTime LastActivity { get; set; } = DateTime.Now;
 
+    /// <summary>Économe : en combat, et sorts déjà lancés dans ce combat (dans l'ordre).</summary>
+    public bool InFight { get; set; }
+    public List<int> UsedSpells { get; } = new();
+    /// <summary>Sorts reçus sur cette connexion (la liste peut arriver avant le nom du personnage).</summary>
+    public List<int>? KnownSpells { get; set; }
+
     /// <summary>Connexion qui a donné quelque chose d'utile (un personnage, des stats ou une map).</summary>
     public bool HasData => Name.Length > 0 || Wisdom != null || Prospection != null || MapId.Length > 0;
 
@@ -80,6 +86,8 @@ sealed class HuntData
     public List<FightRecord> Fights { get; set; } = new();
     public DateTime SessionStart { get; set; } = DateTime.Now;
     public bool SoundAlert { get; set; } = true;
+    /// <summary>Sorts connus par personnage (nom -> sorts), pour l'Économe même si l'appli démarre en jeu.</summary>
+    public Dictionary<string, List<int>> Spells { get; set; } = new();
 }
 
 /// <summary>
@@ -196,6 +204,7 @@ public sealed class HuntTracker
         c.Name = name;
         if (level > 0) c.Level = level;
         c.Party.Clear();
+        SaveSpells(c);
         // Reconnexion : le même personnage sur une ancienne connexion (fermeture non vue) est retiré
         foreach (var old in _characters.Where(kv => kv.Value != c && kv.Value.Id == id).Select(kv => kv.Key).ToList())
         {
@@ -330,6 +339,7 @@ public sealed class HuntTracker
         var parts = body.Split('|');
         if (parts.Length < 4 || !long.TryParse(parts[0], out var durationMs)) return;
         var c = Current;
+        c.InFight = false; // l'Économe garde les sorts du combat affichés jusqu'au suivant
         var monsters = new List<GroupMonster>();
         var players = new List<string[]>();
 
@@ -385,6 +395,70 @@ public sealed class HuntTracker
         if (_store.Fights.Count > MaxFights) _store.Fights.RemoveRange(0, _store.Fights.Count - MaxFights);
         Save();
         Log?.Invoke($"Combat terminé ({c.Label}) : {fight.Xp:N0} XP, {fight.Kamas:N0} kamas, {fight.Drops.Sum(d => d.Quantity)} objet(s).");
+        Changed?.Invoke();
+    }
+
+    // --- Économe : chaque sort ne doit être lancé qu'une fois par combat ---
+
+    /// <summary>Sorts connus du personnage affiché (vide s'ils n'ont jamais été reçus).</summary>
+    public IReadOnlyList<int> SpellsOf(HuntCharacter c) =>
+        c.KnownSpells ?? (c.Name.Length > 0 && _store.Spells.TryGetValue(c.Name, out var s) ? s : c.UsedSpells.Distinct().ToList());
+
+    /// <summary>Garde les sorts du personnage d'une fois sur l'autre (dès que son nom est connu).</summary>
+    void SaveSpells(HuntCharacter c)
+    {
+        if (c.KnownSpells == null || c.Name.Length == 0) return;
+        _store.Spells[c.Name] = c.KnownSpells;
+        Save();
+    }
+
+    /// <summary>Sorts du personnage : "sort~niveau~position;…" (envoyé à la connexion et quand un sort change).</summary>
+    public void OnSpellList(string body)
+    {
+        var c = Current;
+        var spells = new List<(int Id, int Position)>();
+        foreach (var e in body.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var f = e.Split('~');
+            if (f.Length >= 1 && int.TryParse(f[0], out var id))
+                spells.Add((id, f.Length >= 3 && int.TryParse(f[2], out var pos) ? pos : 99));
+        }
+        if (spells.Count == 0) return;
+        // Ordre de la barre de sorts, puis ceux qui n'y sont pas
+        c.KnownSpells = spells.OrderBy(s => s.Position).Select(s => s.Id).ToList();
+        SaveSpells(c);
+        Changed?.Invoke();
+    }
+
+    public void OnFightJoined()
+    {
+        var c = Current;
+        c.InFight = true;
+        c.UsedSpells.Clear();
+        Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// Action de combat : "id;type;acteur;paramètres". Type 300 = sort lancé, 302 = échec critique (le sort est quand même
+    /// utilisé) ; le premier paramètre est le sort. Seuls les sorts du personnage sont retenus.
+    /// </summary>
+    public void OnGameAction(string body)
+    {
+        var f = body.Split(';');
+        if (f.Length < 4 || f[1] is not ("300" or "302") || !long.TryParse(f[2], out var actor)
+            || !int.TryParse(f[3].Split(',')[0], out var spell)) return;
+        var c = Current;
+        // Personnage inconnu (appli lancée en jeu) : on garde les sorts qu'il connaît, faute de mieux
+        bool mine = c.Id != 0 ? actor == c.Id : SpellsOf(c).Contains(spell);
+        if (!mine) return;
+        c.InFight = true;
+        c.UsedSpells.Add(spell);
+        Changed?.Invoke();
+    }
+
+    public void ResetEconome()
+    {
+        Shown?.UsedSpells.Clear();
         Changed?.Invoke();
     }
 

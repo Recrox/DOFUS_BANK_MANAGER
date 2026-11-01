@@ -361,13 +361,12 @@
                     <Grid>
                         <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
-                            <DockPanel>
-                                <Path x:Name="Arrow" DockPanel.Dock="Right" Visibility="Collapsed" Margin="6,0,0,0" VerticalAlignment="Center"
-                                      Data="M0,0 L4,4 L8,0" Stroke="{DynamicResource AccentSolid}" StrokeThickness="1.8"
-                                      RenderTransformOrigin="0.5,0.5"/>
-                                <ContentPresenter VerticalAlignment="Center"/>
-                            </DockPanel>
+                            <ContentPresenter VerticalAlignment="Center"/>
                         </Border>
+                        <!-- Flèche de tri au-dessus du titre : elle ne prend pas de largeur, le titre n'est plus coupé -->
+                        <Path x:Name="Arrow" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,2,0,0"
+                              Data="M0,0 L4,3 L8,0" Stroke="{DynamicResource AccentSolid}" StrokeThickness="1.6" IsHitTestVisible="False"
+                              RenderTransformOrigin="0.5,0.5"/>
                         <Thumb x:Name="PART_RightHeaderGripper" HorizontalAlignment="Right" Width="6" Cursor="SizeWE">
                             <Thumb.Template>
                                 <ControlTemplate>

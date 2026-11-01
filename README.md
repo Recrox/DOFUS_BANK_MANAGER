@@ -105,13 +105,14 @@ C'est ce qui sépare un outil d'aide d'un bot. Les sanctions d'Ankama visent sur
 Le trafic capturé contient des informations sensibles : nom de compte, ticket de connexion, messages privés.
 
 - **Ne lire que les messages utiles** à la banque et à l'inventaire (voir [DofusTracker.cs](DofusBankManager/Net/DofusTracker.cs)). Les autres sont ignorés.
-- Exception, pour les onglets Chasse et TTG : sont aussi lus la map (`GDM`, `GM`), les caractéristiques du personnage (`As`), les fins de combat (`GE`) et le groupe (`PM`, `PV`). Ces messages contiennent aussi des noms de joueurs. On n'en garde que :
+- Exception, pour les onglets Combat et TTG : sont aussi lus la map (`GDM`, `GM`), les caractéristiques du personnage (`As`), les fins de combat (`GE`), le groupe (`PM`, `PV`), les sorts du personnage (`SL`), l'entrée en combat (`GJK`) et les sorts lancés (`GA` de type 300 et 302). Ces messages contiennent aussi des noms de joueurs. On n'en garde que :
   - les groupes de monstres de la map (modèles, niveaux, étoiles) ;
   - les joueurs en mode marchand (pseudo et case) : pour une boutique consultée, ils sont enregistrés avec ses prix de cartes TTG, sur ce PC seulement, **jamais partagés** ;
   - aucun autre sprite (joueurs, PNJ…) ;
   - la sagesse et la prospection du personnage ;
   - la ligne du personnage en fin de combat (XP, kamas, objets) et les monstres affrontés ;
-  - le niveau et la prospection des membres du groupe, jamais leur nom.
+  - le niveau et la prospection des membres du groupe, jamais leur nom ;
+  - les sorts du personnage et ceux qu'il lance en combat, jamais ceux des autres combattants.
 
   Ces messages ne sont **jamais journalisés**, ni dans `packets.log` ni dans le journal de l'application, et rien n'en sort de la machine.
 - **Aucune donnée du joueur ne sort de la machine** : pas de télémétrie, pas d'envoi de la banque ni de l'inventaire. Les seules requêtes réseau autorisées sont :
@@ -155,7 +156,7 @@ L'application **n'interroge jamais l'HDV elle-même** : cela demanderait d'envoy
 - **Rejoindre un groupe** (aucun compte nécessaire) : onglet HDV › **Partage entre amis** ; l'adresse du serveur est pré-remplie, collez le code de groupe reçu en privé, cochez **Activer le partage**, puis **Tester** et **Enregistrer**. Le réglage est conservé.
 - **Héberger le serveur** (une seule personne par groupe) : voir [server/README.md](server/README.md).
 
-Le **prix unitaire** est le meilleur des trois : ×1, ×10 ÷ 10, ×100 ÷ 100. L'onglet Banque s'en sert pour estimer la valeur de chaque objet et de la banque entière (objets sans prix relevé non comptés).
+Le **prix unitaire** est le meilleur des trois : ×1, ×10 ÷ 10, ×100 ÷ 100. L'onglet Banque affiche ce prix unitaire et le prix moyen de l'HDV, et s'en sert pour estimer la valeur de chaque objet et de la banque entière (objets sans prix relevé non comptés).
 
 ### Onglet Recettes : coût et sous-recettes
 
@@ -178,7 +179,7 @@ Cet onglet trouve les objets à briser pour générer des runes. Cochez une ou p
 
 Chaque ligne indique aussi le nombre d'exemplaires possédés, si l'objet est faisable, les ingrédients manquants, le coût de fabrication et le prix HDV.
 
-**Runes estimées** : chaque objet affiche les runes qu'il devrait donner, leur valeur au prix unitaire HDV et le **gain** du brisage (valeur des runes moins le prix HDV de l'objet pour vos objets, moins son coût de fabrication pour les recettes). Le panneau de droite détaille chaque rune : quantité, prix par unité, total.
+**Runes estimées** : chaque objet affiche les runes qu'il devrait donner, leur valeur au prix unitaire HDV et le **gain** du brisage (valeur des runes moins le prix HDV de l'objet pour vos objets, moins son coût de fabrication pour les recettes). Le panneau de droite détaille chaque rune : quantité, prix par unité, total. Le champ **Quantité à briser** (par défaut, et avec **Max** : tous les exemplaires possédés) multiplie les runes, leur valeur et le gain.
 
 Aucune formule officielle n'existe pour Retro : c'est une **estimation**. Pour chaque caractéristique, poids de runes = jet × poids par point × niveau de l'objet × coefficient / 10 000, réparti de la plus grosse rune (Ra) à la plus petite (quantité décimale pour les runes simples). Le coefficient par défaut (31 %) donne environ 1 Ra Vi pour 104 de vitalité sur un objet niveau 100. Comparez avec un vrai brisage, puis ajustez `Coefficient` (et `AvecNiveau`) avec le bouton **Réglages**, et cliquez sur **Recharger**. Le brisage reste à faire à la main, en jeu (règle 3).
 
@@ -186,7 +187,7 @@ Aucune formule officielle n'existe pour Retro : c'est une **estimation**. Pour c
 
 L'onglet liste les cartes (commune, rare, épique, unique) et les paquets de cartes, dans l'ordre du classeur (No.). Il indique combien vous en possédez (banque et inventaire) et l'avancement de votre collection. Comme dans l'onglet HDV, seules les cartes avec un prix relevé s'affichent ; cochez « Toutes les cartes du jeu » pour voir toute la collection.
 
-Les **prix marchands** se relèvent quand vous ouvrez la boutique d'un joueur en mode marchand : l'application lit la liste des objets en vente (`ECK4` puis `EL…`) et retient, pour chaque carte, le prix le plus bas de cette boutique, avec le **pseudo du marchand**, sa **map** (coordonnées et zone) et sa **case**, lus sur la map. Ces trois informations restent sur votre PC et ne sont **jamais partagées**. Comme pour l'HDV, rien n'est demandé au serveur : seules les boutiques que vous consultez donnent un prix. Si le partage entre amis est activé (onglet HDV), ces prix sont partagés avec le groupe, sans le marchand ; les relevés venus du groupe sont marqués « groupe ».
+Les **prix marchands** se relèvent quand vous ouvrez la boutique d'un joueur en mode marchand : l'application lit la liste des objets en vente (`ECK4` puis `EL…`) et retient, pour chaque carte, le prix le plus bas de cette boutique, avec le **pseudo du marchand**, sa **map** (coordonnées et zone) et sa **case**, lus sur la map. Ces trois informations restent sur votre PC et ne sont **jamais partagées**. La liste affiche, pour chaque carte, le marchand et la position de la meilleure offre de la période (colonnes « Chez » et « Position »). Une même carte chez un même marchand n'est relevée qu'une fois par heure. Comme pour l'HDV, rien n'est demandé au serveur : seules les boutiques que vous consultez donnent un prix. Si le partage entre amis est activé (onglet HDV), ces prix sont partagés avec le groupe, sans le marchand ; les relevés venus du groupe sont marqués « groupe ».
 
 Le panneau de détail liste les **offres vues sur la période** (7 jours par défaut, champ « Période »), de la moins chère à la plus chère, avec le marchand, sa position et la date ; puis l'évolution du prix chez les marchands et à l'HDV. Les relevés d'avant cette version, et ceux venus du groupe, n'ont pas de marchand. L'onglet HDV affiche aussi un graphique de l'évolution du prix unitaire pour l'objet sélectionné.
 
@@ -201,18 +202,20 @@ Une même liste mélange les catégories : celle d'un Bulbuisson contient des pi
 
 Le panneau de détail montre l'évolution du prix du monstre sélectionné. Les noms des monstres viennent du fichier de langue `monsters`.
 
-### Onglet Chasse
+### Onglet Combat
 
 L'onglet affiche les **groupes de monstres de la map** où vous êtes (monstres, niveau du groupe, étoiles), votre **niveau**, votre **sagesse**, votre **prospection**, et le niveau et la prospection du **groupe** (somme des membres, lue dans les messages de groupe ; les vôtres seuls hors groupe).
 
 - **Multi-compte** : chaque fenêtre de jeu est suivie séparément. La liste « Personnage » choisit celle à afficher ; « Fenêtre active (auto) » suit la fenêtre qui vient de changer de map. La rentabilité est celle du personnage affiché, avec le total de tous les personnages en dessous. Une fenêtre fermée ou déconnectée disparaît de la liste ; après une reconnexion, le personnage reprend sa place.
 - **Lancez l'application avant de choisir votre personnage** : c'est à ce moment qu'elle apprend son identifiant, nécessaire pour retrouver sa ligne dans les résultats de combat. Sinon, seuls les combats en solo sont comptés (revenir à la sélection des personnages suffit), et le nom du personnage n'apparaît qu'après son premier combat en solo. De même, la sagesse et la prospection ne sont envoyées par le jeu qu'à la connexion ou quand elles changent : changer une pièce d'équipement suffit à les faire apparaître.
 
-- **Archi-monstres** : quand un groupe contenant un archi-monstre apparaît sur la map, une alerte sonore retentit (case « Alerte sonore archi-monstre »). L'historique liste les derniers archi-monstres vus, avec leur niveau, la map et le dernier prix relevé de leur pierre (onglet PDA). Un même archi sur la même map n'est signalé qu'une fois toutes les 10 minutes.
+- **Archi-monstres** : quand un groupe contenant un archi-monstre apparaît sur la map, une alerte sonore retentit (case « Alerte sonore archi-monstre »). L'historique liste les derniers archi-monstres vus, avec leur niveau, leur **position** (coordonnées et zone de la map) et le dernier prix relevé de leur pierre (onglet PDA). Un même archi sur la même map n'est signalé qu'une fois toutes les 10 minutes.
 - **XP et drops estimés** : les données du jeu ne contiennent ni l'XP ni les drops des monstres. L'application les **apprend de vos fins de combat** : l'XP gagnée est ramenée sans sagesse, puis répartie entre les monstres selon leur niveau ; les objets obtenus sont attribués aux monstres du combat, d'où une fréquence observée. Pour un groupe de la map, l'XP estimée applique votre sagesse actuelle et les étoiles du groupe. Ce sont des **estimations** : elles se précisent au fil des combats, et ne tiennent compte ni de la taille du groupe ni de l'écart de niveau.
 - **Rentabilité** : la session additionne l'XP, les kamas et les drops (au prix unitaire HDV) de vos combats, puis projette ce rythme sur 30, 60 et 120 minutes. « Nouvelle session » repart de zéro ; après plus d'une heure sans combat, une nouvelle session s'ouvre d'elle-même.
 
-Comme le reste, l'onglet ne fait qu'afficher : c'est toujours le joueur qui se déplace et qui combat (règle 3).
+- **Économe** (challenge : chaque sort une seule fois par combat) : l'onglet affiche les sorts du personnage, en vert tant qu'ils sont disponibles, barrés une fois lancés, en rouge s'ils sont lancés deux fois (challenge raté). La liste repart de zéro à chaque entrée en combat (ou avec « Remettre à zéro »). Un échec critique compte comme un sort lancé. Les sorts du personnage sont envoyés par le jeu à la connexion, puis gardés d'une fois sur l'autre.
+
+Comme le reste, l'onglet ne fait qu'afficher : c'est toujours le joueur qui se déplace, qui choisit ses sorts et qui combat (règle 3).
 
 ### Onglet FM (forgemagie)
 

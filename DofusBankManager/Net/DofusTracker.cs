@@ -43,6 +43,7 @@ public sealed record OwnedItem(int TemplateId, int Quantity, string Effects = ""
 ///   As…                           caractéristiques du personnage (sagesse, prospection)
 ///   GE…                           fin de combat : seule la ligne du personnage (XP, kamas, drops) et les monstres sont lus
 ///   PM+…|PM~…|PM-id / PV          membres du groupe : seuls le niveau et la prospection sont lus
+///   SL… / GJK / GA;300;…          sorts du personnage, entrée en combat, sorts lancés (partie Économe)
 /// </summary>
 public sealed class DofusTracker
 {
@@ -105,6 +106,12 @@ public sealed class DofusTracker
     public event Action<long, string, int>? CharacterSelected;
     /// <summary>Nouveau niveau du personnage (message AN).</summary>
     public event Action<int>? LevelUp;
+    /// <summary>Sorts du personnage (message SL sans le préfixe) : "sort~niveau~position;…".</summary>
+    public event Action<string>? SpellList;
+    /// <summary>Entrée en combat (message GJK).</summary>
+    public event Action? FightJoined;
+    /// <summary>Action de combat (message GA sans le préfixe) : "id;type;acteur;paramètres".</summary>
+    public event Action<string>? GameAction;
 
     /// <summary>Codes des messages de forgemagie (fichier lang : INFOS_117, INFOS_183, INFOS_194).</summary>
     public static readonly int[] FmInfoCodes = [117, 183, 194];
@@ -168,6 +175,10 @@ public sealed class DofusTracker
         else if (msg.StartsWith("PM") && msg.Length > 2) PartyChanged?.Invoke(msg[2..]);
         else if (msg == "PV" || msg.StartsWith("PV|")) PartyChanged?.Invoke(null);
         else if (msg.StartsWith("AN") && int.TryParse(msg.AsSpan(2), out var level)) LevelUp?.Invoke(level);
+        // Économe : sorts du personnage, entrée en combat, sorts lancés
+        else if (msg.StartsWith("SL") && msg.Length > 2 && char.IsDigit(msg[2])) SpellList?.Invoke(msg[2..]);
+        else if (msg.StartsWith("GJK")) FightJoined?.Invoke();
+        else if (msg.StartsWith("GA") && msg.Contains(';')) GameAction?.Invoke(msg[2..]);
     }
 
     /// <summary>

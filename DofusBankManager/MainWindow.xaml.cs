@@ -52,6 +52,10 @@ public sealed record BankRow(int ItemId, string Name, int Quantity, int Level, s
     public int Index { get; init; }
     /// <summary>Valeur estimée à l'HDV (quantité × meilleur prix unitaire relevé).</summary>
     public long? Value { get; init; }
+    /// <summary>Meilleur prix unitaire relevé à l'HDV (×1, ×10 ÷ 10, ×100 ÷ 100).</summary>
+    public double? UnitPrice { get; init; }
+    /// <summary>Prix moyen affiché par l'HDV.</summary>
+    public long? AveragePrice { get; init; }
 }
 
 public partial class MainWindow : Window
@@ -597,7 +601,11 @@ public partial class MainWindow : Window
                 int qty = g.Sum(i => i.Quantity);
                 var unit = UnitPrice(g.Key);
                 return new BankRow(g.Key, it.Name, qty, it.Level, it.TypeName, _usage.GetValueOrDefault(g.Key))
-                    { Value = unit is { } u ? (long)Math.Round(u * qty) : null };
+                {
+                    Value = unit is { } u ? (long)Math.Round(u * qty) : null,
+                    UnitPrice = unit,
+                    AveragePrice = _hdv?.Prices.GetValueOrDefault(g.Key)?.Average,
+                };
             })
             .ToList();
 

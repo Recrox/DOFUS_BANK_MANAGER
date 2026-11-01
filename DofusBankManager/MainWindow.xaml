@@ -268,6 +268,25 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Prix /u" Binding="{Binding UnitPrice, StringFormat={}{0:N0}}" Width="96">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                        <Setter Property="ToolTip" Value="Meilleur prix unitaire relevé à l'HDV (×1, ×10 ÷ 10, ×100 ÷ 100)"/>
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Moyen" Binding="{Binding AveragePrice, StringFormat={}{0:N0}}" Width="96">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                        <Setter Property="ToolTip" Value="Prix moyen affiché par l'HDV"/>
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             <DataGridTextColumn Header="Valeur HDV" Binding="{Binding Value, StringFormat={}{0:N0}}" Width="120">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
@@ -694,6 +713,14 @@
                             </DockPanel>
                             <TextBlock x:Name="BrisageDetailSub" DockPanel.Dock="Top" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"
                                        Margin="0,6,0,0"/>
+                            <!-- Nombre d'exemplaires brisés : quantités de runes, valeurs et gain sont multipliés -->
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,10,0,0">
+                                <TextBlock Text="Quantité à briser" Style="{StaticResource Label}" Margin="0,0,8,0"/>
+                                <TextBox x:Name="BrisageBreakCount" Width="60" Text="1" Padding="2,0" HorizontalContentAlignment="Center"
+                                         TextChanged="BrisageBreakCount_Changed"/>
+                                <Button x:Name="BrisageBreakMax" Content="Max" Click="BrisageBreakMax_Click" Padding="8,2" Margin="6,0,0,0"
+                                        ToolTip="Tous les exemplaires possédés"/>
+                            </StackPanel>
                             <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
                                 <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource AccentBorder}" BorderThickness="1"
                                         CornerRadius="10" Padding="12,8">
@@ -957,6 +984,25 @@
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
                             <DataGridTextColumn x:Name="TtgBestColumn" Header="Meilleur 7 j" Binding="{Binding BestPrice, StringFormat={}{0:N0}}" Width="104"/>
+                            <!-- Où acheter : marchand et position de la meilleure offre de la période -->
+                            <DataGridTextColumn Header="Chez" Binding="{Binding BestMerchant}" Width="130">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        <Setter Property="ToolTip" Value="{Binding BestMerchant}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Position" Binding="{Binding BestWhere}" Width="230">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        <Setter Property="ToolTip" Value="{Binding BestWhere}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             <DataGridTextColumn Header="Vu" Binding="{Binding Seen}" Width="110" SortMemberPath="SeenAt">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
@@ -1150,8 +1196,8 @@
                 </Grid>
             </TabItem>
 
-            <!-- Chasse : monstres de la map, archi-monstres aperçus, rentabilité des combats -->
-            <TabItem Header="Chasse" Tag="{StaticResource TabChasse}">
+            <!-- Combat : Économe, monstres de la map, archi-monstres aperçus, rentabilité des combats -->
+            <TabItem Header="Combat" Tag="{StaticResource TabChasse}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -1195,7 +1241,53 @@
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-                        <TextBlock x:Name="HuntMap" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,6"/>
+                        <StackPanel>
+                            <!-- Économe : chaque sort une seule fois par combat (simple affichage, le joueur lance ses sorts) -->
+                            <Border Background="{DynamicResource Surface2}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                                    CornerRadius="12" Padding="12,8" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Content="Remettre à zéro" Click="EconomeReset_Click" Padding="10,2"
+                                                ToolTip="Efface les sorts lancés (sinon fait automatiquement à l'entrée en combat)"/>
+                                        <TextBlock VerticalAlignment="Center" TextWrapping="Wrap">
+                                            <Run Text="Économe" FontWeight="Bold" Foreground="{DynamicResource AccentSolid}"/><Run
+                                                Text=" · chaque sort une seule fois par combat" Foreground="{DynamicResource TextMuted}"/>
+                                        </TextBlock>
+                                    </DockPanel>
+                                    <TextBlock x:Name="EconomeStatus" FontWeight="SemiBold" Margin="0,4,0,6" TextWrapping="Wrap"/>
+                                    <ItemsControl x:Name="EconomeSpells">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border x:Name="Chip" CornerRadius="8" Padding="8,3" Margin="0,0,5,5" BorderThickness="1"
+                                                        Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Ok}"
+                                                        ToolTip="{Binding Status}">
+                                                    <TextBlock x:Name="ChipText" Text="{Binding Name}" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource Ok}"/>
+                                                </Border>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding State}" Value="0">
+                                                        <Setter TargetName="Chip" Property="BorderBrush" Value="{DynamicResource Border}"/>
+                                                        <Setter TargetName="Chip" Property="Opacity" Value="0.55"/>
+                                                        <Setter TargetName="ChipText" Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                                        <Setter TargetName="ChipText" Property="TextDecorations" Value="Strikethrough"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding State}" Value="-1">
+                                                        <Setter TargetName="Chip" Property="BorderBrush" Value="{DynamicResource Missing}"/>
+                                                        <Setter TargetName="ChipText" Property="Foreground" Value="{DynamicResource Missing}"/>
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="HuntMap" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,6"/>
+                        </StackPanel>
                         <Grid Grid.Row="1">
                             <DataGrid x:Name="HuntGroupGrid" RowHeight="NaN" MinRowHeight="38">
                                 <DataGrid.Columns>
@@ -1285,7 +1377,7 @@
                         </DockPanel>
                         <DataGrid x:Name="HuntArchiGrid" Grid.Row="1">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Vu" Binding="{Binding Time}" Width="90" SortMemberPath="TimeSort"/>
+                                <DataGridTextColumn Header="Vu" Binding="{Binding Time}" Width="108" SortMemberPath="TimeSort"/>
                                 <DataGridTextColumn Header="Archi-monstre" Binding="{Binding Name}" Width="*" MinWidth="130">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -1296,6 +1388,14 @@
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
                                 <DataGridTextColumn Header="Niv." Binding="{Binding Level}" Width="50"/>
+                                <DataGridTextColumn Header="Position" Binding="{Binding Map}" Width="170">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            <Setter Property="ToolTip" Value="{Binding Map}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                                 <DataGridTextColumn Header="Prix pierre" Binding="{Binding Price, StringFormat={}{0:N0}}" Width="96">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">

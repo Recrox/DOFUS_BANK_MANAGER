@@ -6,7 +6,7 @@ using DofusBankManager.Data;
 namespace DofusBankManager;
 
 public sealed record TtgRow(int ItemId, int? Number, string Name, string Rarity, int Owned,
-    long? MerchantPrice, long? BestPrice, string Seen, DateTime SeenAt, double? HdvPrice)
+    long? MerchantPrice, long? BestPrice, string Seen, DateTime SeenAt, double? HdvPrice, string BestMerchant, string BestWhere)
 {
     public int Index { get; init; }
 }
@@ -70,9 +70,11 @@ public partial class MainWindow
         {
             var m = _merchants.Prices.GetValueOrDefault(it.Id);
             var last = m?.Last;
+            // Meilleure offre de la période : son marchand et sa position (là où aller acheter)
+            var best = m?.Recent(days).OrderBy(sn => sn.Price).ThenByDescending(sn => sn.Time).FirstOrDefault();
             return new TtgRow(it.Id, CardNumber(it.Name), it.Name, it.TypeName, owned.GetValueOrDefault(it.Id),
-                last?.Price, m?.BestRecent(days),last != null ? Ago(last.Time) + (last.Shared ? " · groupe" : "") : "", last?.Time ?? DateTime.MinValue,
-                UnitPrice(it.Id));
+                last?.Price, best?.Price, last != null ? Ago(last.Time) + (last.Shared ? " · groupe" : "") : "", last?.Time ?? DateTime.MinValue,
+                UnitPrice(it.Id), best == null ? "" : OfferMerchant(best), best == null ? "" : OfferWhere(best));
         }).ToList();
 
         IEnumerable<TtgRow> q = all;
@@ -105,6 +107,13 @@ public partial class MainWindow
               + "Cochez « Toutes les cartes du jeu » pour voir toute la collection.";
     }
 
+    /// <summary>Pseudo du marchand d'une offre (« groupe » si elle vient du partage, « ? » si relevée avant cette version).</summary>
+    static string OfferMerchant(Ttg.MerchantSnapshot s) => s.Merchant ?? (s.Shared ? "groupe" : "?");
+
+    /// <summary>Position d'une offre : coordonnées, zone et case, ex. « [4,-19] Astrub (Cité d'Astrub) · case 301 ».</summary>
+    string OfferWhere(Ttg.MerchantSnapshot s) =>
+        s.MapId is { } map ? _data!.MapLabel(map) + (s.Cell is { } c ? $" · case {c}" : "") : "";
+
     void TtgGrid_SelectionChanged(object sender, SelectionChangedEventArgs e) => ShowTtgDetail();
 
     void ShowTtgDetail()
@@ -126,8 +135,7 @@ public partial class MainWindow
         // Offres vues sur la période, de la moins chère à la plus chère, avec le marchand et sa position
         var offers = m?.Recent(days).OrderBy(s => s.Price).ThenByDescending(s => s.Time).Select(s => new TtgOfferRow(
             Kamas(s.Price), s.Quantity,
-            s.Merchant ?? (s.Shared ? "groupe" : "?"),
-            s.MapId is { } map ? _data.MapLabel(map) + (s.Cell is { } c ? $" · case {c}" : "") : "",
+            OfferMerchant(s), OfferWhere(s),
             Ago(s.Time))).ToList() ?? [];
         TtgOffersTitle.Text = $"Offres vues ces {days} jours ({offers.Count})";
         TtgOffers.ItemsSource = offers;

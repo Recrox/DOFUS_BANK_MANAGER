@@ -41,6 +41,9 @@ public partial class MainWindow
         _tracker.CharacterStats += s => Safe(() => _hunt.OnStats(s));
         _tracker.FightEnded += s => Safe(() => _hunt.OnFightEnd(s));
         _tracker.PartyChanged += s => Safe(() => _hunt.OnParty(s));
+        _tracker.SpellList += s => Safe(() => _hunt.OnSpellList(s));
+        _tracker.FightJoined += _hunt.OnFightJoined;
+        _tracker.GameAction += s => Safe(() => _hunt.OnGameAction(s));
         HuntSound.IsChecked = _hunt.SoundAlert;
     }
 
@@ -244,5 +247,40 @@ public partial class MainWindow
         }).ToList();
         HuntLearned.Text = $"Estimations apprises de {_hunt.Fights.Count(f => f.Monsters.Count > 0)} combat(s) "
             + $"({learned.Count} monstre(s) connus). Sagesse et étoiles du groupe appliquées à l'XP.";
+
+        ShowEconome(me);
     }
+
+    /// <summary>
+    /// Économe (challenge : chaque sort une seule fois par combat) : sorts encore disponibles et sorts déjà lancés.
+    /// Simple affichage : c'est toujours le joueur qui choisit et lance ses sorts (README, règle 3).
+    /// </summary>
+    void ShowEconome(HuntCharacter? me)
+    {
+        if (me == null)
+        {
+            EconomeStatus.Text = "Aucun personnage suivi pour l'instant.";
+            EconomeSpells.ItemsSource = null;
+            return;
+        }
+        var used = me.UsedSpells.ToHashSet();
+        var twice = me.UsedSpells.GroupBy(s => s).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
+        var spells = _hunt!.SpellsOf(me).Concat(me.UsedSpells).Distinct().ToList();
+        EconomeSpells.ItemsSource = spells.Select(id => new EconomeSpell(
+            _data!.Spells.GetValueOrDefault(id) is { Length: > 0 } n ? n : $"Sort {id}",
+            twice.Contains(id) ? "Lancé 2 fois !" : used.Contains(id) ? "Déjà lancé" : "Disponible",
+            twice.Contains(id) ? -1 : used.Contains(id) ? 0 : 1)).ToList();
+
+        int left = spells.Count(id => !used.Contains(id));
+        EconomeStatus.Text = spells.Count == 0
+            ? "Sorts inconnus : ils sont reçus à la connexion du personnage (lancez l'application avant)."
+            : (me.InFight ? "En combat · " : "Dernier combat · ")
+              + $"{used.Count} sort(s) lancé(s), {left} disponible(s)"
+              + (twice.Count > 0 ? $" · ⚠ challenge raté ({twice.Count} sort(s) relancé(s))" : "");
+    }
+
+    void EconomeReset_Click(object sender, RoutedEventArgs e) => _hunt?.ResetEconome();
 }
+
+/// <summary>Sort de la partie Économe. State : 1 disponible, 0 déjà lancé, -1 lancé plusieurs fois (challenge raté).</summary>
+public sealed record EconomeSpell(string Name, string Status, int State);
