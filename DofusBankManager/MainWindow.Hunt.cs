@@ -196,10 +196,12 @@ public partial class MainWindow
                 (x.Count() > 1 ? $"{x.Count()}× " : "") + _data.GetMonster(x.Key).Name
                 + " (" + string.Join("/", x.Select(m => m.Level)) + ")"));
             double factor = (1 + wisdom / 100.0) * (1 + g.Bonus / 100.0);
-            // Monstre jamais combattu : XP extrapolée de l'XP par niveau des monstres déjà appris (« ≈ »)
-            bool allKnown = g.Monsters.All(m => learned.GetValueOrDefault(m.Id)?.Xp != null);
+            // XP de base d'un monstre : monstres.json s'il est fourni, sinon apprise des combats ; à défaut,
+            // extrapolée de l'XP par niveau des monstres déjà appris (« ≈ »)
+            double? Known(GroupMonster m) => _data.BaseXp(m.Id, m.Level) ?? learned.GetValueOrDefault(m.Id)?.Xp;
+            bool allKnown = g.Monsters.All(m => Known(m) != null);
             double? xp = allKnown || xpPerLevel != null
-                ? g.Monsters.Sum(m => learned.GetValueOrDefault(m.Id)?.Xp ?? xpPerLevel!.Value * Math.Max(1, m.Level)) * factor : null;
+                ? g.Monsters.Sum(m => Known(m) ?? xpPerLevel!.Value * Math.Max(1, m.Level)) * factor : null;
             string xpText = xp is { } x ? (allKnown ? "" : "≈ ") + x.ToString("N0") : "à apprendre";
 
             // Drops : pour chaque objet, la plus forte fréquence parmi les monstres du groupe

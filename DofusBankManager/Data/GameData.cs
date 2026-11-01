@@ -60,6 +60,15 @@ public sealed class GameData
     public Dictionary<int, string> Spells { get; } = new();
     /// <summary>Icônes des sorts (fond, symbole, couleurs à l'état normal).</summary>
     public Dictionary<int, SpellLook> SpellLooks { get; } = new();
+    /// <summary>
+    /// XP de base des monstres (niveau et XP du grade 1), lue dans monstres.json si l'utilisateur en a placé un dans le dossier
+    /// de l'application. Le fichier de langue « monsters » d'Ankama ne contient pas l'XP.
+    /// </summary>
+    public Dictionary<int, (int Level, long Xp)> MonsterXp { get; } = new();
+
+    /// <summary>XP de base d'un monstre à ce niveau : celle du grade 1, proportionnelle au niveau pour les autres grades (estimation).</summary>
+    public double? BaseXp(int monsterId, int level) =>
+        MonsterXp.TryGetValue(monsterId, out var m) ? m.Xp * (double)Math.Max(1, level) / Math.Max(1, m.Level) : null;
 
     public ItemInfo GetItem(int id) =>
         Items.TryGetValue(id, out var it) ? it : new ItemInfo(id, $"Objet #{id}", 0, 0, "?", 0);
@@ -209,9 +218,30 @@ public sealed class GameData
                     }
                 }
 
+        LoadMonsterXp(data, log);
         data.JobNames.AddRange(data.Recipes.SelectMany(r => r.Jobs).Distinct().Order());
         log($"Données du jeu : {data.Items.Count} objets, {data.Recipes.Count} recettes.");
         return data;
+    }
+
+    /// <summary>
+    /// monstres.json (facultatif, placé à la main dans le dossier de l'application) :
+    /// { "monsters": [ { "id", "previewGrade": { "level", "xp" } }, … ] }. Les monstres sans XP (0) sont ignorés.
+    /// </summary>
+    static void LoadMonsterXp(GameData data, Action<string> log)
+    {
+        var path = Path.Combine(AppDir, "monstres.json");
+        if (!File.Exists(path)) return;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
+            foreach (var m in doc.RootElement.GetProperty("monsters").EnumerateArray())
+                if (m.TryGetProperty("id", out var id) && m.TryGetProperty("previewGrade", out var g)
+                    && g.TryGetProperty("xp", out var xp) && xp.GetInt64() > 0 && g.TryGetProperty("level", out var level))
+                    data.MonsterXp[id.GetInt32()] = (level.GetInt32(), xp.GetInt64());
+            log($"XP des monstres : {data.MonsterXp.Count} monstres (monstres.json).");
+        }
+        catch (Exception ex) { log("monstres.json illisible : " + ex.Message); }
     }
 
     /// <summary>Télécharge les fichiers de langue à jour ; retombe sur le cache si le CDN est injoignable.</summary>
