@@ -17,7 +17,12 @@ public sealed record RecipeRow(Recipe Recipe, string Name, int Level, string Typ
     public int Slots => Recipe.Ingredients.Count;
 }
 
-public sealed record IngredientRow(int ItemId, string Name, string Ratio, Brush Brush, string Note);
+/// <summary>Ingrédient d'une recette. Children : ingrédients de sa propre recette (sous-recette), quantités totales.</summary>
+public sealed record IngredientRow(int ItemId, string Name, string Ratio, Brush Brush, string Note, string Price,
+    IReadOnlyList<IngredientRow> Children)
+{
+    public bool HasChildren => Children.Count > 0;
+}
 
 public sealed record FmItemOption(long Uid, string Label)
 {
@@ -163,7 +168,7 @@ public partial class MainWindow : Window
         string Changes(IEnumerable<Fm.FmStatChange> changes) =>
             string.Join(", ", changes.Select(c => _fm.Describe(c.Stat, c.Delta)));
 
-        FmHistoryGrid.ItemsSource = item.History
+        SetRows(FmHistoryGrid, item.History
             .Select((ev, i) => new FmHistoryRow(
                 i + 1,
                 ev.Time.ToString("HH:mm:ss"),
@@ -181,7 +186,7 @@ public partial class MainWindow : Window
                 $"+{ev.WeightGained:0.##} / -{ev.WeightLost:0.##}",
                 ev.ReliquatAfter.ToString("0.##")))
             .Reverse() // le plus récent en haut
-            .ToList();
+            .ToList());
     }
 
     void FmItemCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -276,6 +281,8 @@ public partial class MainWindow : Window
         InitHdv(_data);
         _usage = _data.Recipes.SelectMany(r => r.Ingredients.Select(i => i.ItemId).Distinct())
             .GroupBy(id => id).ToDictionary(g => g.Key, g => g.Count());
+        _recipeByResult = _data.Recipes.GroupBy(r => r.ResultId).ToDictionary(g => g.Key, g => g.First());
+        InitBrisage(_data);
 
         JobFilter.Items.Add(AllJobs);
         foreach (var j in _data.JobNames) JobFilter.Items.Add(j);
@@ -376,6 +383,17 @@ public partial class MainWindow : Window
         catch (Exception ex) { AddLog("Élévation annulée : " + ex.Message); }
     }
 
+    void RestartButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // Sans shell, le nouveau processus hérite des droits actuels (pas de nouvelle demande administrateur)
+            Process.Start(new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false });
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex) { AddLog("Relance impossible : " + ex.Message); }
+    }
+
     void UpdateCaptureUi()
     {
         bool running = _sniffer.IsRunning;
@@ -426,6 +444,7 @@ public partial class MainWindow : Window
 
         ApplyRecipeFilters();
         ApplyBankFilter();
+        ApplyBrisageFilters();
     }
 
     void ApplyRecipeFilters()
@@ -457,29 +476,47 @@ public partial class MainWindow : Window
         var list = q.OrderByDescending(r => r.Craftable > 0).ThenBy(r => r.MissingKinds)
             .ThenByDescending(r => r.Level).ThenBy(r => r.Name)
             .Select((r, i) => r with { Index = i + 1 }).ToList();
-        RecipeGrid.ItemsSource = list;
+        SetRows(RecipeGrid, list);
         RecipeCount.Text = $"{list.Count} recette(s)";
     }
 
+    bool _bankTypesUpdating;
+
     void ApplyBankFilter()
     {
-        if (!_ready || _data == null) return;
+        if (!_ready || _data == null || _bankTypesUpdating) return;
         var search = BankSearch.Text.Trim();
-        var rows = _tracker.State.Bank.Values
+        var all = _tracker.State.Bank.Values
             .GroupBy(i => i.TemplateId)
             .Select(g =>
             {
                 var it = _data.GetItem(g.Key);
                 int qty = g.Sum(i => i.Quantity);
-                var unit = _hdv?.Prices.GetValueOrDefault(g.Key)?.UnitPrice;
+                var unit = UnitPrice(g.Key);
                 return new BankRow(g.Key, it.Name, qty, it.Level, it.TypeName, _usage.GetValueOrDefault(g.Key))
                     { Value = unit is { } u ? (long)Math.Round(u * qty) : null };
             })
+            .ToList();
+
+        // Liste déroulante des types : uniquement ceux présents en banque, sélection conservée
+        var types = all.Select(r => r.Type).Distinct().Order().Prepend(AllTypes).ToList();
+        var type = BankTypeFilter.SelectedItem as string ?? AllTypes;
+        if (!types.SequenceEqual(BankTypeFilter.Items.Cast<string>()))
+        {
+            _bankTypesUpdating = true;
+            BankTypeFilter.ItemsSource = types;
+            if (!types.Contains(type)) type = AllTypes;
+            BankTypeFilter.SelectedItem = type;
+            _bankTypesUpdating = false;
+        }
+
+        var rows = all
+            .Where(r => type == AllTypes || r.Type == type)
             .Where(r => search.Length == 0 || Contains(r.Name, search) || Contains(r.Type, search))
             .OrderBy(r => r.Type).ThenBy(r => r.Name)
             .Select((r, i) => r with { Index = i + 1 })
             .ToList();
-        BankGrid.ItemsSource = rows;
+        SetRows(BankGrid, rows);
         BankCount.Text = $"{rows.Count} objet(s) distinct(s)";
 
         int priced = rows.Count(r => r.Value != null);
@@ -496,7 +533,13 @@ public partial class MainWindow : Window
     {
         _hdv = new Hdv.HdvTracker(data);
         _hdv.Log += AddLog;
-        _hdv.Changed += () => { ApplyHdvFilters(); ApplyBankFilter(); };
+        _hdv.Changed += () =>
+        {
+            ApplyHdvFilters();
+            ApplyBankFilter();
+            ApplyBrisageFilters();
+            RecipeGrid_SelectionChanged(RecipeGrid, null!); // coûts du détail de la recette
+        };
         _tracker.HdvOffers += _hdv.OnOffers;
         _tracker.HdvAverage += _hdv.OnAverage;
         _tracker.HdvOfferMove += _hdv.OnOfferMove;
@@ -537,7 +580,7 @@ public partial class MainWindow : Window
                 x.Price is { } p ? Ago(p.SeenAt) + (p.Shared ? " · groupe" : "") : "", x.Price?.SeenAt ?? DateTime.MinValue))
             .ToList();
 
-        HdvGrid.ItemsSource = rows;
+        SetRows(HdvGrid, rows);
         HdvGrid.SelectedItem = rows.FirstOrDefault(r => r.ItemId == selected);
         HdvCount.Text = $"{rows.Count} objet(s) · {_hdv.Prices.Count} prix relevé(s)";
         HdvEmpty.Visibility = _hdv.Prices.Count == 0 && HdvShowAll.IsChecked != true ? Visibility.Visible : Visibility.Collapsed;
@@ -614,23 +657,89 @@ public partial class MainWindow : Window
         var recipesByResult = _rows.ToLookup(r => r.Recipe.ResultId);
 
         DetailTitle.Text = row.Name;
+        DetailIcon.Source = ItemIcons.Get(row.Recipe.ResultId);
         DetailSub.Text = $"Niveau {row.Level} · {row.Type} · {row.Jobs}"
             + (row.Craftable > 0 ? $"\nFaisable {row.Craftable} fois" : $"\nIl manque {row.MissingKinds} ingrédient(s)");
-        DetailIngredients.ItemsSource = row.Recipe.Ingredients.Select(i =>
+
+        var stats = StatLines(_data.GetItem(row.Recipe.ResultId).MaxStats);
+        DetailStats.ItemsSource = stats;
+        DetailStatsPanel.Visibility = stats.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        DetailIngredients.ItemsSource = row.Recipe.Ingredients
+            .Select(i => BuildIngredient(i.ItemId, i.Quantity, owned, recipesByResult, 1))
+            .ToList();
+
+        // Coût de la recette : prix HDV de chaque ingrédient, ou coût de sa sous-recette s'il n'a pas de prix
+        double total = 0, toBuy = 0;
+        int unpriced = 0;
+        foreach (var i in row.Recipe.Ingredients)
         {
-            int have = owned.GetValueOrDefault(i.ItemId);
-            bool ok = have >= i.Quantity;
-            var note = "";
-            if (!ok)
-            {
-                var sub = recipesByResult[i.ItemId].FirstOrDefault();
-                if (sub != null)
-                    note = sub.Craftable > 0 ? $"Fabricable avec vos ressources (×{sub.Craftable})" : "Fabricable (ressources manquantes)";
-            }
-            return new IngredientRow(i.ItemId, $"{i.Quantity}× {_data.GetItem(i.ItemId).Name}", $"{have} / {i.Quantity}",
-                ok ? (Brush)FindResource("Ok") : (Brush)FindResource("Missing"), note);
-        }).ToList();
+            if (UnitCost(i.ItemId) is not { } unit) { unpriced++; continue; }
+            total += unit * i.Quantity;
+            toBuy += unit * Math.Max(0, i.Quantity - owned.GetValueOrDefault(i.ItemId));
+        }
+        int count = row.Recipe.Ingredients.Count;
+        DetailCostPanel.Visibility = Visibility.Visible;
+        DetailCost.Text = unpriced == count ? "Coût inconnu" : Kamas(total) + (unpriced > 0 ? " (partiel)" : "");
+        var lines = new List<string>();
+        if (unpriced > 0)
+            lines.Add($"{unpriced} ingrédient(s) sur {count} sans prix relevé : consultez-les à l'HDV.");
+        if (unpriced < count) lines.Add($"À acheter (manquants) : {Kamas(toBuy)}");
+        if (UnitPrice(row.Recipe.ResultId) is { } sell)
+            lines.Add($"Prix HDV de l'objet : {Kamas(sell)}"
+                + (unpriced == 0 ? $" · marge : {(sell - total >= 0 ? "+" : "")}{Kamas(sell - total)}" : ""));
+        DetailCostNote.Text = string.Join("\n", lines);
     }
+
+    /// <summary>Profondeur maximale des sous-recettes affichées et des coûts de fabrication (garde-fou contre les cycles).</summary>
+    const int MaxRecipeDepth = 4;
+    Dictionary<int, Recipe> _recipeByResult = new();
+
+    IngredientRow BuildIngredient(int itemId, int needed, Dictionary<int, int> owned, ILookup<int, RecipeRow> recipesByResult, int depth)
+    {
+        int have = owned.GetValueOrDefault(itemId);
+        bool ok = have >= needed;
+        var sub = recipesByResult[itemId].FirstOrDefault();
+        var note = "";
+        if (!ok && sub != null)
+            note = sub.Craftable > 0 ? $"Fabricable avec vos ressources (×{sub.Craftable})" : "Fabricable (ressources manquantes)";
+
+        // Quantités de la sous-recette pour fabriquer les « needed » exemplaires demandés
+        var children = sub != null && depth < MaxRecipeDepth
+            ? sub.Recipe.Ingredients.Select(i => BuildIngredient(i.ItemId, i.Quantity * needed, owned, recipesByResult, depth + 1)).ToList()
+            : new List<IngredientRow>();
+
+        var price = UnitPrice(itemId) is { } u
+            ? Kamas(u * needed) + (needed > 1 ? $"  ({Kamas(u)} / u)" : "")
+            : CraftCost(itemId) is { } c ? $"Fabrication ≈ {Kamas(c * needed)}" : "Prix inconnu";
+
+        return new IngredientRow(itemId, $"{needed}× {_data!.GetItem(itemId).Name}", $"{have} / {needed}",
+            ok ? (Brush)FindResource("Ok") : (Brush)FindResource("Missing"), note, price, children);
+    }
+
+    /// <summary>Meilleur prix unitaire relevé à l'HDV.</summary>
+    double? UnitPrice(int itemId) => _hdv?.Prices.GetValueOrDefault(itemId)?.UnitPrice;
+
+    /// <summary>Coût d'une unité : prix HDV, sinon coût de fabrication si tous ses ingrédients ont un coût connu.</summary>
+    double? UnitCost(int itemId, int depth = 0) =>
+        UnitPrice(itemId) ?? (depth < MaxRecipeDepth ? CraftCost(itemId, depth + 1) : null);
+
+    /// <summary>Coût de fabrication d'une unité ; null si l'objet n'a pas de recette ou si un ingrédient n'a pas de coût connu.</summary>
+    double? CraftCost(int itemId, int depth = 0)
+    {
+        if (!_recipeByResult.TryGetValue(itemId, out var recipe)) return null;
+        double total = 0;
+        foreach (var i in recipe.Ingredients)
+        {
+            if (UnitCost(i.ItemId, depth) is not { } c) return null;
+            total += c * i.Quantity;
+        }
+        return total;
+    }
+
+    /// <summary>Caractéristiques triées et formatées, ex. « +200 Vitalité ».</summary>
+    static List<string> StatLines(IReadOnlyDictionary<int, int> stats) =>
+        stats.OrderBy(kv => ItemStats.Order(kv.Key)).Select(kv => ItemStats.Format(kv.Key, kv.Value)).ToList();
 
     void Filters_Changed(object sender, RoutedEventArgs e)
     {
@@ -657,13 +766,26 @@ public partial class MainWindow : Window
         }
     }
 
-    void BankSearch_TextChanged(object sender, TextChangedEventArgs e) => ApplyBankFilter();
+    void BankFilter_Changed(object sender, RoutedEventArgs e) => ApplyBankFilter();
 
     // --- Utilitaires ---
 
     static bool Contains(string text, string search) =>
         System.Globalization.CultureInfo.CurrentCulture.CompareInfo.IndexOf(text, search,
             System.Globalization.CompareOptions.IgnoreCase | System.Globalization.CompareOptions.IgnoreNonSpace) >= 0;
+
+    /// <summary>
+    /// Remplace les lignes d'une grille en conservant le tri choisi par l'utilisateur (clic sur un en-tête) :
+    /// WPF l'efface à chaque changement d'ItemsSource, par exemple à chaque nouveau prix HDV.
+    /// </summary>
+    static void SetRows(DataGrid grid, System.Collections.IEnumerable rows)
+    {
+        var sorts = grid.Items.SortDescriptions.ToList();
+        var directions = grid.Columns.Select(c => c.SortDirection).ToList();
+        grid.ItemsSource = rows;
+        foreach (var s in sorts) grid.Items.SortDescriptions.Add(s);
+        for (int i = 0; i < directions.Count; i++) grid.Columns[i].SortDirection = directions[i];
+    }
 
     void AddLog(string msg)
     {

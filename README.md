@@ -146,6 +146,24 @@ L'application **n'interroge jamais l'HDV elle-même** : cela demanderait d'envoy
 
 Le **prix unitaire** est le meilleur des trois : ×1, ×10 ÷ 10, ×100 ÷ 100. L'onglet Banque s'en sert pour estimer la valeur de chaque objet et de la banque entière (objets sans prix relevé non comptés).
 
+### Onglet Recettes : coût et sous-recettes
+
+Le panneau de détail d'une recette affiche :
+
+- les **caractéristiques** de l'objet fabriqué. Ce sont les valeurs **maximales** (champ `ef` du fichier de langue `items`), car le jeu ne fournit pas les minimums ;
+- le **prix** de chaque ingrédient (prix unitaire HDV × quantité) ;
+- le **coût total** de la recette, le montant à acheter pour les ingrédients manquants, et la marge si le prix HDV de l'objet est connu. Un ingrédient sans prix relevé est estimé par le coût de sa propre recette, quand celui-ci est connu ;
+- les **sous-recettes** : un ingrédient fabricable (ex. Brochet farci pour le Kralano) se déplie avec la flèche ▸. Les quantités affichées sont celles qu'il faut pour toute la recette.
+
+### Onglet Brisage
+
+Cet onglet trouve les objets à briser pour générer des runes. Cochez une ou plusieurs caractéristiques et indiquez leur seuil (ex. Vitalité, minimum 104) : seuls les objets dans les bornes restent, les meilleurs en haut. La recherche peut porter sur :
+
+- vos objets (banque et inventaire), avec leurs caractéristiques **réelles** ;
+- les objets fabricables avec vos ressources, toutes les recettes ou tous les objets du jeu, avec leurs caractéristiques **maximales**.
+
+Chaque ligne indique aussi le nombre d'exemplaires possédés, si l'objet est faisable, les ingrédients manquants, le coût de fabrication et le prix HDV. Le brisage reste à faire à la main, en jeu (règle 3).
+
 ### Onglet FM (forgemagie)
 
 L'onglet suit les objets que vous forgemagez et estime leur reliquat. Il ne fait que lire : aucune rune n'est passée à votre place (règle 3).

@@ -210,7 +210,7 @@ public sealed class DofusTracker
         {
             var p = data[2..].Split('|');
             if (p.Length >= 3 && long.TryParse(p[0], out var uid) && int.TryParse(p[1], out var qty) && int.TryParse(p[2], out var tpl))
-                State.Bank[uid] = new OwnedItem(tpl, qty);
+                State.Bank[uid] = new OwnedItem(tpl, qty, p.Length > 3 ? p[3] : "");
         }
         else if (data[0] == 'O' && data[1] == '-')
         {

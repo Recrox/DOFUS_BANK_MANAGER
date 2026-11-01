@@ -126,8 +126,20 @@ public sealed class FmTracker
         _work = (templateId, uid, effects);
 
         var changes = Diff(work.Effects, effects);
-        bool newVersion = work.Uid != uid;
-        if (!newVersion && changes.Count == 0) return; // même version re-signalée (OAKO puis EMK…)
+        if (changes.Count == 0)
+        {
+            // Même version re-signalée (OAKO puis EMK…), ou objet renvoyé sous un nouvel uid sans changement
+            // de stats (échec sans effet) : pas de passage, il est compté par son message (183, voir OnCraftInfo).
+            // La fiche suit simplement le nouvel uid.
+            if (work.Uid != uid && Items.Remove(work.Uid, out var moved))
+            {
+                moved.Uid = uid;
+                Items[uid] = moved;
+                if (CurrentUid == work.Uid) CurrentUid = uid;
+                Save();
+            }
+            return;
+        }
 
         // La fiche de l'objet suit sa nouvelle version
         if (!Items.Remove(work.Uid, out var item)) item = Items.GetValueOrDefault(uid) ?? new FmItem { TemplateId = templateId };
@@ -248,16 +260,18 @@ public sealed class FmTracker
         Changed?.Invoke();
     }
 
-    /// <summary>Rune consommée juste avant ce passage, s'il y en a une récente.</summary>
-    int? DequeueRune()
+    /// <summary>Rune consommée autour de ce passage (par défaut : maintenant), s'il y en a une.</summary>
+    int? DequeueRune(DateTime? at = null)
     {
-        DropStaleRunes();
-        return _pendingRunes.TryDequeue(out var r) ? r.Template : null;
+        var time = at ?? DateTime.Now;
+        DropStaleRunes(time);
+        return _pendingRunes.TryPeek(out var r) && (r.Time - time).Duration() <= RuneWindow
+            ? _pendingRunes.Dequeue().Template : null;
     }
 
-    void DropStaleRunes()
+    void DropStaleRunes(DateTime now)
     {
-        while (_pendingRunes.TryPeek(out var r) && DateTime.Now - r.Time > RuneWindow) _pendingRunes.Dequeue();
+        while (_pendingRunes.TryPeek(out var r) && now - r.Time > RuneWindow) _pendingRunes.Dequeue();
     }
 
     /// <summary>
@@ -266,13 +280,15 @@ public sealed class FmTracker
     /// </summary>
     public void Tick()
     {
-        DropStaleRunes();
+        // D'abord le résultat en attente : sa rune a été consommée au moment du message, il y a plus de
+        // RuneWindow, et serait sinon oubliée juste avant
         if (_pendingOutcome is { } p && DateTime.Now - p.Time > RuneWindow)
         {
             _pendingOutcome = null;
             if (WorkItem() is { } item)
-                AddEvent(item, new FmEvent { Time = p.Time, Outcome = p.Outcome, RuneTemplateId = DequeueRune() });
+                AddEvent(item, new FmEvent { Time = p.Time, Outcome = p.Outcome, RuneTemplateId = DequeueRune(p.Time) });
         }
+        DropStaleRunes(DateTime.Now);
     }
 
     // --- Actions de l'utilisateur ---

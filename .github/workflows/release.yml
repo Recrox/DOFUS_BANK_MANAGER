@@ -1,16 +1,15 @@
-# Publie automatiquement une Release quand la version change.
+# Publie une Release à chaque push sur main.
 #
-# Il suffit d'augmenter <Version> dans DofusBankManager/DofusBankManager.csproj et de pousser sur main :
-# ce workflow construit l'installateur, crée le tag vX.Y.Z et publie la Release avec le .msi.
-# Si la Release de cette version existe déjà, il ne fait rien.
+# Version publiée :
+#   - si <Version> du .csproj est plus récente que la dernière Release (MAJEUR ou MINEUR augmenté à la main),
+#     c'est elle qui est publiée ;
+#   - sinon, le CORRECTIF de la dernière Release est augmenté automatiquement (1.4.0 -> 1.4.1).
+# La version calculée est passée à la compilation : aucun commit n'est poussé par ce workflow.
 name: Release
 
 on:
   push:
     branches: [main]
-    paths:
-      - DofusBankManager/DofusBankManager.csproj
-      - .github/workflows/release.yml
   workflow_dispatch:
 
 permissions:
@@ -26,40 +25,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Lire la version
+      - name: Calculer la version
         id: version
-        shell: pwsh
-        run: |
-          $version = ([xml](Get-Content DofusBankManager/DofusBankManager.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
-          if (-not $version) { throw "Aucune <Version> dans le .csproj" }
-          "version=$version" >> $env:GITHUB_OUTPUT
-          "Version : $version"
-
-      - name: Vérifier si la Release existe déjà
-        id: exists
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "v${{ steps.version.outputs.version }}" *> $null
-          $exists = $LASTEXITCODE -eq 0
-          "exists=$($exists.ToString().ToLower())" >> $env:GITHUB_OUTPUT
-          if ($exists) { "La Release v${{ steps.version.outputs.version }} existe déjà : rien à faire." }
-          exit 0
+          $raw = ([xml](Get-Content DofusBankManager/DofusBankManager.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+          if (-not $raw) { throw "Aucune <Version> dans le .csproj" }
+          $base = [version]$raw
+
+          $latest = gh release list --limit 200 --json tagName --jq '.[].tagName' |
+            ForEach-Object { $v = $null; if ([version]::TryParse($_.TrimStart('v'), [ref]$v)) { $v } } |
+            Sort-Object -Descending | Select-Object -First 1
+
+          if (-not $latest -or $base -gt $latest) { $next = $base }
+          else { $next = [version]::new($latest.Major, $latest.Minor, $latest.Build + 1) }
+
+          $text = "$($next.Major).$($next.Minor).$([Math]::Max($next.Build, 0))"
+          "version=$text" >> $env:GITHUB_OUTPUT
+          "Version du .csproj : $base · dernière Release : $latest · version publiée : $text"
 
       - name: Installer .NET 10
-        if: steps.exists.outputs.exists == 'false'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
 
       - name: Construire l'installateur
-        if: steps.exists.outputs.exists == 'false'
         shell: pwsh
-        run: ./build-installer.ps1
+        run: ./build-installer.ps1 -Version "${{ steps.version.outputs.version }}"
 
       - name: Publier la Release
-        if: steps.exists.outputs.exists == 'false'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}

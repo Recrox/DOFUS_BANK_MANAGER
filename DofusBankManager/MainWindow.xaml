@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:data="clr-namespace:DofusBankManager.Data"
+        xmlns:local="clr-namespace:DofusBankManager"
         Title="Dofus Bank Manager" Icon="app.ico" Height="800" Width="1300" MinWidth="960" MinHeight="540"
         Background="{DynamicResource Bg}" Foreground="{DynamicResource Text}"
         FontFamily="Segoe UI" FontSize="13" WindowStartupLocation="CenterScreen">
@@ -27,6 +28,79 @@
             <Setter Property="Stroke" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
+        <BooleanToVisibilityConverter x:Key="Visible"/>
+        <Style x:Key="HideWhenEmpty" TargetType="TextBlock">
+            <Style.Triggers>
+                <Trigger Property="Text" Value="">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Flèche pour déplier une sous-recette -->
+        <Style x:Key="ExpandToggle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="22"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="ToolTip" Value="Afficher la recette de cet ingrédient"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="6">
+                            <Path x:Name="Arrow" Data="M0,0 L5,5 L0,10" Stroke="{DynamicResource AccentSolid}" StrokeThickness="2"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBg}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Arrow" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <RotateTransform Angle="90"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Ingrédient d'une recette ; ses propres ingrédients (sous-recette) se déplient en dessous -->
+        <DataTemplate DataType="{x:Type local:IngredientRow}">
+            <StackPanel>
+                <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                        CornerRadius="10" Padding="6,6,8,6" Margin="0,0,0,6">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="26"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ToggleButton x:Name="Expand" Style="{StaticResource ExpandToggle}"
+                                      Visibility="{Binding HasChildren, Converter={StaticResource Visible}}"/>
+                        <Image Grid.Column="1" Source="{Binding ItemId, Converter={StaticResource Icon}}" Width="32" Height="32"
+                               Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Note}" FontSize="11" Foreground="{DynamicResource Warning}" TextWrapping="Wrap"
+                                       Style="{StaticResource HideWhenEmpty}"/>
+                            <TextBlock Text="{Binding Price}" FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="3" VerticalAlignment="Center" Text="{Binding Ratio}" FontWeight="Bold"
+                                   Margin="8,0,0,0" Foreground="{Binding Brush}"/>
+                    </Grid>
+                </Border>
+                <Border BorderBrush="{DynamicResource AccentBorder}" BorderThickness="2,0,0,0" Margin="12,0,0,6" Padding="8,0,0,0"
+                        Visibility="{Binding IsChecked, ElementName=Expand, Converter={StaticResource Visible}}">
+                    <ItemsControl ItemsSource="{Binding Children}"/>
+                </Border>
+            </StackPanel>
+        </DataTemplate>
     </Window.Resources>
 
     <Grid Margin="16">
@@ -66,6 +140,8 @@
                               ToolTip="Écrit les messages de banque et d'inventaire dans packets.log (diagnostic)"/>
                     <Button x:Name="AdminButton" Content="Relancer en administrateur" Click="AdminButton_Click" Visibility="Collapsed"/>
                     <Button x:Name="CaptureButton" Content="Démarrer la capture" Click="CaptureButton_Click" Style="{StaticResource AccentButton}"/>
+                    <Button Content="Relancer" Click="RestartButton_Click"
+                            ToolTip="Ferme puis rouvre l'application (ex. après une mise à jour ou une modification de fm_poids.json)"/>
 
                     <!-- Choix du thème -->
                     <Button x:Name="ThemeButton" Click="ThemeButton_Click" Padding="12,8" Margin="10,0,0,0" ToolTip="Thème">
@@ -129,7 +205,7 @@
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="350"/>
+                        <ColumnDefinition Width="390"/>
                     </Grid.ColumnDefinitions>
 
                     <WrapPanel Grid.ColumnSpan="2" Margin="0,0,0,10">
@@ -210,34 +286,50 @@
                             BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="12" Padding="14">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                                <TextBlock x:Name="DetailTitle" Text="Sélectionnez une recette" FontSize="17" FontWeight="Bold"
-                                           TextWrapping="Wrap" Foreground="{DynamicResource AccentSolid}"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Image x:Name="DetailIcon" Width="40" Height="40" Margin="0,0,10,0"/>
+                                    <TextBlock x:Name="DetailTitle" Text="Sélectionnez une recette" FontSize="17" FontWeight="Bold"
+                                               TextWrapping="Wrap" Foreground="{DynamicResource AccentSolid}" VerticalAlignment="Center" MaxWidth="300"/>
+                                </StackPanel>
                                 <TextBlock x:Name="DetailSub" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,4,0,0"/>
                             </StackPanel>
+
+                            <!-- Coût de la recette d'après les prix relevés à l'HDV -->
+                            <Border x:Name="DetailCostPanel" DockPanel.Dock="Bottom" Visibility="Collapsed" Margin="0,10,0,0"
+                                    Background="{DynamicResource Surface}" BorderBrush="{DynamicResource AccentBorder}" BorderThickness="1"
+                                    CornerRadius="10" Padding="12,8"
+                                    ToolTip="Prix HDV de chaque ingrédient (meilleur prix unitaire relevé), ou coût de sa sous-recette s'il n'a pas de prix.">
+                                <StackPanel>
+                                    <TextBlock Text="Coût de la recette" Foreground="{DynamicResource TextMuted}" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="DetailCost" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource AccentSolid}"/>
+                                    <TextBlock x:Name="DetailCostNote" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"
+                                               Style="{StaticResource HideWhenEmpty}"/>
+                                </StackPanel>
+                            </Border>
+
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <ItemsControl x:Name="DetailIngredients">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
-                                                    CornerRadius="10" Padding="8,6" Margin="0,0,0,6">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <Image Source="{Binding ItemId, Converter={StaticResource Icon}}" Width="32" Height="32" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="{Binding Note}" FontSize="11" Foreground="{DynamicResource Warning}"/>
-                                                    </StackPanel>
-                                                    <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="{Binding Ratio}" FontWeight="Bold"
-                                                               Margin="8,0,0,0" Foreground="{Binding Brush}"/>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                <StackPanel>
+                                    <StackPanel x:Name="DetailStatsPanel" Visibility="Collapsed" Margin="0,0,0,10">
+                                        <TextBlock Text="Caractéristiques (valeurs maximales)" Foreground="{DynamicResource TextMuted}"
+                                                   FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                        <ItemsControl x:Name="DetailStats">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                                                            CornerRadius="8" Padding="8,3" Margin="0,0,5,5">
+                                                        <TextBlock Text="{Binding}" FontWeight="SemiBold"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                    <ItemsControl x:Name="DetailIngredients"/>
+                                </StackPanel>
                             </ScrollViewer>
                         </DockPanel>
                     </Border>
@@ -253,7 +345,9 @@
                     </Grid.RowDefinitions>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <TextBlock Text="Recherche" Style="{StaticResource Label}" Margin="0,0,8,0"/>
-                        <TextBox x:Name="BankSearch" Width="240" TextChanged="BankSearch_TextChanged"/>
+                        <TextBox x:Name="BankSearch" Width="240" TextChanged="BankFilter_Changed"/>
+                        <TextBlock Text="Type" Style="{StaticResource Label}"/>
+                        <ComboBox x:Name="BankTypeFilter" Width="220" SelectionChanged="BankFilter_Changed"/>
                         <TextBlock x:Name="BankCount" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource TextMuted}"/>
                         <TextBlock x:Name="BankValue" VerticalAlignment="Center" Margin="14,0,0,0" FontWeight="Bold"
                                    Foreground="{DynamicResource AccentSolid}"
@@ -297,6 +391,131 @@
                             </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- Brisage : objets dont les caractéristiques atteignent des seuils (génération de runes) -->
+            <TabItem Header="Brisage">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <WrapPanel Margin="0,0,0,10">
+                        <TextBlock Text="Recherche" Style="{StaticResource Label}" Margin="0,0,8,0"/>
+                        <TextBox x:Name="BrisageSearch" Width="200" TextChanged="BrisageFilters_Changed"/>
+                        <TextBlock Text="Parmi" Style="{StaticResource Label}"/>
+                        <ComboBox x:Name="BrisageSource" Width="270" SelectedIndex="0" SelectionChanged="BrisageFilters_Changed">
+                            <ComboBoxItem Content="Mes objets (banque et inventaire)"
+                                          ToolTip="Vos exemplaires, avec leurs caractéristiques réelles"/>
+                            <ComboBoxItem Content="Fabricables avec mes ressources"
+                                          ToolTip="Recettes faisables maintenant (valeurs maximales de l'objet)"/>
+                            <ComboBoxItem Content="Toutes les recettes"/>
+                            <ComboBoxItem Content="Tous les objets du jeu"/>
+                        </ComboBox>
+                        <TextBlock Text="Type" Style="{StaticResource Label}"/>
+                        <ComboBox x:Name="BrisageTypeFilter" Width="200" SelectionChanged="BrisageFilters_Changed"/>
+                        <TextBlock Text="Niveau" Style="{StaticResource Label}"/>
+                        <TextBox x:Name="BrisageLevelMin" Width="58" Text="1" TextChanged="BrisageFilters_Changed" Padding="4,0" HorizontalContentAlignment="Center"/>
+                        <TextBlock Text="à" Style="{StaticResource Label}" Margin="6,0"/>
+                        <TextBox x:Name="BrisageLevelMax" Width="58" Text="200" TextChanged="BrisageFilters_Changed" Padding="4,0" HorizontalContentAlignment="Center"/>
+                        <Button Content="Réinitialiser les stats" Click="BrisageReset_Click" Margin="14,0,0,0"/>
+                        <TextBlock x:Name="BrisageCount" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource TextMuted}"/>
+                    </WrapPanel>
+
+                    <!-- Une case par caractéristique, avec son seuil minimum et maximum (cases remplies dans le code) -->
+                    <WrapPanel x:Name="BrisageStats" Grid.Row="1" Margin="0,0,0,2"
+                               ToolTip="Cochez une caractéristique (ou saisissez un seuil) : seuls les objets qui l'ont entre le minimum et le maximum restent. Ex. Vitalité, minimum 104."/>
+
+                    <Grid Grid.Row="2">
+                        <DataGrid x:Name="BrisageGrid">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="50" ElementStyle="{StaticResource IndexText}"/>
+                                <DataGridTemplateColumn Width="44" CanUserSort="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Image Source="{Binding ItemId, Converter={StaticResource Icon}}" Width="30" Height="30"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Objet" Binding="{Binding Name}" Width="200">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Niv." Binding="{Binding Level}" Width="44"/>
+                                <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="110">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Caractéristiques" Binding="{Binding Stats}" Width="*" MinWidth="200" SortMemberPath="Score">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            <Setter Property="ToolTip" Value="{Binding Stats}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Où" Binding="{Binding Where}" Width="80"/>
+                                <DataGridTextColumn Header="Possédés" Binding="{Binding Owned}" Width="76">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentSolid}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Owned}" Value="0">
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Faisable ×" Binding="{Binding Craftable}" Width="80">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource Ok}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Craftable}" Value="0">
+                                                    <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Manquants" Binding="{Binding Missing}" Width="160">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource Missing}"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            <Setter Property="ToolTip" Value="{Binding Missing}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Coût craft" Binding="{Binding CraftCost, StringFormat={}{0:N0}}" Width="96"/>
+                                <DataGridTextColumn Header="Prix HDV" Binding="{Binding HdvPrice, StringFormat={}{0:N0}}" Width="90">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentSolid}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock x:Name="BrisageEmpty" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="40"
+                                   Foreground="{DynamicResource TextMuted}" FontSize="14" Visibility="Collapsed"/>
+                    </Grid>
                 </Grid>
             </TabItem>
 
@@ -385,10 +604,12 @@
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
                                 <DataGridTextColumn Header="Moyen" Binding="{Binding Average, StringFormat={}{0:N0}}" Width="70"/>
-                                <DataGridTextColumn Header="Relevé" Binding="{Binding Seen}" Width="96" SortMemberPath="SeenAt">
+                                <DataGridTextColumn Header="Relevé" Binding="{Binding Seen}" Width="150" MinWidth="96" SortMemberPath="SeenAt">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            <Setter Property="ToolTip" Value="{Binding Seen}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>

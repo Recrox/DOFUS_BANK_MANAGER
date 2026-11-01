@@ -4,7 +4,13 @@ using System.Xml.Linq;
 
 namespace DofusBankManager.Data;
 
-public sealed record ItemInfo(int Id, string Name, int Level, int TypeId, string TypeName, int Gfx);
+public sealed record ItemInfo(int Id, string Name, int Level, int TypeId, string TypeName, int Gfx)
+{
+    /// <summary>Caractéristique -> valeur maximale de l'objet (champ « ef » du fichier de langue). Voir ItemStats.</summary>
+    public IReadOnlyDictionary<int, int> MaxStats { get; init; } = NoStats;
+
+    static readonly Dictionary<int, int> NoStats = new();
+}
 
 public sealed record Ingredient(int ItemId, int Quantity);
 
@@ -72,9 +78,15 @@ public sealed class GameData
                 {
                     if (v is not AsObject o) continue;
                     int id = int.Parse(k), type = (int)Avm1.ToNum(o.GetValueOrDefault("t"));
+                    // ef : { c11: 200, c10: 50, … } = caractéristique -> valeur maximale
+                    var stats = new Dictionary<int, int>();
+                    if (o.GetValueOrDefault("ef") is AsObject ef)
+                        foreach (var (c, value) in ef)
+                            if (c.StartsWith('c') && int.TryParse(c[1..], out var cid))
+                                stats[cid] = (int)Avm1.ToNum(value);
                     data.Items[id] = new ItemInfo(id, Avm1.ToStr(o.GetValueOrDefault("n")),
                         (int)Avm1.ToNum(o.GetValueOrDefault("l")), type, types.GetValueOrDefault(type, "?"),
-                        (int)Avm1.ToNum(o.GetValueOrDefault("g")));
+                        (int)Avm1.ToNum(o.GetValueOrDefault("g"))) { MaxStats = stats };
                 }
         }
 
