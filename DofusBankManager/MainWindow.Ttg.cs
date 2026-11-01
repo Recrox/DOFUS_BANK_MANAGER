@@ -55,7 +55,7 @@ public partial class MainWindow
             var m = _merchants.Prices.GetValueOrDefault(it.Id);
             var last = m?.Last;
             return new TtgRow(it.Id, CardNumber(it.Name), it.Name, it.TypeName, owned.GetValueOrDefault(it.Id),
-                last?.Price, m?.BestRecent, last != null ? Ago(last.Time) : "", last?.Time ?? DateTime.MinValue,
+                last?.Price, m?.BestRecent, last != null ? Ago(last.Time) + (last.Shared ? " · groupe" : "") : "", last?.Time ?? DateTime.MinValue,
                 UnitPrice(it.Id));
         }).ToList();
 

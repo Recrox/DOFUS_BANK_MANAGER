@@ -10,10 +10,14 @@ $payload = Join-Path $root 'installer\payload'
 if (Test-Path $payload) { Remove-Item -Recurse -Force $payload }
 Remove-Item "$root\DofusBankManager\*_wpftmp.csproj" -ErrorAction SilentlyContinue # restes d'une compilation WPF interrompue
 # Syntaxe /p: : Windows PowerShell 5.1 découpe les arguments natifs de la forme -p:Nom=valeur
-$versionArgs = if ($Version) { @("/p:Version=$Version") } else { @() }
+# Tableau construit explicitement : « $x = if (…) { @('a') } » le réduirait à une chaîne, que PowerShell 7
+# éclaterait ensuite en caractères (« / p : V e r s i o n … »). Un tableau passé à un programme natif
+# donne un argument par élément.
+$versionArgs = @()
+if ($Version) { $versionArgs += "/p:Version=$Version" }
 dotnet publish "$root\DofusBankManager\DofusBankManager.csproj" -c Release -r win-x64 --self-contained true `
     -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
-    -p:EnableCompressionInSingleFile=true -p:DebugType=none -o $payload @versionArgs
+    -p:EnableCompressionInSingleFile=true -p:DebugType=none -o $payload $versionArgs
 if ($LASTEXITCODE -ne 0) { throw "Échec de la publication de l'application" }
 
 # 2. Paquet MSI (WiX Toolset, récupéré automatiquement via NuGet)

@@ -11,6 +11,8 @@ public sealed class MerchantSnapshot
     public DateTime Time { get; set; }
     public long Price { get; set; }
     public int Quantity { get; set; }
+    /// <summary>Vrai si le relevé vient d'un autre membre du groupe (partage des prix).</summary>
+    public bool Shared { get; set; }
 }
 
 public sealed class MerchantPrice
@@ -45,6 +47,8 @@ public sealed class MerchantTracker
 
     public event Action? Changed;
     public event Action<string>? Log;
+    /// <summary>Relevé fait par le joueur lui-même (à partager avec le groupe, si le partage est activé).</summary>
+    public event Action<int, MerchantSnapshot>? Observed;
 
     public MerchantTracker(GameData data)
     {
@@ -82,14 +86,41 @@ public sealed class MerchantTracker
             if (!Prices.TryGetValue(g.Key, out var p)) Prices[g.Key] = p = new MerchantPrice { TemplateId = g.Key };
             // Même boutique rouverte aussitôt : pas de doublon
             if (p.Last is { } last && now - last.Time < TimeSpan.FromMinutes(1) && last.Price == best.Price) continue;
-            p.History.Add(new MerchantSnapshot { Time = now, Price = best.Price, Quantity = g.Sum(l => l.Qty) });
+            var snap = new MerchantSnapshot { Time = now, Price = best.Price, Quantity = g.Sum(l => l.Qty) };
+            p.History.Add(snap);
             if (p.History.Count > MaxHistory) p.History.RemoveRange(0, p.History.Count - MaxHistory);
+            Observed?.Invoke(g.Key, snap);
             recorded++;
         }
         if (recorded == 0) return;
         Log?.Invoke($"Marchand : {recorded} prix de carte(s) TTG relevé(s).");
         Save();
         Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// Ajoute les relevés reçus du groupe à l'historique. Un relevé déjà connu (même carte, même prix, à la
+    /// seconde près, y compris les siens renvoyés par le serveur) est ignoré. Retourne le nombre de relevés ajoutés.
+    /// </summary>
+    public int MergeShared(IEnumerable<(int Tpl, long Price, int Qty, DateTime SeenAt)> snapshots)
+    {
+        int added = 0;
+        foreach (var r in snapshots)
+        {
+            if (!IsCard(r.Tpl)) continue;
+            if (!Prices.TryGetValue(r.Tpl, out var p)) Prices[r.Tpl] = p = new MerchantPrice { TemplateId = r.Tpl };
+            if (p.History.Any(s => s.Price == r.Price && (s.Time - r.SeenAt).Duration() < TimeSpan.FromSeconds(1))) continue;
+            p.History.Add(new MerchantSnapshot { Time = r.SeenAt, Price = r.Price, Quantity = r.Qty, Shared = true });
+            p.History.Sort((a, b) => a.Time.CompareTo(b.Time));
+            if (p.History.Count > MaxHistory) p.History.RemoveRange(0, p.History.Count - MaxHistory);
+            added++;
+        }
+        if (added > 0)
+        {
+            Save();
+            Changed?.Invoke();
+        }
+        return added;
     }
 
     public void Forget(int templateId)

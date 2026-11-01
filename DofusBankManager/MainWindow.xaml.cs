@@ -278,13 +278,14 @@ public partial class MainWindow : Window
 
         ItemIcons.Data = _data;
         InitFm(_data);
+        // TTG et PDA avant l'HDV : la synchronisation avec le groupe partage aussi leurs prix
+        InitTtg(_data);
+        InitPda(_data);
         InitHdv(_data);
         _usage = _data.Recipes.SelectMany(r => r.Ingredients.Select(i => i.ItemId).Distinct())
             .GroupBy(id => id).ToDictionary(g => g.Key, g => g.Count());
         _recipeByResult = _data.Recipes.GroupBy(r => r.ResultId).ToDictionary(g => g.Key, g => g.First());
         InitBrisage(_data);
-        InitTtg(_data);
-        InitPda(_data);
 
         JobFilter.Items.Add(AllJobs);
         foreach (var j in _data.JobNames) JobFilter.Items.Add(j);
@@ -551,7 +552,7 @@ public partial class MainWindow : Window
         _tracker.HdvAverage += _hdv.OnAverage;
         _tracker.HdvOfferMove += _hdv.OnOfferMove;
 
-        _sync = new Hdv.HdvSync(_hdv);
+        _sync = new Hdv.HdvSync(_hdv, _merchants!, _pda!);
         _sync.Log += AddLog;
         _sync.StatusChanged += () => ShareStatus.Text = _sync.Status;
         ShareEnabled.IsChecked = _sync.Settings.Enabled;

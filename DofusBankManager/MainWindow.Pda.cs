@@ -62,7 +62,7 @@ public partial class MainWindow
             {
                 var m = _data.GetMonster(p.MonsterId);
                 return new PdaRow(p.Key, p.MonsterId, p.StoneTemplate, m.Name, LevelText(m), m.LevelMax, m.Race,
-                    p.Category, p.Price, p.Average, p.Offers, Ago(p.SeenAt), p.SeenAt,
+                    p.Category, p.Price, p.Average, p.Offers, Ago(p.SeenAt) + (p.Shared ? " · groupe" : ""), p.SeenAt,
                     ownedByMonster.GetValueOrDefault(p.MonsterId), "");
             }).ToList();
         }

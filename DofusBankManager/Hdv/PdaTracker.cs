@@ -26,6 +26,8 @@ public sealed class PdaPrice
     public DateTime SeenAt { get; set; }
     /// <summary>Version des règles de relevé (voir PdaTracker.CurrentRules) : les relevés trop anciens sont écartés.</summary>
     public int Rules { get; set; }
+    /// <summary>Vrai si le dernier relevé vient d'un autre membre du groupe (partage des prix).</summary>
+    public bool Shared { get; set; }
     public List<PdaSnapshot> History { get; set; } = new();
 
     [System.Text.Json.Serialization.JsonIgnore]
@@ -71,6 +73,8 @@ public sealed class PdaTracker
 
     public event Action? Changed;
     public event Action<string>? Log;
+    /// <summary>Prix relevé par le joueur lui-même (à partager avec le groupe, si le partage est activé).</summary>
+    public event Action<PdaPrice>? Observed;
 
     public PdaTracker(GameData data)
     {
@@ -79,6 +83,14 @@ public sealed class PdaTracker
     }
 
     public static string Key(int monster, string category) => $"{monster}:{category}";
+
+    /// <summary>Catégorie <-> code échangé avec le serveur de partage (0 = monstre, 1 = donjon, 2 = archi-monstre).</summary>
+    public static int CategoryCode(string category) => category switch { Donjon => 1, Archi => 2, _ => 0 };
+    public static string CategoryName(int code) => code switch { 1 => Donjon, 2 => Archi, _ => Monstre };
+
+    /// <summary>Un modèle de pierre de la catégorie, pour l'icône d'un prix reçu du groupe.</summary>
+    int StoneOf(string category) =>
+        _data.Items.Values.FirstOrDefault(i => StoneTypes.Contains(i.TypeId) && Category(i.Id) == category)?.Id ?? 0;
 
     public bool IsStone(int tpl) => StoneTypes.Contains(_data.GetItem(tpl).TypeId);
 
@@ -193,18 +205,54 @@ public sealed class PdaTracker
             price.Offers = offers.Count;
             price.SeenAt = now;
             price.Rules = CurrentRules;
-
-            // Un relevé par consultation : on remplace le précédent s'il date de moins d'une minute
-            var snap = new PdaSnapshot { Time = now, Price = price.Price, Offers = price.Offers };
-            var last = price.History.LastOrDefault();
-            if (last != null && now - last.Time < TimeSpan.FromMinutes(1)) price.History[^1] = snap;
-            else price.History.Add(snap);
-            if (price.History.Count > MaxHistory) price.History.RemoveRange(0, price.History.Count - MaxHistory);
+            price.Shared = false;
+            AddSnapshot(price);
 
             Log?.Invoke($"HDV pierres d'âme {_data.GetMonster(monster).Name} ({category}) : {price.Price:N0} k ({price.Offers} offre(s)).");
+            Observed?.Invoke(price);
         }
         Save();
         Changed?.Invoke();
+    }
+
+    /// <summary>Un relevé par consultation : on remplace le précédent s'il date de moins d'une minute.</summary>
+    static void AddSnapshot(PdaPrice price)
+    {
+        var snap = new PdaSnapshot { Time = price.SeenAt, Price = price.Price, Offers = price.Offers };
+        var last = price.History.LastOrDefault();
+        if (last != null && (price.SeenAt - last.Time).Duration() < TimeSpan.FromMinutes(1)) price.History[^1] = snap;
+        else price.History.Add(snap);
+        if (price.History.Count > MaxHistory) price.History.RemoveRange(0, price.History.Count - MaxHistory);
+    }
+
+    /// <summary>
+    /// Fusionne les prix reçus du groupe : un relevé distant ne remplace le local que s'il est plus récent.
+    /// Retourne le nombre de prix mis à jour.
+    /// </summary>
+    public int MergeShared(IEnumerable<(int Monster, int Category, long? Price, int Offers, long? Average, DateTime SeenAt)> prices)
+    {
+        int updated = 0;
+        foreach (var r in prices)
+        {
+            var category = CategoryName(r.Category);
+            var price = Get(r.Monster, category);
+            if (r.SeenAt <= price.SeenAt) continue;
+            price.Price = r.Price;
+            price.Offers = r.Offers;
+            if (r.Average != null) price.Average = r.Average;
+            if (price.StoneTemplate == 0) price.StoneTemplate = StoneOf(category);
+            price.SeenAt = r.SeenAt;
+            price.Rules = CurrentRules;
+            price.Shared = true;
+            AddSnapshot(price);
+            updated++;
+        }
+        if (updated > 0)
+        {
+            Save();
+            Changed?.Invoke();
+        }
+        return updated;
     }
 
     public void Forget(string key)
