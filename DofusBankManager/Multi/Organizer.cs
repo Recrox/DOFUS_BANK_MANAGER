@@ -8,13 +8,18 @@ using DofusBankManager.Hunt;
 
 namespace DofusBankManager.Multi;
 
-/// <summary>Réglages de l'onglet Fenêtres (organizer.json).</summary>
+/// <summary>Réglages de l'onglet Switcheur (organizer.json).</summary>
 public sealed class OrganizerSettings
 {
     /// <summary>Personnages exclus de la rotation (ex. compte métier), par nom.</summary>
     public List<string> Excluded { get; set; } = new();
     public string NextKey { get; set; } = "Ctrl+Alt+Right";
     public string PreviousKey { get; set; } = "Ctrl+Alt+Left";
+    /// <summary>Ordre de jeu choisi par glisser-déposer (noms) ; vide : par initiative.</summary>
+    public List<string> Order { get; set; } = new();
+    /// <summary>Personnage principal (étoile) : un seul, affiché par son propre raccourci.</summary>
+    public string? MainCharacter { get; set; }
+    public string MainKey { get; set; } = "Ctrl+Alt+Up";
     public bool NotifyFight { get; set; } = true;
     public bool NotifyTurn { get; set; } = true;
     public bool NotifyExchange { get; set; } = true;

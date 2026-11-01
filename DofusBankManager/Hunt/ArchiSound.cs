@@ -5,7 +5,7 @@ namespace DofusBankManager.Hunt;
 
 /// <summary>
 /// Alerte archi-monstre : arpège cristallin montant (mi, si, mi, sol dièse), au timbre de cloche, synthétisé par
-/// l'application (aucun fichier son à distribuer), et son plus court des notifications de l'onglet Fenêtres.
+/// l'application (aucun fichier son à distribuer), et son plus court des notifications de l'onglet Switcheur.
 /// Le volume est appliqué aux échantillons (0 à 100).
 /// </summary>
 public static class ArchiSound
@@ -24,7 +24,7 @@ public static class ArchiSound
 
     public static void Play(int volume) => Play(Wav(Notes, 1.6, volume));
 
-    /// <summary>Son des notifications de l'onglet Fenêtres, un peu moins fort que l'alerte archi-monstre.</summary>
+    /// <summary>Son des notifications de l'onglet Switcheur, un peu moins fort que l'alerte archi-monstre.</summary>
     public static void PlayNotice(int volume) => Play(Wav(NoticeNotes, 0.9, volume * 0.8));
 
     static void Play(byte[]? wav)

@@ -28,9 +28,10 @@ const TABS = [
   { key: 'combat', label: 'Combat', icon: '⌖', watch: ['HuntCharacterBox', 'HuntLevel', 'HuntGroupLevel', 'HuntWisdom', 'HuntProspection',
     'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
     'HuntSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid'] },
-  { key: 'windows', label: 'Fenêtres', icon: '⧉', watch: ['HotkeyNext', 'HotkeyPrevious', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
+  { key: 'windows', label: 'Switcheur', icon: '⧉', watch: ['HotkeyNext', 'HotkeyPrevious', 'HotkeyMain', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
     'NotifyExchange', 'NotifyParty', 'NotifyToast', 'NotifyFlash', 'NotifySound', 'OrganizerCount', 'OrganizerGrid', 'OverlayEnabled', 'OverlayEconome', 'OverlayGroups',
-    'OverlayRotation', 'OverlayOpacity', 'OverlayOpacityText', 'OverlayMove'] },
+    'OverlayRotation', 'OverlayOpacity', 'OverlayOpacityText', 'OverlayMove', 'OrganizerSaveOrder', 'OrganizerResetOrder',
+    'OrganizerOrderStatus'] },
   { key: 'fm', label: 'FM', icon: '✧', watch: ['FmItemCombo', 'FmItemName', 'FmReliquat', 'FmReliquatInput', 'FmStats',
     'FmHistoryGrid', 'FmEmpty'] },
   { key: 'journal', label: 'Journal', icon: '☰', watch: ['LogBox', 'LogPacketsBox'] },
@@ -78,7 +79,8 @@ function table(name, cols, opts = {}) {
   const sel = S[name]?.sel ?? -1;
   const head = cols.map(c => `<th class="${c.num ? 'num' : ''}" ${c.k ? attrs({ act: 'sort', grid: name, k: c.k }) : ''}>${esc(c.h)}${sort && sort.k === c.k ? `<span class="arrow">${sort.dir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('');
   const body = data.slice(0, limit).map(r => {
-    const tr = `<tr class="${opts.select !== false ? 'clickable' : ''} ${r._i === sel ? 'sel' : ''}" ${opts.select !== false ? attrs({ act: 'select', grid: name, i: r._i }) : ''}>`
+    const drag = opts.draggable?.(r) ? `draggable="true" data-drag-grid="${name}" data-drag-i="${r._i}"` : '';
+    const tr = `<tr class="${opts.select !== false ? 'clickable' : ''} ${r._i === sel ? 'sel' : ''} ${drag ? 'draggable' : ''}" ${drag} ${opts.select !== false ? attrs({ act: 'select', grid: name, i: r._i }) : ''}>`
       + cols.map(c => `<td class="${c.num ? 'num' : ''} ${c.cls || ''}">${c.f ? c.f(r) : esc(r[c.k])}</td>`).join('') + '</tr>';
     return tr + (opts.after ? opts.after(r, cols.length) : '');
   }).join('');
@@ -400,7 +402,7 @@ Object.assign(views, {
   windows() {
     const hotkey = (name, label) => `<span class="lbl">${label}</span><input type="text" class="hotkey" readonly data-hotkey="${name}"
       value="${esc(T(name))}" placeholder="aucun" title="Cliquez puis appuyez sur la combinaison voulue (Suppr : aucun raccourci)">`;
-    return `<div class="filters">${hotkey('HotkeyNext', 'Personnage suivant')}${hotkey('HotkeyPrevious', 'Précédent')}
+    return `<div class="filters">${hotkey('HotkeyNext', 'Personnage suivant')}${hotkey('HotkeyPrevious', 'Précédent')}${hotkey('HotkeyMain', 'Principal ★')}
         <span class="muted">Les raccourcis marchent aussi en jeu ; ils ne font qu'afficher la fenêtre.</span>
         ${T('HotkeyStatus') ? `<span class="bad strong">${esc(T('HotkeyStatus'))}</span>` : ''}</div>
       <div class="filters card overlay-opts">${check('OverlayEnabled', 'Superposition en jeu')}${check('OverlayEconome', 'Économe')}
@@ -412,17 +414,20 @@ Object.assign(views, {
       <div class="filters"><span class="lbl">Notifier</span>${check('NotifyFight', 'Début de combat')}${check('NotifyTurn', 'Début de votre tour')}
         ${check('NotifyExchange', "Demande d'échange")}${check('NotifyParty', 'Invitation de groupe')}
         <span class="lbl">par</span>${check('NotifyToast', 'Bulle')}${check('NotifyFlash', 'Clignotement')}${check('NotifySound', 'Son')}</div>
-      <div class="filters"><span class="muted">Ordre de jeu : initiative décroissante. L'initiative est envoyée par le jeu à la connexion ou quand elle change.</span>
+      <div class="filters"><span class="muted">Ordre de jeu : par initiative, ou à votre goût en glissant-déposant les lignes.</span>
+        <span class="strong" style="color:${S.OrganizerOrderStatus?.c || 'inherit'}">${esc(T('OrganizerOrderStatus'))}</span>
+        ${btn('OrganizerSaveOrder', "Enregistrer l'ordre", 'small primary')}${btn('OrganizerResetOrder', 'Ordre par initiative', 'small')}
         ${T('OrganizerCount') ? `<span class="chip accent">${esc(T('OrganizerCount'))}</span>` : ''}</div>
       ${table('OrganizerGrid', [
         { h: 'Ordre', k: 'Order', num: true, f: r => `<span class="order ${r.Excluded ? 'muted' : ''}">${esc(r.OrderText)}</span>` },
+        { h: '★', k: 'Main', f: r => `<button class="star ${r.Main ? 'on' : ''}" title="Personnage principal (raccourci « Principal »)" ${attrs({ act: 'row', grid: 'OrganizerGrid', i: r._i, handler: 'OrganizerMain_Click' })}>${r.Main ? '★' : '☆'}</button>` },
         { h: 'Personnage', k: 'Name', f: r => `<span class="strong ${r.Active ? 'acc' : ''}">${esc(r.Name)}</span>${r.Active ? ' <span class="chip accent">au premier plan</span>' : ''}` },
         { h: 'Niveau', k: 'Level', num: true },
         { h: 'Initiative', k: 'Initiative', num: true, f: r => `<span class="acc strong">${esc(r.InitiativeText)}</span>` },
         { h: 'État', k: 'State', f: r => `<span class="muted">${esc(r.State)}</span>` },
         { h: 'Exclure', k: 'Excluded', f: r => `<label class="check"><input type="checkbox" ${r.Excluded ? 'checked' : ''} ${attrs({ act: 'row', grid: 'OrganizerGrid', i: r._i, handler: 'OrganizerExclude_Click' })}></label>` },
         { h: '', f: r => `<button class="small primary" ${attrs({ act: 'row', grid: 'OrganizerGrid', i: r._i, handler: 'OrganizerShow_Click' })}>Afficher</button>` },
-      ], { select: false, empty: 'Aucune fenêtre Dofus Retro ouverte. Lancez le jeu : ses fenêtres apparaîtront ici.' })}`;
+      ], { select: false, draggable: r => !r.Excluded && !r.Name.startsWith('('), empty: 'Aucune fenêtre Dofus Retro ouverte. Lancez le jeu : ses fenêtres apparaîtront ici.' })}`;
   },
 
   journal() {
@@ -510,6 +515,33 @@ document.addEventListener('click', e => {
   }
 });
 
+// Glisser-déposer d'une ligne (ordre de jeu du Switcheur)
+let dragFrom = null;
+document.addEventListener('dragstart', e => {
+  const tr = e.target.closest?.('tr[data-drag-grid]');
+  if (!tr) return;
+  dragFrom = { grid: tr.dataset.dragGrid, i: +tr.dataset.dragI };
+  e.dataTransfer.effectAllowed = 'move';
+  tr.classList.add('dragging');
+});
+document.addEventListener('dragover', e => {
+  const tr = e.target.closest?.('tr[data-drag-grid]');
+  if (!dragFrom || !tr || tr.dataset.dragGrid !== dragFrom.grid) return;
+  e.preventDefault();
+  document.querySelectorAll('tr.drop-target').forEach(x => x.classList.remove('drop-target'));
+  tr.classList.add('drop-target');
+});
+document.addEventListener('drop', e => {
+  const tr = e.target.closest?.('tr[data-drag-grid]');
+  if (dragFrom && tr && tr.dataset.dragGrid === dragFrom.grid) {
+    e.preventDefault();
+    post({ type: 'reorder', name: dragFrom.grid, index: dragFrom.i, to: +tr.dataset.dragI });
+  }
+});
+document.addEventListener('dragend', () => {
+  dragFrom = null;
+  document.querySelectorAll('tr.dragging, tr.drop-target').forEach(x => x.classList.remove('dragging', 'drop-target'));
+});
 // Raccourci : la combinaison pressée remplace la valeur (« Ctrl+Alt+Right ») ; Suppr ou Retour arrière l'efface
 const KEYS = { ArrowRight: 'Right', ArrowLeft: 'Left', ArrowUp: 'Up', ArrowDown: 'Down', ' ': 'Space', Escape: 'Escape',
   PageUp: 'PageUp', PageDown: 'Next', Enter: 'Return' };

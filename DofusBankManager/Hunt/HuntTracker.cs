@@ -54,7 +54,7 @@ public sealed class HuntCharacter(string stream, int number)
     public int? Level { get; set; }
     public int? Wisdom { get; set; }
     public int? Prospection { get; set; }
-    /// <summary>Initiative (onglet Fenêtres : ordre de jeu des personnages).</summary>
+    /// <summary>Initiative (onglet Switcheur : ordre de jeu des personnages).</summary>
     public int? Initiative { get; set; }
     /// <summary>Membres du groupe : identifiant -> (niveau, prospection). Vide hors groupe.</summary>
     public Dictionary<long, (int Level, int Prospection)> Party { get; } = new();
@@ -82,7 +82,7 @@ public sealed class HuntCharacter(string stream, int number)
     public int? GroupLevel => Party.Count > 0 ? Party.Values.Sum(p => p.Level) : Level;
 }
 
-/// <summary>Évènements notifiés dans l'onglet Fenêtres.</summary>
+/// <summary>Évènements notifiés dans l'onglet Switcheur.</summary>
 public enum GameNotice { Fight, Turn, Exchange, Party }
 
 sealed class HuntData
@@ -154,7 +154,7 @@ public sealed class HuntTracker
     public event Action? Changed;
     public event Action<ArchiSighting>? ArchiSpotted;
     public event Action<string>? Log;
-    /// <summary>Évènement à notifier (onglet Fenêtres) pour le personnage d'une fenêtre.</summary>
+    /// <summary>Évènement à notifier (onglet Switcheur) pour le personnage d'une fenêtre.</summary>
     public event Action<HuntCharacter, GameNotice>? Notice;
 
     public HuntTracker(GameData data, Func<long> savedCharacterId)

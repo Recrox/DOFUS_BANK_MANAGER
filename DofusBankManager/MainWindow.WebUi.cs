@@ -37,7 +37,7 @@ public partial class MainWindow
     readonly Dictionary<string, byte[]?> _webIcons = new();
     /// <summary>Gestionnaires de clic sur une ligne que la page peut déclencher (le reste passe par les boutons nommés).</summary>
     static readonly HashSet<string> WebRowHandlers =
-        ["HuntDropsToggle_Click", "BankRecipes_Click", "OrganizerShow_Click", "OrganizerExclude_Click"];
+        ["HuntDropsToggle_Click", "BankRecipes_Click", "OrganizerShow_Click", "OrganizerExclude_Click", "OrganizerMain_Click"];
 
     void WebUiButton_Click(object sender, RoutedEventArgs e) => _ = ShowWebUiAsync();
 
@@ -217,6 +217,13 @@ public partial class MainWindow
                             case "max": filter.Max.Text = v.GetString() ?? ""; break;
                         }
                     }
+                    break;
+                case "reorder":
+                    // Glisser-déposer de l'onglet Switcheur : ligne index déposée sur la ligne to
+                    int to = m.GetProperty("to").GetInt32();
+                    if (el == OrganizerGrid && OrganizerGrid.ItemsSource is IList<OrganizerRow> organizerRows
+                        && index >= 0 && index < organizerRows.Count && to >= 0 && to < organizerRows.Count)
+                        MoveInOrder(organizerRows[index], organizerRows[to]);
                     break;
                 case "toggle":
                     if (el is Panel panel && panel.Children.OfType<ToggleButton>().ElementAtOrDefault(index) is { } toggle)

@@ -8,16 +8,18 @@ using DofusBankManager.Multi;
 
 namespace DofusBankManager;
 
-/// <summary>Fenêtre de jeu listée dans l'onglet Fenêtres. Order : place dans la rotation (0 = exclu).</summary>
+/// <summary>Fenêtre de jeu listée dans l'onglet Switcheur. Order : place dans la rotation (0 = exclu).</summary>
 public sealed record OrganizerRow(long Handle, int Order, string Name, string Level, int? Initiative, string State,
-    bool Excluded, bool Active)
+    bool Excluded, bool Active, bool Main)
 {
     public string OrderText => Excluded ? "—" : Order.ToString();
     public string InitiativeText => Initiative?.ToString("N0") ?? "?";
+    /// <summary>Étoile pleine pour le personnage principal, vide pour les autres (cliquable).</summary>
+    public string Star => Main ? "★" : "☆";
 }
 
 /// <summary>
-/// Onglet Fenêtres : fenêtres du jeu détectées, ordre de jeu par initiative, raccourcis personnage suivant / précédent,
+/// Onglet Switcheur : fenêtres du jeu détectées, ordre de jeu par initiative, raccourcis personnage suivant / précédent,
 /// personnages exclus (compte métier) et notifications (début de combat, de tour, échange, invitation de groupe).
 /// L'application ne fait que mettre une fenêtre au premier plan quand le joueur le demande : aucune touche ni aucun clic
 /// n'est envoyé au jeu (README, règle 3).
@@ -43,6 +45,7 @@ public partial class MainWindow
         NotifySound.IsChecked = _organizer.PlaySound;
         HotkeyNext.Text = _organizer.NextKey;
         HotkeyPrevious.Text = _organizer.PreviousKey;
+        HotkeyMain.Text = _organizer.MainKey;
         _organizerLoading = false;
 
         SourceInitialized += (_, _) =>
@@ -62,6 +65,7 @@ public partial class MainWindow
         var failed = new List<string>();
         foreach (var (gesture, step) in new[] { (_organizer.NextKey, 1), (_organizer.PreviousKey, -1) })
             if (gesture.Length > 0 && !_hotkeys.Register(gesture, () => Cycle(step))) failed.Add(gesture);
+        if (_organizer.MainKey.Length > 0 && !_hotkeys.Register(_organizer.MainKey, FocusMain)) failed.Add(_organizer.MainKey);
         HotkeyStatus.Text = failed.Count == 0 ? ""
             : $"Raccourci indisponible (déjà pris par une autre application ?) : {string.Join(", ", failed)}";
     }
@@ -70,11 +74,123 @@ public partial class MainWindow
     HuntCharacter? CharacterOf(GameWindow w) => w.Name.Length == 0 ? null
         : _hunt?.Characters.FirstOrDefault(c => string.Equals(c.Name, w.Name, StringComparison.OrdinalIgnoreCase));
 
+    bool IsMain(GameWindow w) => w.Name.Length > 0 && string.Equals(w.Name, _organizer.MainCharacter, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Raccourci « Principal » : met au premier plan la fenêtre du personnage principal (étoile).</summary>
+    void FocusMain()
+    {
+        _windows = GameWindows.Find();
+        if (_windows.FirstOrDefault(IsMain) is { } main)
+        {
+            GameWindows.Focus(main.Handle);
+            RefreshWindows();
+        }
+    }
+
     bool IsExcluded(GameWindow w) => w.Name.Length > 0 && _organizer.Excluded.Contains(w.Name, StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Ordre de jeu : initiative décroissante, initiative inconnue en dernier ; les personnages exclus à part.</summary>
-    List<GameWindow> Rotation() => _windows.Where(w => !IsExcluded(w))
-        .OrderByDescending(w => CharacterOf(w)?.Initiative ?? int.MinValue).ThenBy(w => w.Name).ToList();
+    /// <summary>Ordre déplacé par glisser-déposer, pas encore enregistré (il s'applique déjà).</summary>
+    List<string>? _pendingOrder;
+    bool _dragging;
+    Point _dragStart;
+    OrganizerRow? _dragRow;
+
+    /// <summary>
+    /// Ordre de jeu : celui choisi par glisser-déposer s'il y en a un (les personnages qui n'y sont pas suivent, par
+    /// initiative), sinon initiative décroissante, initiative inconnue en dernier. Les personnages exclus sont à part.
+    /// </summary>
+    List<GameWindow> Rotation()
+    {
+        var byInitiative = _windows.Where(w => !IsExcluded(w))
+            .OrderByDescending(w => CharacterOf(w)?.Initiative ?? int.MinValue).ThenBy(w => w.Name);
+        var order = _pendingOrder ?? (_organizer.Order.Count > 0 ? _organizer.Order : null);
+        if (order == null) return byInitiative.ToList();
+        return byInitiative.OrderBy(w =>
+        {
+            int i = order.FindIndex(n => string.Equals(n, w.Name, StringComparison.OrdinalIgnoreCase));
+            return i < 0 || w.Name.Length == 0 ? int.MaxValue : i;
+        }).ToList();
+    }
+
+    // --- Glisser-déposer : réorganiser l'ordre de jeu ---
+
+    void OrganizerGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _dragRow = null;
+        // Pas depuis un bouton ou une case (étoile, Exclure, Afficher)
+        for (var d = e.OriginalSource as DependencyObject; d != null && d != OrganizerGrid; d = System.Windows.Media.VisualTreeHelper.GetParent(d))
+            if (d is System.Windows.Controls.Primitives.ButtonBase) return;
+        if (ItemsControl.ContainerFromElement(OrganizerGrid, e.OriginalSource as DependencyObject) is DataGridRow { Item: OrganizerRow row }
+            && !row.Excluded && WindowName(row).Length > 0)
+        {
+            _dragRow = row;
+            _dragStart = e.GetPosition(OrganizerGrid);
+        }
+    }
+
+    void OrganizerGrid_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_dragRow == null || e.LeftButton != MouseButtonState.Pressed) return;
+        var p = e.GetPosition(OrganizerGrid);
+        if (Math.Abs(p.X - _dragStart.X) < SystemParameters.MinimumHorizontalDragDistance
+            && Math.Abs(p.Y - _dragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+        var row = _dragRow;
+        _dragRow = null;
+        _dragging = true; // la liste n'est pas rafraîchie pendant le déplacement
+        try { DragDrop.DoDragDrop(OrganizerGrid, row, DragDropEffects.Move); }
+        finally { _dragging = false; }
+        RefreshWindows();
+    }
+
+    void OrganizerGrid_Drop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(typeof(OrganizerRow)) is OrganizerRow source
+            && ItemsControl.ContainerFromElement(OrganizerGrid, e.OriginalSource as DependencyObject) is DataGridRow { Item: OrganizerRow target })
+            MoveInOrder(source, target);
+    }
+
+    /// <summary>Place le personnage de la ligne « source » à la place de celui de « target » (ordre en attente).</summary>
+    void MoveInOrder(OrganizerRow source, OrganizerRow target)
+    {
+        string from = WindowName(source), to = WindowName(target);
+        if (from.Length == 0 || target.Excluded || string.Equals(from, to, StringComparison.OrdinalIgnoreCase)) return;
+        var names = Rotation().Select(w => w.Name).Where(n => n.Length > 0).ToList();
+        names.RemoveAll(n => string.Equals(n, from, StringComparison.OrdinalIgnoreCase));
+        int i = names.FindIndex(n => string.Equals(n, to, StringComparison.OrdinalIgnoreCase));
+        names.Insert(i < 0 ? names.Count : (target.Order > source.Order ? i + 1 : i), from);
+        _pendingOrder = names;
+        RefreshWindows();
+    }
+
+    string WindowName(OrganizerRow row) => _windows.FirstOrDefault(w => w.Handle.ToInt64() == row.Handle)?.Name ?? "";
+
+    void OrganizerSaveOrder_Click(object sender, RoutedEventArgs e)
+    {
+        if (_pendingOrder == null) return;
+        _organizer.Order = _pendingOrder;
+        _pendingOrder = null;
+        _organizer.Save();
+        RefreshWindows();
+    }
+
+    /// <summary>Retour à l'ordre automatique (initiative) : l'ordre enregistré est oublié.</summary>
+    void OrganizerResetOrder_Click(object sender, RoutedEventArgs e)
+    {
+        _pendingOrder = null;
+        _organizer.Order = new();
+        _organizer.Save();
+        RefreshWindows();
+    }
+
+    void UpdateOrderUi()
+    {
+        bool saved = _organizer.Order.Count > 0;
+        OrganizerSaveOrder.IsEnabled = _pendingOrder != null;
+        OrganizerResetOrder.IsEnabled = saved || _pendingOrder != null;
+        OrganizerOrderStatus.Text = _pendingOrder != null ? "Ordre modifié : enregistrez-le pour le garder"
+            : saved ? "Ordre personnalisé (enregistré)" : "Ordre par initiative";
+        OrganizerOrderStatus.SetResourceReference(TextBlock.ForegroundProperty, _pendingOrder != null ? "Warning" : "TextMuted");
+    }
 
     /// <summary>Raccourci : met au premier plan le personnage suivant (ou précédent) dans l'ordre de jeu.</summary>
     void Cycle(int step)
@@ -90,7 +206,9 @@ public partial class MainWindow
 
     void RefreshWindows()
     {
+        if (_dragging) return;
         _windows = GameWindows.Find();
+        UpdateOrderUi();
         var rotation = Rotation();
         var foreground = GameWindows.Foreground;
         var rows = rotation.Concat(_windows.Where(IsExcluded)).Select(w =>
@@ -100,7 +218,7 @@ public partial class MainWindow
                 : c == null ? "Pas encore vu (lancez l'appli avant la connexion ou changez de map)"
                 : c.InFight ? "En combat" : "Hors combat";
             return new OrganizerRow(w.Handle.ToInt64(), rotation.IndexOf(w) + 1, w.Name.Length > 0 ? w.Name : "(sélection du personnage)",
-                c?.Level?.ToString() ?? "?", c?.Initiative, state, IsExcluded(w), w.Handle == foreground);
+                c?.Level?.ToString() ?? "?", c?.Initiative, state, IsExcluded(w), w.Handle == foreground, IsMain(w));
         }).ToList();
 
         UpdateOverlay(); // ordre de jeu et fenêtre au premier plan
@@ -115,6 +233,17 @@ public partial class MainWindow
     void OrganizerShow_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.DataContext is OrganizerRow row) GameWindows.Focus(new IntPtr(row.Handle));
+    }
+
+    /// <summary>Étoile : ce personnage devient le principal (un seul) ; un nouveau clic sur l'étoile pleine l'enlève.</summary>
+    void OrganizerMain_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not OrganizerRow row) return;
+        var name = _windows.FirstOrDefault(w => w.Handle.ToInt64() == row.Handle)?.Name;
+        if (string.IsNullOrEmpty(name)) return;
+        _organizer.MainCharacter = string.Equals(_organizer.MainCharacter, name, StringComparison.OrdinalIgnoreCase) ? null : name;
+        _organizer.Save();
+        RefreshWindows();
     }
 
     void OrganizerExclude_Click(object sender, RoutedEventArgs e)
@@ -157,6 +286,7 @@ public partial class MainWindow
         if (_organizerLoading) return;
         _organizer.NextKey = HotkeyNext.Text;
         _organizer.PreviousKey = HotkeyPrevious.Text;
+        _organizer.MainKey = HotkeyMain.Text;
         _organizer.Save();
         RegisterHotkeys();
     }

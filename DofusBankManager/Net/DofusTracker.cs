@@ -47,7 +47,7 @@ public sealed record OwnedItem(int TemplateId, int Quantity, string Effects = ""
 ///   GA300{sort};{case} / GA303{case}  envoyés par le client : action du personnage de cette fenêtre (son identifiant)
 ///   GTS{id}|…                     début du tour d'un combattant (multi-compte : affiche le personnage qui joue)
 ///
-/// Onglet Fenêtres (notifications ; lus, jamais journalisés ni conservés) :
+/// Onglet Switcheur (notifications ; lus, jamais journalisés ni conservés) :
 ///   ERK{de}|{à}|{type}            demande d'échange : seul l'identifiant du destinataire est lu
 ///   PIK{invitant}|{invité}        invitation de groupe : seul le nom de l'invité est lu (comparé au personnage de la
 ///                                 fenêtre), celui de l'invitant est ignoré
@@ -193,7 +193,7 @@ public sealed class DofusTracker
         else if (msg.StartsWith("GJK")) FightJoined?.Invoke();
         else if (msg.StartsWith("GTS") && long.TryParse(msg[3..].Split('|')[0], out var fighter)) TurnStarted?.Invoke(fighter);
         else if (msg.StartsWith("GA") && (msg.Contains(';') || msg.StartsWith("GA303"))) GameAction?.Invoke(msg[2..]);
-        // Fenêtres : notifications d'échange et d'invitation de groupe
+        // Switcheur : notifications d'échange et d'invitation de groupe
         else if (msg.StartsWith("ERK") && msg[3..].Split('|') is [_, var to, ..] && long.TryParse(to, out var target))
             ExchangeRequested?.Invoke(target);
         else if (msg.StartsWith("PIK") && msg[3..].Split('|') is [_, var invited, ..]) PartyInvited?.Invoke(invited);

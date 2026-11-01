@@ -32,7 +32,7 @@
                     <TextBlock Text="{Binding Stats}" Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
             </DockPanel>
-            <TextBlock x:Name="MoveHint" Text="Mode déplacement : faites glisser, puis cliquez « Verrouiller » dans l'onglet Fenêtres."
+            <TextBlock x:Name="MoveHint" Text="Mode déplacement : faites glisser, puis cliquez « Verrouiller » dans l'onglet Switcheur."
                        TextWrapping="Wrap" Foreground="{DynamicResource Warning}" FontWeight="SemiBold" Margin="0,6,0,0" Visibility="Collapsed"/>
 
             <!-- Économe -->
@@ -90,7 +90,7 @@
                 </ItemsControl>
             </StackPanel>
 
-            <!-- Ordre de jeu (onglet Fenêtres) -->
+            <!-- Ordre de jeu (onglet Switcheur) -->
             <StackPanel Visibility="{Binding ShowRotation, Converter={StaticResource Visible}}">
                 <TextBlock Text="Ordre de jeu" Style="{StaticResource Section}"/>
                 <ItemsControl ItemsSource="{Binding Rotation}">

@@ -288,7 +288,13 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16p
   background: var(--accent); border: 2px solid #fff; box-shadow: var(--accent-glow); transition: transform .12s; }
 input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 
-/* Fenêtres */
+/* Switcheur */
 input.hotkey { width: 150px; text-align: center; font-weight: 700; cursor: pointer; caret-color: transparent; }
 input.hotkey:focus { border-color: var(--accent-solid); box-shadow: var(--accent-glow); }
 .order { display: inline-grid; place-items: center; min-width: 26px; height: 26px; border-radius: 8px; background: var(--hover); font-weight: 800; }
+button.star { background: transparent; border: none; padding: 0 4px; font-size: 19px; line-height: 1; color: var(--muted); }
+button.star:hover { color: var(--warn); transform: scale(1.15); }
+button.star.on { color: var(--warn); text-shadow: 0 0 12px var(--warn); }
+tr.draggable { cursor: grab; }
+tr.dragging { opacity: .45; }
+tr.drop-target td { box-shadow: inset 0 3px 0 var(--accent-solid); }

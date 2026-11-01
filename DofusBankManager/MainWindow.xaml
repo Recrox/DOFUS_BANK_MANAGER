@@ -1560,8 +1560,8 @@
                 </Grid>
             </TabItem>
 
-            <!-- Fenêtres : fenêtres du jeu, ordre de jeu par initiative, raccourcis et notifications -->
-            <TabItem Header="Fenêtres" Tag="{StaticResource TabFenetres}">
+            <!-- Switcheur : fenêtres du jeu, ordre de jeu par initiative, raccourcis et notifications -->
+            <TabItem Header="Switcheur" Tag="{StaticResource TabFenetres}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -1579,6 +1579,10 @@
                         <TextBox x:Name="HotkeyPrevious" Width="150" IsReadOnly="True" HorizontalContentAlignment="Center"
                                  PreviewKeyDown="Hotkey_PreviewKeyDown" TextChanged="Hotkey_Changed"
                                  ToolTip="Cliquez ici puis appuyez sur la combinaison voulue (Suppr : aucun raccourci)"/>
+                        <TextBlock Text="Principal ★" Style="{StaticResource Label}"/>
+                        <TextBox x:Name="HotkeyMain" Width="150" IsReadOnly="True" HorizontalContentAlignment="Center"
+                                 PreviewKeyDown="Hotkey_PreviewKeyDown" TextChanged="Hotkey_Changed"
+                                 ToolTip="Affiche le personnage principal (étoile dans la liste). Cliquez ici puis appuyez sur la combinaison voulue (Suppr : aucun raccourci)"/>
                         <TextBlock Text="Les raccourcis marchent aussi en jeu ; ils ne font qu'afficher la fenêtre." Foreground="{DynamicResource TextMuted}"
                                    VerticalAlignment="Center" Margin="14,0,0,0"/>
                         <TextBlock x:Name="HotkeyStatus" Foreground="{DynamicResource Missing}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="14,0,0,0"/>
@@ -1619,15 +1623,41 @@
                                         ToolTip="Affiche la superposition pour la faire glisser à sa place, puis Verrouiller"/>
                             </WrapPanel>
                         </Border>
-                        <TextBlock x:Name="OrganizerCount" DockPanel.Dock="Right" Foreground="{DynamicResource AccentSolid}" FontWeight="Bold"/>
+                        <TextBlock x:Name="OrganizerCount" DockPanel.Dock="Right" Foreground="{DynamicResource AccentSolid}" FontWeight="Bold"
+                                   VerticalAlignment="Center" Margin="14,0,0,0"/>
+                        <!-- Ordre choisi par glisser-déposer : il s'applique tout de suite, « Enregistrer » le garde -->
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="OrganizerOrderStatus" FontWeight="SemiBold" VerticalAlignment="Center" Margin="14,0,4,0"/>
+                            <Button x:Name="OrganizerSaveOrder" Content="Enregistrer l'ordre" Click="OrganizerSaveOrder_Click" Style="{StaticResource AccentButton}" Padding="12,4"/>
+                            <Button x:Name="OrganizerResetOrder" Content="Ordre par initiative" Click="OrganizerResetOrder_Click" Padding="12,4"
+                                    ToolTip="Oublie l'ordre enregistré : les personnages sont classés par initiative"/>
+                        </StackPanel>
                         <TextBlock Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"
-                                   Text="Ordre de jeu : initiative décroissante. L'initiative est envoyée par le jeu à la connexion ou quand elle change (changer un équipement suffit). Excluez un personnage (compte métier) pour le sortir de la rotation."/>
+                                   Text="Ordre de jeu : par initiative, ou à votre goût en glissant-déposant les lignes. L'initiative est envoyée par le jeu à la connexion ou quand elle change (changer un équipement suffit). Excluez un personnage (compte métier) pour le sortir de la rotation."/>
                     </DockPanel>
 
                     <Grid Grid.Row="3">
-                        <DataGrid x:Name="OrganizerGrid">
+                        <DataGrid x:Name="OrganizerGrid" AllowDrop="True" PreviewMouseLeftButtonDown="OrganizerGrid_PreviewMouseLeftButtonDown"
+                                  PreviewMouseMove="OrganizerGrid_PreviewMouseMove" Drop="OrganizerGrid_Drop"
+                                  ToolTip="Glissez-déposez une ligne pour changer l'ordre de jeu, puis « Enregistrer l'ordre »">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Ordre" Binding="{Binding OrderText}" SortMemberPath="Order" Width="60" ElementStyle="{StaticResource IndexText}"/>
+                                <!-- Personnage principal : une seule étoile pleine -->
+                                <DataGridTemplateColumn Header="★" Width="46" SortMemberPath="Main">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button x:Name="StarButton" Content="{Binding Star}" Click="OrganizerMain_Click" FontSize="18"
+                                                    Padding="0" Margin="0" Width="30" Height="28" Background="Transparent" BorderThickness="0"
+                                                    Foreground="{DynamicResource TextMuted}"
+                                                    ToolTip="Personnage principal : affiché par le raccourci « Principal ». Un seul à la fois."/>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding Main}" Value="True">
+                                                    <Setter TargetName="StarButton" Property="Foreground" Value="{DynamicResource Warning}"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="Personnage" Binding="{Binding Name}" Width="*" MinWidth="180">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">

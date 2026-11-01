@@ -6,7 +6,7 @@ using DofusBankManager.Multi;
 namespace DofusBankManager;
 
 /// <summary>
-/// Superposition en jeu (onglet Fenêtres) : personnage, Économe, groupes de la map et ordre de jeu, dans une petite
+/// Superposition en jeu (onglet Switcheur) : personnage, Économe, groupes de la map et ordre de jeu, dans une petite
 /// fenêtre au-dessus du jeu. Elle n'apparaît que quand une fenêtre de jeu est au premier plan et laisse passer les clics :
 /// c'est une fenêtre de l'application, rien n'est injecté ni dessiné dans le client (README, règles 2 et 3).
 /// </summary>
@@ -112,7 +112,7 @@ public partial class MainWindow
             $"Niv. {g.TotalLevel} · XP {g.XpText}" + (g.DropValue is { } v ? $" · drops ≈ {v:N0} k" : "")
             + (g.HasArchi ? $" · ARCHI : {g.Archi}" : ""), g.HasArchi)).ToList();
         var fg = GameWindows.Foreground;
-        var rotation = Rotation().Select((w, i) => new OverlayTurn(i + 1, w.Name.Length > 0 ? w.Name : "(sélection du personnage)",
+        var rotation = Rotation().Select((w, i) => new OverlayTurn(i + 1, (IsMain(w) ? "★ " : "") + (w.Name.Length > 0 ? w.Name : "(sélection du personnage)"),
             CharacterOf(w)?.Initiative?.ToString("N0") ?? "?", w.Handle == fg)).ToList();
 
         EnsureOverlay().Show(new OverlayModel(
