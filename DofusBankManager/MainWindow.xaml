@@ -1332,6 +1332,20 @@
                                             </Style>
                                         </DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
+                                    <!-- Drops officiels (fichier de langue « monsterdrops ») : détail au survol -->
+                                    <DataGridTextColumn Header="Drops (taux du jeu)" Binding="{Binding OfficialDrops}" Width="220">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                <Setter Property="ToolTip" Value="{Binding OfficialDetail}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding OfficialDetail}" Value="">
+                                                        <Setter Property="ToolTip" Value="{x:Null}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
                                     <DataGridTextColumn Header="Drops estimés" Binding="{Binding DropValue, StringFormat={}{0:N0}}" Width="104"/>
                                     <DataGridTextColumn Header="Archi" Binding="{Binding Archi}" Width="130">
                                         <DataGridTextColumn.ElementStyle>

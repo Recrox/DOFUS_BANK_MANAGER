@@ -9,7 +9,15 @@ using DofusBankManager.Hunt;
 namespace DofusBankManager;
 
 public sealed record HuntGroupRow(long Id, string Monsters, int Count, int TotalLevel, string Stars, double? Xp,
-    string XpText, string Drops, double? DropValue, bool HasArchi, string Archi, long? ArchiPrice);
+    string XpText, string Drops, string OfficialDrops, string OfficialDetail, double? DropValue, bool HasArchi, string Archi,
+    long? ArchiPrice);
+
+/// <summary>
+/// Drop officiel d'un objet sur un groupe : meilleure chance parmi ses monstres (Count = nombre de monstres qui le donnent),
+/// valeur espérée par combat (0 si bloqué par la prospection du groupe ou soumis à une condition).
+/// </summary>
+sealed record GroupDrop(int ItemId, double Chance, int Count, double Value, bool Priced, int MinProspection, bool Blocked,
+    bool Conditional);
 
 public sealed record ArchiRow(string Time, DateTime TimeSort, string Name, int Level, string Map, long? Price, string PriceSeen);
 
@@ -21,7 +29,8 @@ public sealed record ProjectionRow(string Span, double Xp, double Kamas, double 
 /// <summary>
 /// Onglet Chasse : monstres de la map avec l'XP et les drops estimés d'après les combats déjà faits, alerte sonore et
 /// historique des archi-monstres aperçus, et rentabilité de la session projetée sur 30, 60 et 120 minutes.
-/// Les données du jeu n'ont ni XP ni drops des monstres : tout est appris des fins de combat du personnage.
+/// Les drops officiels viennent du fichier de langue « monsterdrops » ; l'XP (absente des données du jeu) vient de
+/// monstres.json s'il est fourni, sinon elle est apprise des fins de combat du personnage, comme les drops observés.
 /// </summary>
 public partial class MainWindow
 {
@@ -156,6 +165,51 @@ public partial class MainWindow
         MonsterLearning Get(int id) => result.TryGetValue(id, out var l) ? l : result[id] = new MonsterLearning();
     }
 
+    /// <summary>
+    /// Drops officiels d'un groupe (fichier de langue « monsterdrops »). Pour chaque monstre, taux de son grade, puis
+    /// chance = min(100, taux × prospection du groupe / 100 × (1 + étoiles / 100)). Un paquet de cartes a une chance fixe
+    /// de 1 sur sr. Objet bloqué si la prospection du groupe est sous son minimum. Valeur par combat =
+    /// min(maximum par combat, Σ chances / 100) × prix unitaire (HDV, sinon prix marchand TTG de la période, sinon le dernier).
+    /// </summary>
+    List<GroupDrop> OfficialDrops(MapGroup g, int prospection)
+    {
+        var all = new List<(MonsterDrop Drop, double Chance)>();
+        foreach (var m in g.Monsters)
+        {
+            if (!_data!.MonsterDrops.TryGetValue(m.Id, out var drops)) continue;
+            int grade = _data.GetMonster(m.Id).GradeOf(m.Level);
+            foreach (var d in drops)
+            {
+                double rate = d.Rates.Count == 0 ? 0 : d.Rates[Math.Min(grade, d.Rates.Count - 1)];
+                all.Add((d, d.CardOdds > 0 ? 100.0 / d.CardOdds
+                    : Math.Min(100, rate * prospection / 100.0 * (1 + g.Bonus / 100.0))));
+            }
+        }
+        return all.GroupBy(x => x.Drop.ItemId).Select(x =>
+        {
+            var d = x.First().Drop;
+            bool blocked = d.CardOdds == 0 && prospection < d.MinProspection;
+            double expected = x.Sum(y => y.Chance) / 100;
+            if (d.MaxPerFight > 0) expected = Math.Min(d.MaxPerFight, expected);
+            var price = DropPrice(d.ItemId);
+            return new GroupDrop(d.ItemId, x.Max(y => y.Chance), x.Count(), blocked || d.Conditional ? 0 : expected * (price ?? 0),
+                price != null, d.MinProspection, blocked, d.Conditional);
+        }).OrderByDescending(d => d.Value).ThenByDescending(d => d.Chance).ToList();
+    }
+
+    /// <summary>Prix unitaire d'un drop : HDV, sinon prix marchand (cartes TTG) de la période, sinon le dernier relevé.</summary>
+    double? DropPrice(int itemId)
+    {
+        if (UnitPrice(itemId) is { } hdv) return hdv;
+        var m = _merchants?.Prices.GetValueOrDefault(itemId);
+        return m?.Recent(TtgDays).Select(s => (double?)s.Price).Min() ?? m?.Last?.Price;
+    }
+
+    string DropLabel(GroupDrop d) =>
+        $"{_data!.GetItem(d.ItemId).Name} {Percent(d.Chance)}" + (d.Count > 1 ? $" ×{d.Count}" : "");
+
+    static string Percent(double chance) => chance >= 1 ? $"{chance:0.#} %" : $"{chance:0.###} %";
+
     /// <summary>Position et zone d'une map (identifiant reçu du jeu).</summary>
     string MapText(string mapId) => int.TryParse(mapId, out var id) ? _data!.MapLabel(id) : $"map {mapId}";
 
@@ -175,6 +229,8 @@ public partial class MainWindow
         if (HuntCharacterBox.Items.Count > 0 && HuntCharacterBox.Items[0] is ComboBoxItem auto)
             auto.Content = me != null && _hunt.Pinned == null ? $"Auto · {CharacterLabel(me)}" : "Fenêtre active (auto)";
         int wisdom = me?.Wisdom ?? 0;
+        // Prospection inconnue (pas encore envoyée par le jeu) : celle de base d'un personnage
+        int prospection = me?.GroupProspection ?? 100;
         HuntLevel.Text = me?.Level?.ToString() ?? "?";
         HuntGroupLevel.Text = me?.GroupLevel?.ToString() ?? "?";
         HuntGroupLevel.ToolTip = me?.Party.Count > 0
@@ -215,10 +271,26 @@ public partial class MainWindow
             var dropText = drops.Count > 0 ? string.Join(", ", drops.Take(4).Select(d => $"{_data.GetItem(d.Item).Name} {d.Chance:0%}"))
                 : g.Monsters.Any(m => learned.ContainsKey(m.Id)) ? "aucun drop vu" : "à apprendre";
 
+            // Drops officiels (fichier de langue) : remplacent l'estimation apprise quand le groupe en a
+            var official = OfficialDrops(g, prospection);
+            var open = official.Where(d => !d.Blocked && !d.Conditional).ToList();
+            var officialText = official.Count == 0 ? "" : open.Count == 0 ? "aucun (prospection trop basse)"
+                : string.Join(", ", open.Take(4).Select(DropLabel));
+            var detail = official.Count == 0 ? "" : string.Join("\n", new[]
+            {
+                string.Join("\n", open.Select(d => DropLabel(d) + (d.Priced ? $" → {d.Value:N0} k" : " → sans prix"))),
+                string.Join("\n", official.Where(d => d.Blocked && !d.Conditional)
+                    .Select(d => $"🔒 {DropLabel(d)} (prospection {d.MinProspection} requise)")),
+                official.Any(d => d.Conditional)
+                    ? "Sous condition (non comptés) : " + string.Join(", ", official.Where(d => d.Conditional).Select(d => _data.GetItem(d.ItemId).Name))
+                    : "",
+            }.Where(s => s.Length > 0));
+            double? dropValue = official.Count > 0 ? open.Sum(d => d.Value) : drops.Count > 0 ? drops.Sum(d => d.Value) : null;
+
             var archi = g.Monsters.FirstOrDefault(m => _data.GetMonster(m.Id).IsArchi);
             long? archiPrice = archi != null ? _pda?.Prices.GetValueOrDefault(PdaTracker.Key(archi.Id, PdaTracker.Archi))?.Price : null;
             return new HuntGroupRow(g.SpriteId, names, g.Monsters.Count, g.Monsters.Sum(m => m.Level),
-                g.Bonus > 0 ? $"+{g.Bonus} %" : "", xp, xpText, dropText, drops.Count > 0 ? drops.Sum(d => d.Value) : null,
+                g.Bonus > 0 ? $"+{g.Bonus} %" : "", xp, xpText, dropText, officialText, detail, dropValue,
                 archi != null, archi != null ? _data.GetMonster(archi.Id).Name : "", archiPrice);
         }).ToList();
         SetRows(HuntGroupGrid, groups);

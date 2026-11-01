@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Net.Http;
 using System.Xml.Linq;
 
@@ -20,9 +20,26 @@ public sealed record Ingredient(int ItemId, int Quantity);
 /// </summary>
 public sealed record MonsterInfo(int Id, string Name, int RaceId, string Race, int LevelMin, int LevelMax, int Grade3Level)
 {
+    /// <summary>Niveaux des grades g1…g5, dans l'ordre.</summary>
+    public IReadOnlyList<int> Grades { get; init; } = [];
+
     /// <summary>Race « Archi-monstres » du fichier de langue (MR[78]).</summary>
     public bool IsArchi => RaceId == 78;
+
+    /// <summary>Grade (0 à 4) d'un monstre de ce niveau : celui du même niveau, sinon le plus proche.</summary>
+    public int GradeOf(int level) =>
+        Grades.Count == 0 ? 0 : Grades.Select((l, i) => (l, i)).MinBy(x => Math.Abs(x.l - level)).i;
 }
+
+/// <summary>
+/// Drop officiel d'un monstre (fichier de langue « monsterdrops », MD[monstre][objet]) :
+/// Rates = taux en % par grade (t), MinProspection = prospection de groupe minimale (pp),
+/// MaxPerFight = exemplaires au plus par combat (dc, 0 = sans limite), CardOdds = 1 chance sur CardOdds pour un paquet
+/// de cartes (sr, 0 sinon), Conditional = drop soumis à une condition (critère attendu dans sc : trophée, jeton,
+/// événement…) ou objet de quête.
+/// </summary>
+public sealed record MonsterDrop(int ItemId, IReadOnlyList<double> Rates, int MinProspection, int MaxPerFight,
+    int CardOdds, bool Conditional);
 
 /// <summary>Map (fichier de langue « maps ») : coordonnées et zone, ex. « [4,-18] Amakna (Village d'Amakna) ».</summary>
 /// <summary>Icône d'un sort, comme dans le jeu : fond (icons/back), symbole (icons/up) et leurs couleurs (champ « i » du fichier de langue).</summary>
@@ -46,9 +63,11 @@ public sealed class GameData
 {
     const string DefaultDataUrl = "https://dofusretro.cdn.ankama.com/static-data/612/";
     const string Lang = "fr";
-    static readonly string[] Files = ["items", "crafts", "skills", "jobs", "effects", "monsters", "maps", "spells"];
+    static readonly string[] Files = ["items", "crafts", "skills", "jobs", "effects", "monsters", "maps", "spells", "monsterdrops"];
     /// <summary>Fichiers dont l'absence n'empêche pas de démarrer (ajoutés après coup, peut-être pas encore en cache).</summary>
-    static readonly string[] Optional = ["monsters", "maps", "spells"];
+    static readonly string[] Optional = ["monsters", "maps", "spells", "monsterdrops"];
+    /// <summary>Type d'objet « Objet de Quête » : ne tombe que pendant la quête.</summary>
+    const int QuestItemType = 24;
 
     public static string AppDir { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DofusBankManager");
@@ -58,6 +77,8 @@ public sealed class GameData
     public List<string> JobNames { get; } = new();
     public Dictionary<int, EffectInfo> Effects { get; } = new();
     public Dictionary<int, MonsterInfo> Monsters { get; } = new();
+    /// <summary>Drops officiels par monstre (fichier de langue « monsterdrops »).</summary>
+    public Dictionary<int, List<MonsterDrop>> MonsterDrops { get; } = new();
     public Dictionary<int, MapInfo> Maps { get; } = new();
     /// <summary>Noms des sorts (fichier de langue « spells »).</summary>
     public Dictionary<int, string> Spells { get; } = new();
@@ -188,9 +209,30 @@ public sealed class GameData
                     data.Monsters[mid] = new MonsterInfo(mid, Avm1.ToStr(o.GetValueOrDefault("n")),
                         race, races.GetValueOrDefault(race, "?"),
                         levels.DefaultIfEmpty().Min(), levels.DefaultIfEmpty().Max(),
-                        levels.Count >= 3 ? levels[2] : levels.DefaultIfEmpty().Max());
+                        levels.Count >= 3 ? levels[2] : levels.DefaultIfEmpty().Max()) { Grades = levels };
                 }
         }
+
+        // Drops : MD[monstre][objet] = { t: [taux par grade], pp, dc?, sr?, sc?: [{ criterion, expected }], c }.
+        // Le champ c ne marque pas les drops conditionnels (tous ceux de la Larve Bleue l'ont) : on lit sc.
+        if (paths.TryGetValue("monsterdrops", out var dropsPath)
+            && Avm1.Run(await File.ReadAllBytesAsync(dropsPath)).GetValueOrDefault("MD") is AsObject MD)
+            foreach (var (mk, mv) in MD)
+            {
+                if (mv is not AsObject byItem || !int.TryParse(mk, out var mid)) continue;
+                var list = new List<MonsterDrop>();
+                foreach (var (ik, iv) in byItem)
+                {
+                    if (iv is not AsObject o || !int.TryParse(ik, out var iid) || o.GetValueOrDefault("t") is not List<object?> t) continue;
+                    bool condition = o.GetValueOrDefault("sc") is List<object?> sc
+                        && sc.OfType<AsObject>().Any(x => x.GetValueOrDefault("expected") is true);
+                    int odds = (int)Avm1.ToNum(o.GetValueOrDefault("sr"));
+                    list.Add(new MonsterDrop(iid, t.Select(Avm1.ToNum).ToList(), (int)Avm1.ToNum(o.GetValueOrDefault("pp")),
+                        (int)Avm1.ToNum(o.GetValueOrDefault("dc")), odds,
+                        odds == 0 && (condition || data.GetItem(iid).TypeId == QuestItemType)));
+                }
+                data.MonsterDrops[mid] = list;
+            }
 
         // Maps : MA.m[id] = { x, y, sa: sous-zone }, MA.sa[id] = { n: nom, a: zone }, MA.a[id] = { n: nom }
         if (paths.TryGetValue("maps", out var mapsPath)
