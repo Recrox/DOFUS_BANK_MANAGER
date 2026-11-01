@@ -9,7 +9,7 @@ using DofusBankManager.Hunt;
 namespace DofusBankManager;
 
 public sealed record HuntGroupRow(long Id, string Monsters, int Count, int TotalLevel, string Stars, double? Xp,
-    string Drops, double? DropValue, bool HasArchi, string Archi, long? ArchiPrice);
+    string XpText, string Drops, double? DropValue, bool HasArchi, string Archi, long? ArchiPrice);
 
 public sealed record ArchiRow(string Time, DateTime TimeSort, string Name, int Level, string Map, long? Price, string PriceSeen);
 
@@ -114,6 +114,7 @@ public partial class MainWindow
     sealed class MonsterLearning
     {
         public double XpSum;
+        public double LevelSum;
         public int Instances;
         public int Fights;
         public Dictionary<int, (int Fights, int Quantity)> Items = new();
@@ -136,6 +137,7 @@ public partial class MainWindow
             {
                 var l = Get(m.Id);
                 l.XpSum += baseXp * Math.Max(1, m.Level) / levels;
+                l.LevelSum += Math.Max(1, m.Level);
                 l.Instances++;
             }
             foreach (var id in f.Monsters.Select(m => m.Id).Distinct())
@@ -185,15 +187,20 @@ public partial class MainWindow
             ? $"Somme des {me.Party.Count} membres du groupe : " + string.Join(" + ", me.Party.Values.Select(p => p.Prospection))
             : "Pas de groupe : prospection du personnage seul";
 
-        // Groupes de la map
+        // Groupes de la map. XP par niveau de monstre, en moyenne sur les monstres déjà combattus (repli pour les autres)
+        var known = learned.Values.Where(l => l.Xp != null && l.LevelSum > 0).ToList();
+        double? xpPerLevel = known.Count > 0 ? known.Sum(l => l.XpSum) / known.Sum(l => l.LevelSum) : null;
         var groups = (me?.Groups.Values ?? Enumerable.Empty<MapGroup>()).OrderByDescending(g => g.Monsters.Sum(m => m.Level)).Select(g =>
         {
             var names = string.Join(", ", g.Monsters.GroupBy(m => m.Id).Select(x =>
                 (x.Count() > 1 ? $"{x.Count()}× " : "") + _data.GetMonster(x.Key).Name
                 + " (" + string.Join("/", x.Select(m => m.Level)) + ")"));
             double factor = (1 + wisdom / 100.0) * (1 + g.Bonus / 100.0);
-            double? xp = g.Monsters.All(m => learned.GetValueOrDefault(m.Id)?.Xp != null)
-                ? g.Monsters.Sum(m => learned[m.Id].Xp!.Value) * factor : null;
+            // Monstre jamais combattu : XP extrapolée de l'XP par niveau des monstres déjà appris (« ≈ »)
+            bool allKnown = g.Monsters.All(m => learned.GetValueOrDefault(m.Id)?.Xp != null);
+            double? xp = allKnown || xpPerLevel != null
+                ? g.Monsters.Sum(m => learned.GetValueOrDefault(m.Id)?.Xp ?? xpPerLevel!.Value * Math.Max(1, m.Level)) * factor : null;
+            string xpText = xp is { } x ? (allKnown ? "" : "≈ ") + x.ToString("N0") : "à apprendre";
 
             // Drops : pour chaque objet, la plus forte fréquence parmi les monstres du groupe
             var drops = g.Monsters.Select(m => m.Id).Distinct()
@@ -203,12 +210,13 @@ public partial class MainWindow
                 .GroupBy(d => d.Item).Select(x => x.MaxBy(d => d.Chance))
                 .Select(d => (d.Item, d.Chance, d.Qty, Value: d.Chance * d.Qty * (UnitPrice(d.Item) ?? 0)))
                 .OrderByDescending(d => d.Value).ThenByDescending(d => d.Chance).ToList();
-            var dropText = string.Join(", ", drops.Take(4).Select(d => $"{_data.GetItem(d.Item).Name} {d.Chance:0%}"));
+            var dropText = drops.Count > 0 ? string.Join(", ", drops.Take(4).Select(d => $"{_data.GetItem(d.Item).Name} {d.Chance:0%}"))
+                : g.Monsters.Any(m => learned.ContainsKey(m.Id)) ? "aucun drop vu" : "à apprendre";
 
             var archi = g.Monsters.FirstOrDefault(m => _data.GetMonster(m.Id).IsArchi);
             long? archiPrice = archi != null ? _pda?.Prices.GetValueOrDefault(PdaTracker.Key(archi.Id, PdaTracker.Archi))?.Price : null;
             return new HuntGroupRow(g.SpriteId, names, g.Monsters.Count, g.Monsters.Sum(m => m.Level),
-                g.Bonus > 0 ? $"+{g.Bonus} %" : "", xp, dropText, drops.Count > 0 ? drops.Sum(d => d.Value) : null,
+                g.Bonus > 0 ? $"+{g.Bonus} %" : "", xp, xpText, dropText, drops.Count > 0 ? drops.Sum(d => d.Value) : null,
                 archi != null, archi != null ? _data.GetMonster(archi.Id).Name : "", archiPrice);
         }).ToList();
         SetRows(HuntGroupGrid, groups);

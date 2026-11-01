@@ -337,13 +337,19 @@ public sealed class HuntTracker
     public void OnFightEnd(string body)
     {
         var parts = body.Split('|');
-        if (parts.Length < 4 || !long.TryParse(parts[0], out var durationMs)) return;
+        // Durée, parfois suivie d'autres champs ("durée;bonus")
+        if (parts.Length < 4 || !long.TryParse(parts[0].Split(';')[0], out var durationMs))
+        {
+            Log?.Invoke($"Fin de combat non reconnue ({Shape(parts)}).");
+            return;
+        }
         var c = Current;
         c.InFight = false; // l'Économe garde les sorts du combat affichés jusqu'au suivant
         var monsters = new List<GroupMonster>();
         var players = new List<string[]>();
 
-        foreach (var line in parts.Skip(3))
+        // Lignes des combattants : les segments à champs séparés par ';' (initiateur et type de combat n'en ont pas)
+        foreach (var line in parts.Skip(1))
         {
             var f = line.Split(';');
             if (f.Length < 4 || !long.TryParse(f[1], out var id)) continue;
@@ -363,7 +369,9 @@ public sealed class HuntTracker
         var line0 = players.FirstOrDefault(f => f[1] == me.ToString());
         if (line0 == null)
         {
-            if (players.Count > 1)
+            if (players.Count == 0)
+                Log?.Invoke($"Fin de combat : ligne du personnage non reconnue ({Shape(parts)}), combat non compté.");
+            else if (players.Count > 1)
                 Log?.Invoke("Fin de combat : personnage inconnu sur cette fenêtre, combat non compté. "
                     + "Lancez l'application avant de choisir votre personnage (ou revenez à la sélection des personnages).");
             return;
@@ -515,6 +523,9 @@ public sealed class HuntTracker
         Shown?.UsedSpells.Clear();
         Changed?.Invoke();
     }
+
+    /// <summary>Forme d'un message de fin de combat pour le journal, sans son contenu (il contient des noms de joueurs) : nombre de champs par segment.</summary>
+    static string Shape(string[] parts) => $"{parts.Length} segments, champs : " + string.Join(" ", parts.Select(p => p.Split(';').Length));
 
     static List<FightDrop> ParseDrops(string s)
     {

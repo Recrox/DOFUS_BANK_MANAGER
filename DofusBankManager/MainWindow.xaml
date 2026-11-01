@@ -1324,7 +1324,7 @@
                                         </DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
                                     <DataGridTextColumn Header="Étoiles" Binding="{Binding Stars}" Width="70"/>
-                                    <DataGridTextColumn Header="XP estimée" Binding="{Binding Xp, StringFormat={}{0:N0}}" Width="100"/>
+                                    <DataGridTextColumn Header="XP estimée" Binding="{Binding XpText}" SortMemberPath="Xp" Width="100"/>
                                     <DataGridTextColumn Header="Drops observés" Binding="{Binding Drops}" Width="200">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock">
