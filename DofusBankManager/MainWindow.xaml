@@ -206,7 +206,7 @@
 
         <TabControl Grid.Row="2">
             <!-- Contenu de la banque -->
-            <TabItem Header="Banque">
+            <TabItem Header="Banque" Tag="{StaticResource TabBanque}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -282,7 +282,7 @@
             </TabItem>
 
             <!-- Recettes -->
-            <TabItem x:Name="RecipesTab" Header="Recettes">
+            <TabItem x:Name="RecipesTab" Header="Recettes" Tag="{StaticResource TabRecettes}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -467,10 +467,29 @@
                                     CornerRadius="10" Padding="12,8"
                                     ToolTip="Prix HDV de chaque ingrédient (meilleur prix unitaire relevé), ou coût de sa sous-recette s'il n'a pas de prix.">
                                 <StackPanel>
-                                    <TextBlock Text="Coût de la recette" Foreground="{DynamicResource TextMuted}" FontWeight="SemiBold"/>
+                                    <DockPanel>
+                                        <!-- Nombre de fabrications : tous les montants ci-dessous sont multipliés -->
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <TextBlock Text="Crafts" Foreground="{DynamicResource TextMuted}" FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBox x:Name="DetailCraftCount" Width="54" Text="1" Padding="2,0"
+                                                     HorizontalContentAlignment="Center" TextChanged="DetailCraftCount_Changed"/>
+                                            <Button x:Name="DetailCraftMax" Content="Max" Padding="8,2" Margin="4,0,0,0"
+                                                    Click="DetailCraftMax_Click"
+                                                    ToolTip="Autant de fabrications que vos ressources le permettent"/>
+                                        </StackPanel>
+                                        <TextBlock x:Name="DetailCostTitle" Text="Coût de la recette" Foreground="{DynamicResource TextMuted}"
+                                                   FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    </DockPanel>
                                     <TextBlock x:Name="DetailCost" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource AccentSolid}"/>
                                     <TextBlock x:Name="DetailCostNote" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"
                                                Style="{StaticResource HideWhenEmpty}"/>
+                                    <TextBlock x:Name="DetailProfit" FontWeight="Bold" TextWrapping="Wrap" Margin="0,4,0,0"
+                                               Style="{StaticResource HideWhenEmpty}"
+                                               ToolTip="Vente HDV moins le coût de tous les ingrédients, au prix HDV."/>
+                                    <TextBlock x:Name="DetailProfitOwned" FontWeight="Bold" TextWrapping="Wrap"
+                                               Style="{StaticResource HideWhenEmpty}"
+                                               ToolTip="Vente HDV moins seulement ce qu'il faut acheter : les ressources que vous possédez déjà comptent pour 0."/>
                                 </StackPanel>
                             </Border>
 
@@ -504,7 +523,7 @@
             </TabItem>
 
             <!-- Brisage : objets dont les caractéristiques atteignent des seuils (génération de runes) -->
-            <TabItem Header="Brisage">
+            <TabItem Header="Brisage" Tag="{StaticResource TabBrisage}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -629,7 +648,7 @@
             </TabItem>
 
             <!-- Hôtel de vente : prix relevés pendant les consultations en jeu -->
-            <TabItem Header="HDV">
+            <TabItem Header="HDV" Tag="{StaticResource TabHdv}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -766,7 +785,7 @@
             </TabItem>
 
             <!-- TTG : cartes et paquets de cartes, prix chez les marchands et à l'HDV, collection -->
-            <TabItem Header="TTG">
+            <TabItem Header="TTG" Tag="{StaticResource TabTtg}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -882,7 +901,7 @@
             </TabItem>
 
             <!-- PDA : pierres d'âme pleines (monstres, donjons, archi-monstres), prix par monstre et pierres possédées -->
-            <TabItem Header="PDA">
+            <TabItem Header="PDA" Tag="{StaticResource TabPda}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -1008,7 +1027,7 @@
             </TabItem>
 
             <!-- Forgemagie : reliquat et historique des runes -->
-            <TabItem Header="FM">
+            <TabItem Header="FM" Tag="{StaticResource TabFm}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -1130,7 +1149,7 @@
             </TabItem>
 
             <!-- Journal -->
-            <TabItem Header="Journal">
+            <TabItem Header="Journal" Tag="{StaticResource TabJournal}">
                 <TextBox x:Name="LogBox" IsReadOnly="True" FontFamily="Consolas" FontSize="12" Padding="10"
                          VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"
                          HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap"/>

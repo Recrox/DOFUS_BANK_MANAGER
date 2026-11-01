@@ -753,8 +753,6 @@ public partial class MainWindow : Window
     void RecipeGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (RecipeGrid.SelectedItem is not RecipeRow row || _data == null) return;
-        var owned = OwnedQuantities();
-        var recipesByResult = _rows.ToLookup(r => r.Recipe.ResultId);
 
         DetailTitle.Text = row.Name;
         DetailIcon.Source = ItemIcons.Get(row.Recipe.ResultId);
@@ -765,30 +763,74 @@ public partial class MainWindow : Window
         DetailStats.ItemsSource = stats;
         DetailStatsPanel.Visibility = stats.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
+        // Nouvelle recette : autant de fabrications que les ressources le permettent (au moins 1)
+        if (_detailRecipe != row.Recipe)
+        {
+            _detailRecipe = row.Recipe;
+            DetailCraftCount.Text = Math.Max(1, row.Craftable).ToString();
+        }
+        DetailCraftMax.IsEnabled = row.Craftable > 0;
+        ShowDetailCost();
+    }
+
+    Recipe? _detailRecipe;
+
+    void DetailCraftCount_Changed(object sender, TextChangedEventArgs e) => ShowDetailCost();
+
+    void DetailCraftMax_Click(object sender, RoutedEventArgs e)
+    {
+        if (RecipeGrid.SelectedItem is RecipeRow { Craftable: > 0 } row) DetailCraftCount.Text = row.Craftable.ToString();
+    }
+
+    /// <summary>
+    /// Coût et rentabilité de N fabrications : prix HDV de chaque ingrédient (ou coût de sa sous-recette s'il n'a pas de prix),
+    /// bénéfice en comptant tous les ingrédients, et bénéfice en ne comptant que ce qu'il faut acheter.
+    /// </summary>
+    void ShowDetailCost()
+    {
+        if (!_ready || RecipeGrid?.SelectedItem is not RecipeRow row || _data == null) return;
+        int n = int.TryParse(DetailCraftCount.Text, out var c) && c > 0 ? Math.Min(c, 100_000) : 1;
+        var owned = OwnedQuantities();
+
+        // Ingrédients (et sous-recettes) pour les N fabrications
+        var recipesByResult = _rows.ToLookup(r => r.Recipe.ResultId);
         DetailIngredients.ItemsSource = row.Recipe.Ingredients
-            .Select(i => BuildIngredient(i.ItemId, i.Quantity, owned, recipesByResult, 1))
+            .Select(i => BuildIngredient(i.ItemId, i.Quantity * n, owned, recipesByResult, 1))
             .ToList();
 
-        // Coût de la recette : prix HDV de chaque ingrédient, ou coût de sa sous-recette s'il n'a pas de prix
         double total = 0, toBuy = 0;
         int unpriced = 0;
         foreach (var i in row.Recipe.Ingredients)
         {
             if (UnitCost(i.ItemId) is not { } unit) { unpriced++; continue; }
-            total += unit * i.Quantity;
-            toBuy += unit * Math.Max(0, i.Quantity - owned.GetValueOrDefault(i.ItemId));
+            total += unit * i.Quantity * n;
+            toBuy += unit * Math.Max(0, i.Quantity * n - owned.GetValueOrDefault(i.ItemId));
         }
         int count = row.Recipe.Ingredients.Count;
         DetailCostPanel.Visibility = Visibility.Visible;
+        DetailCostTitle.Text = n > 1 ? $"Coût de {n} fabrications" : "Coût de la recette";
         DetailCost.Text = unpriced == count ? "Coût inconnu" : Kamas(total) + (unpriced > 0 ? " (partiel)" : "");
+
         var lines = new List<string>();
         if (unpriced > 0)
             lines.Add($"{unpriced} ingrédient(s) sur {count} sans prix relevé : consultez-les à l'HDV.");
         if (unpriced < count) lines.Add($"À acheter (manquants) : {Kamas(toBuy)}");
-        if (UnitPrice(row.Recipe.ResultId) is { } sell)
-            lines.Add($"Prix HDV de l'objet : {Kamas(sell)}"
-                + (unpriced == 0 ? $" · marge : {(sell - total >= 0 ? "+" : "")}{Kamas(sell - total)}" : ""));
+        var sell = UnitPrice(row.Recipe.ResultId) * n;
+        lines.Add(sell is { } s ? $"Vente HDV{(n > 1 ? $" ({n} × {Kamas(s / n)})" : "")} : {Kamas(s)}" : "Prix HDV de l'objet inconnu");
         DetailCostNote.Text = string.Join("\n", lines);
+
+        // Bénéfices : seulement si tout est chiffré (sinon le résultat serait faux)
+        bool known = sell != null && unpriced == 0;
+        SetProfit(DetailProfit, "Bénéfice", known ? sell - total : null, total);
+        SetProfit(DetailProfitOwned, "Hors ressources possédées", known && toBuy < total ? sell - toBuy : null, toBuy);
+    }
+
+    void SetProfit(TextBlock target, string label, double? profit, double cost)
+    {
+        target.Text = profit is { } p
+            ? $"{label} : {(p >= 0 ? "+" : "")}{Kamas(p)}" + (cost > 0 ? $" ({p / cost:+0%;-0%;0%})" : "")
+            : "";
+        target.SetResourceReference(TextBlock.ForegroundProperty, profit >= 0 ? "Ok" : "Missing");
     }
 
     /// <summary>Profondeur maximale des sous-recettes affichées et des coûts de fabrication (garde-fou contre les cycles).</summary>
