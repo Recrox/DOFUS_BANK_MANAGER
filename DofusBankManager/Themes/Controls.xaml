@@ -289,8 +289,8 @@
                         <Border x:Name="Bd" Background="{DynamicResource Surface2}" BorderBrush="{DynamicResource Border}"
                                 BorderThickness="1" CornerRadius="10"/>
                         <Border x:Name="Shine" Background="White" Opacity="0" CornerRadius="10"/>
-                        <ContentPresenter ContentSource="Header" Margin="18,8" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        <ContentPresenter x:Name="HeaderText" ContentSource="Header" Margin="18,8" HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -299,7 +299,8 @@
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}"/>
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBorder}"/>
-                            <Setter Property="Foreground" Value="{DynamicResource AccentText}"/>
+                            <!-- Sur l'en-tête seulement : le Foreground du TabItem se propagerait au contenu de l'onglet -->
+                            <Setter TargetName="HeaderText" Property="TextElement.Foreground" Value="{DynamicResource AccentText}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

@@ -70,6 +70,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        KeepColumnWidths(this);
         _isAdmin = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
 
         _sniffer.Log += m => Ui(() => AddLog(m));
@@ -927,6 +928,21 @@ public partial class MainWindow : Window
         grid.ItemsSource = rows;
         foreach (var s in sorts) grid.Items.SortDescriptions.Add(s);
         for (int i = 0; i < directions.Count; i++) grid.Columns[i].SortDirection = directions[i];
+    }
+
+    /// <summary>
+    /// Quand la place manque, une grille avec une colonne étoile rétrécit aussi les colonnes à largeur fixe jusqu'à
+    /// leur MinWidth (20 px), ce qui coupe les prix. Leur largeur devient donc un minimum : la grille défile à la place.
+    /// </summary>
+    static void KeepColumnWidths(DependencyObject root)
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+        {
+            if (child is DataGrid grid)
+                foreach (var c in grid.Columns.Where(c => c.Width.IsAbsolute && c.MinWidth < c.Width.Value))
+                    c.MinWidth = c.Width.Value;
+            KeepColumnWidths(child);
+        }
     }
 
     void AddLog(string msg)
