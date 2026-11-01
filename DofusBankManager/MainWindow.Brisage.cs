@@ -5,10 +5,15 @@ using DofusBankManager.Data;
 namespace DofusBankManager;
 
 public sealed record BrisageRow(int ItemId, string Name, int Level, string Type, string Stats, string Where,
-    int Owned, int? Craftable, string Missing, double? CraftCost, double? HdvPrice, int Score)
+    int Owned, int? Craftable, string Missing, double? CraftCost, double? HdvPrice, int Score,
+    List<RuneYield> Runes, string RunesText, double? RunesValue, double? Reference, double? Gain)
 {
     public int Index { get; init; }
+    public int GainSign => Gain is { } g ? Math.Sign(g) : 0;
 }
+
+/// <summary>Rune du détail : quantité estimée, prix unitaire HDV et total.</summary>
+public sealed record RuneRow(int ItemId, string Name, string Quantity, double? UnitPrice, double? Total);
 
 /// <summary>
 /// Onglet Brisage : cherche les objets dont les caractéristiques atteignent des seuils (ex. 104 en vitalité
@@ -23,6 +28,7 @@ public partial class MainWindow
 
     void InitBrisage(GameData data)
     {
+        _brisageSettings = RuneBreaking.LoadSettings();
         foreach (var stat in ItemStats.All.Where(s => s.Main))
         {
             var box = new CheckBox { Content = stat.Name, VerticalAlignment = VerticalAlignment.Center, MinWidth = 104 };
@@ -64,6 +70,63 @@ public partial class MainWindow
 
     void BrisageFilters_Changed(object sender, RoutedEventArgs e) => ApplyBrisageFilters();
 
+    BrisageSettings _brisageSettings = new();
+
+    /// <summary>« 2 », « 0,4 » : quantité estimée de runes, entière pour les grosses, décimale pour les simples.</summary>
+    static string RuneQuantity(double q) => q == Math.Floor(q) ? $"{q:0}" : $"≈{q:0.#}";
+
+    void BrisageGrid_SelectionChanged(object sender, SelectionChangedEventArgs e) => ShowBrisageDetail();
+
+    /// <summary>Runes de l'objet sélectionné : quantité, prix unitaire HDV, total, puis comparaison.</summary>
+    void ShowBrisageDetail()
+    {
+        if (_data == null || BrisageGrid.SelectedItem is not BrisageRow row)
+        {
+            BrisageDetailTitle.Text = "Sélectionnez un objet";
+            BrisageRunes.ItemsSource = null;
+            BrisageDetailTotal.Text = "";
+            return;
+        }
+        BrisageDetailIcon.Source = ItemIcons.Get(row.ItemId);
+        BrisageDetailTitle.Text = row.Name;
+        BrisageDetailSub.Text = $"Niveau {row.Level} · {row.Type}\n{row.Stats}";
+        BrisageRunes.ItemsSource = row.Runes.Select(r =>
+        {
+            var unit = UnitPrice(r.ItemId);
+            return new RuneRow(r.ItemId, r.Name, RuneQuantity(r.Quantity), unit, unit * r.Quantity);
+        }).ToList();
+
+        int unpriced = row.Runes.Count(r => UnitPrice(r.ItemId) == null);
+        var lines = new List<string>();
+        if (row.Runes.Count == 0) lines.Add("Aucune caractéristique ne donne de rune.");
+        else
+        {
+            lines.Add($"Valeur des runes : {Kamas(row.RunesValue)}"
+                + (unpriced > 0 ? $" ({unpriced} rune(s) sans prix HDV, comptée(s) 0)" : ""));
+            var label = BrisageSource.SelectedIndex == 0 ? "Prix HDV de l'objet" : row.CraftCost != null ? "Coût de fabrication" : "Prix HDV de l'objet";
+            lines.Add(row.Reference is { } reference ? $"{label} : {Kamas(reference)}" : $"{label} : inconnu");
+            if (row.Gain is { } gain)
+                lines.Add($"Gain du brisage : {(gain >= 0 ? "+" : "")}{Kamas(gain)}");
+        }
+        BrisageDetailTotal.Text = string.Join("\n", lines);
+        BrisageDetailTotal.SetResourceReference(TextBlock.ForegroundProperty, row.Gain is < 0 ? "Missing" : row.Gain is > 0 ? "Ok" : "Text");
+    }
+
+    void BrisageSettings_Click(object sender, RoutedEventArgs e)
+    {
+        try { UpdateChecker.OpenInBrowser(RuneBreaking.SettingsPath); }
+        catch (Exception ex) { AddLog("Ouverture impossible : " + ex.Message); }
+    }
+
+    /// <summary>Relit brisage.json après une modification à la main.</summary>
+    void BrisageReload_Click(object sender, RoutedEventArgs e)
+    {
+        _brisageSettings = RuneBreaking.LoadSettings();
+        AddLog($"Brisage : coefficient {_brisageSettings.Coefficient} %, niveau {(_brisageSettings.AvecNiveau ? "compté" : "ignoré")}.");
+        ApplyBrisageFilters();
+        ShowBrisageDetail();
+    }
+
     void BrisageReset_Click(object sender, RoutedEventArgs e)
     {
         if (!_ready) return;
@@ -88,6 +151,7 @@ public partial class MainWindow
 
         var owned = OwnedQuantities();
         var recipeRows = _rows.ToLookup(r => r.Recipe.ResultId);
+        bool mine = BrisageSource.SelectedIndex == 0;
 
         // Source : objets possédés (stats réelles), ou modèles d'objets (stats maximales)
         IEnumerable<(ItemInfo Item, IReadOnlyDictionary<int, int> Stats, string Where, int Count)> candidates;
@@ -126,18 +190,32 @@ public partial class MainWindow
                     .OrderBy(kv => active.Any(f => f.Characteristic == kv.Key) ? 0 : 1)
                     .ThenBy(kv => ItemStats.Order(kv.Key));
                 var recipe = recipeRows[x.Item.Id].FirstOrDefault();
+                double? craftCost = CraftCost(x.Item.Id), hdvPrice = UnitPrice(x.Item.Id);
+
+                // Runes estimées et leur valeur à l'HDV (runes sans prix comptées 0)
+                var runes = RuneBreaking.Estimate(_data, x.Item.Level, x.Stats, _brisageSettings);
+                var priced = runes.Where(r => UnitPrice(r.ItemId) != null).ToList();
+                double? value = priced.Count > 0 ? priced.Sum(r => r.Quantity * UnitPrice(r.ItemId)!.Value) : null;
+                // À comparer : son prix de vente pour un objet possédé, son coût de fabrication sinon
+                double? reference = mine ? hdvPrice : craftCost ?? hdvPrice;
+
                 return new BrisageRow(x.Item.Id, x.Item.Name, x.Item.Level, x.Item.TypeName,
                     string.Join(" · ", ordered.Select(kv => ItemStats.Format(kv.Key, kv.Value))),
                     x.Where, x.Count, recipe?.Craftable, recipe?.MissingText ?? "",
-                    CraftCost(x.Item.Id), UnitPrice(x.Item.Id),
-                    active.Sum(f => x.Stats.GetValueOrDefault(f.Characteristic)));
+                    craftCost, hdvPrice,
+                    active.Sum(f => x.Stats.GetValueOrDefault(f.Characteristic)),
+                    runes, string.Join(", ", runes.Select(r => $"{RuneQuantity(r.Quantity)} {r.Name[5..]}")),
+                    value, reference, value - reference);
             })
             .OrderByDescending(r => r.Score).ThenByDescending(r => r.Level).ThenBy(r => r.Name)
             .Take(2000) // « Tous les objets du jeu » sans filtre : la liste reste fluide
             .Select((r, i) => r with { Index = i + 1 })
             .ToList();
 
+        var selected = (BrisageGrid.SelectedItem as BrisageRow)?.ItemId;
         SetRows(BrisageGrid, list);
+        BrisageGrid.SelectedItem = list.FirstOrDefault(r => r.ItemId == selected);
+        BrisageGainColumn.Header = mine ? "Gain vs vente" : "Gain vs craft";
         BrisageCount.Text = list.Count == 2000 ? "2000 objets affichés (affinez les filtres)" : $"{list.Count} objet(s)";
         BrisageEmpty.Visibility = list.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         var bank = _tracker.State.Bank.Values;

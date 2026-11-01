@@ -530,8 +530,12 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="0.3*" MinWidth="280" MaxWidth="360"/>
+                    </Grid.ColumnDefinitions>
 
-                    <WrapPanel Margin="0,0,0,10">
+                    <WrapPanel Grid.ColumnSpan="2" Margin="0,0,0,10">
                         <TextBlock Text="Recherche" Style="{StaticResource Label}" Margin="0,0,8,0"/>
                         <TextBox x:Name="BrisageSearch" Width="200" TextChanged="BrisageFilters_Changed"/>
                         <TextBlock Text="Parmi" Style="{StaticResource Label}"/>
@@ -554,11 +558,11 @@
                     </WrapPanel>
 
                     <!-- Une case par caractéristique, avec son seuil minimum et maximum (cases remplies dans le code) -->
-                    <WrapPanel x:Name="BrisageStats" Grid.Row="1" Margin="0,0,0,2"
+                    <WrapPanel x:Name="BrisageStats" Grid.Row="1" Grid.ColumnSpan="2" Margin="0,0,0,2"
                                ToolTip="Cochez une caractéristique (ou saisissez un seuil) : seuls les objets qui l'ont entre le minimum et le maximum restent. Ex. Vitalité, minimum 104."/>
 
                     <Grid Grid.Row="2">
-                        <DataGrid x:Name="BrisageGrid">
+                        <DataGrid x:Name="BrisageGrid" SelectionChanged="BrisageGrid_SelectionChanged">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="50" ElementStyle="{StaticResource IndexText}"/>
                                 <DataGridTemplateColumn Width="44" CanUserSort="False">
@@ -639,11 +643,100 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
+                                <!-- Runes estimées (voir brisage.json) et leur valeur à l'HDV -->
+                                <DataGridTextColumn Header="Runes ≈" Binding="{Binding RunesText}" Width="180">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            <Setter Property="ToolTip" Value="{Binding RunesText}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Valeur runes" Binding="{Binding RunesValue, StringFormat={}{0:N0}}" Width="104">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn x:Name="BrisageGainColumn" Header="Gain vs vente" Binding="{Binding Gain, StringFormat={}{0:+#,0;-#,0;0}}" Width="110">
+                                    <DataGridTextColumn.HeaderStyle>
+                                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                            <Setter Property="ToolTip" Value="Valeur des runes moins le prix HDV de l'objet (mes objets) ou son coût de fabrication (recettes)."/>
+                                        </Style>
+                                    </DataGridTextColumn.HeaderStyle>
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource Ok}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding GainSign}" Value="-1">
+                                                    <Setter Property="Foreground" Value="{DynamicResource Missing}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                         <TextBlock x:Name="BrisageEmpty" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="40"
                                    Foreground="{DynamicResource TextMuted}" FontSize="14" Visibility="Collapsed"/>
                     </Grid>
+
+                    <!-- Runes de l'objet sélectionné : quantité, prix /u, total, et comparaison -->
+                    <Border Grid.Row="2" Grid.Column="1" Margin="10,0,0,0" Background="{DynamicResource Surface2}"
+                            BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="12" Padding="14">
+                        <DockPanel>
+                            <DockPanel DockPanel.Dock="Top" LastChildFill="True">
+                                <Image x:Name="BrisageDetailIcon" Width="40" Height="40" Margin="0,0,10,0" DockPanel.Dock="Left"/>
+                                <TextBlock x:Name="BrisageDetailTitle" Text="Sélectionnez un objet" FontSize="16" FontWeight="Bold"
+                                           Foreground="{DynamicResource AccentSolid}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <TextBlock x:Name="BrisageDetailSub" DockPanel.Dock="Top" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"
+                                       Margin="0,6,0,0"/>
+                            <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+                                <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource AccentBorder}" BorderThickness="1"
+                                        CornerRadius="10" Padding="12,8">
+                                    <TextBlock x:Name="BrisageDetailTotal" FontWeight="Bold" TextWrapping="Wrap"/>
+                                </Border>
+                                <TextBlock FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,8,0,6"
+                                           Text="Estimation : aucune formule officielle pour Retro. Réglez le coefficient dans brisage.json en comparant avec un vrai brisage, puis « Recharger »."/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Réglages" Click="BrisageSettings_Click" Padding="10,3"/>
+                                    <Button Content="Recharger" Click="BrisageReload_Click" Padding="10,3" Margin="6,0,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+                                <ItemsControl x:Name="BrisageRunes">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                                                    CornerRadius="10" Padding="6,5,10,5" Margin="0,0,0,5">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Image Source="{Binding ItemId, Converter={StaticResource Icon}}" Width="30" Height="30" Margin="0,0,8,0"/>
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                        <TextBlock FontWeight="SemiBold" TextTrimming="CharacterEllipsis">
+                                                            <Run Text="{Binding Quantity, Mode=OneWay}"/><Run Text=" × "/><Run Text="{Binding Name, Mode=OneWay}"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontSize="11" Foreground="{DynamicResource TextMuted}"
+                                                                   Text="{Binding UnitPrice, StringFormat={}{0:N0} k / u, TargetNullValue=pas de prix HDV}"/>
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Column="2" VerticalAlignment="Center" FontWeight="Bold" Margin="8,0,0,0"
+                                                               Foreground="{DynamicResource AccentSolid}"
+                                                               Text="{Binding Total, StringFormat={}{0:N0} k, TargetNullValue=—}"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
                 </Grid>
             </TabItem>
 

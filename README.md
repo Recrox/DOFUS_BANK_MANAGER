@@ -142,7 +142,7 @@ Même passif, cet outil est un logiciel tiers. Les conditions d'utilisation d'An
 - **Données du jeu** ([Data/GameData.cs](DofusBankManager/Data/GameData.cs)) : les fichiers `items`, `crafts`, `skills`, `jobs`, `effects`, `monsters` et `maps` (coordonnées et zones) sont décodés par un mini-interpréteur AS2 ([Data/Avm1.cs](DofusBankManager/Data/Avm1.cs)).
 - **Forgemagie** ([Fm/FmTracker.cs](DofusBankManager/Fm/FmTracker.cs)) : voir ci-dessous.
 
-Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées, `settings.json` (thème), `fm.json` (historique FM), `fm_poids.json` (poids des stats), `hdv.json` (prix relevés), `pda.json` (prix des pierres d'âme par monstre), `marchands.json` (prix des cartes TTG chez les marchands), `chasse.json` (archi-monstres aperçus et combats) et `packets.log`.
+Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées, `settings.json` (thème), `fm.json` (historique FM), `fm_poids.json` (poids des stats), `hdv.json` (prix relevés), `pda.json` (prix des pierres d'âme par monstre), `marchands.json` (prix des cartes TTG chez les marchands), `chasse.json` (archi-monstres aperçus et combats), `brisage.json` (coefficient de l'estimation des runes) et `packets.log`.
 
 ### Onglet HDV (hôtel de vente)
 
@@ -176,7 +176,11 @@ Cet onglet trouve les objets à briser pour générer des runes. Cochez une ou p
 - vos objets (banque et inventaire), avec leurs caractéristiques **réelles** ;
 - les objets fabricables avec vos ressources, toutes les recettes ou tous les objets du jeu, avec leurs caractéristiques **maximales**.
 
-Chaque ligne indique aussi le nombre d'exemplaires possédés, si l'objet est faisable, les ingrédients manquants, le coût de fabrication et le prix HDV. Le brisage reste à faire à la main, en jeu (règle 3).
+Chaque ligne indique aussi le nombre d'exemplaires possédés, si l'objet est faisable, les ingrédients manquants, le coût de fabrication et le prix HDV.
+
+**Runes estimées** : chaque objet affiche les runes qu'il devrait donner, leur valeur au prix unitaire HDV et le **gain** du brisage (valeur des runes moins le prix HDV de l'objet pour vos objets, moins son coût de fabrication pour les recettes). Le panneau de droite détaille chaque rune : quantité, prix par unité, total.
+
+Aucune formule officielle n'existe pour Retro : c'est une **estimation**. Pour chaque caractéristique, poids de runes = jet × poids par point × niveau de l'objet × coefficient / 10 000, réparti de la plus grosse rune (Ra) à la plus petite (quantité décimale pour les runes simples). Le coefficient par défaut (31 %) donne environ 1 Ra Vi pour 104 de vitalité sur un objet niveau 100. Comparez avec un vrai brisage, puis ajustez `Coefficient` (et `AvecNiveau`) avec le bouton **Réglages**, et cliquez sur **Recharger**. Le brisage reste à faire à la main, en jeu (règle 3).
 
 ### Onglet TTG (cartes)
 

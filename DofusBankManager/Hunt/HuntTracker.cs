@@ -66,7 +66,7 @@ public sealed class HuntCharacter(string stream, int number)
     /// <summary>Connexion qui a donné quelque chose d'utile (un personnage, des stats ou une map).</summary>
     public bool HasData => Name.Length > 0 || Wisdom != null || Prospection != null || MapId.Length > 0;
 
-    public string Label => Name.Length > 0 ? Name : $"Connexion {number}";
+    public string Label => Name.Length > 0 ? Name : $"Connexion {Number}";
 
     /// <summary>Prospection du groupe (somme des membres), sinon celle du personnage.</summary>
     public int? GroupProspection => Party.Count > 0 ? Party.Values.Sum(p => p.Prospection) : Prospection;
