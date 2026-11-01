@@ -65,6 +65,21 @@ public partial class MainWindow
                     p.Category, p.Price, p.Average, p.Offers, Ago(p.SeenAt) + (p.Shared ? " · groupe" : ""), p.SeenAt,
                     ownedByMonster.GetValueOrDefault(p.MonsterId), "");
             }).ToList();
+
+            // Comme l'HDV : « Tous les monstres du jeu » ajoute ceux sans prix relevé (hors PNJ, invocations de classe, tutoriel)
+            if (PdaShowAll.IsChecked == true)
+            {
+                var priced = _pda.Prices.Values.Select(p => p.MonsterId).ToHashSet();
+                var stoneIcons = new[] { PdaTracker.Monstre, PdaTracker.Archi }.ToDictionary(c => c, _pda.StoneOf);
+                rows.AddRange(_data.Monsters.Values
+                    .Where(m => !priced.Contains(m.Id) && m.Name.Length > 0 && m.RaceId is not (19 or 29 or 96))
+                    .Select(m =>
+                    {
+                        var c = m.IsArchi ? PdaTracker.Archi : PdaTracker.Monstre;
+                        return new PdaRow(PdaTracker.Key(m.Id, c), m.Id, stoneIcons[c], m.Name, LevelText(m), m.LevelMax, m.Race,
+                            c, null, null, null, "", DateTime.MinValue, ownedByMonster.GetValueOrDefault(m.Id), "");
+                    }));
+            }
         }
         else
         {
@@ -100,7 +115,9 @@ public partial class MainWindow
               + $"({values.Count(v => v != null)}/{stones.Count} avec un prix)";
         PdaEmpty.Visibility = list.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         PdaEmpty.Text = PdaSource.SelectedIndex == 0
-            ? "Aucun prix relevé : à l'HDV des pierres d'âme, consultez un monstre, un boss ou un archi-monstre."
+            ? (_pda.Prices.Count > 0 || PdaShowAll.IsChecked == true ? "Aucun monstre ne correspond à ces critères."
+                : "Aucun prix relevé : à l'HDV des pierres d'âme, consultez un monstre, un boss ou un archi-monstre. "
+                  + "Cochez « Tous les monstres du jeu » pour voir tous les monstres.")
             : "Aucune pierre d'âme pleine dans votre banque ou votre inventaire (ouvrez votre banque en jeu pour la relever).";
     }
 

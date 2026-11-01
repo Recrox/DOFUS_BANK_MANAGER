@@ -714,15 +714,18 @@
                             <ComboBoxItem Content="Tout"/>
                             <ComboBoxItem Content="Possédées"/>
                             <ComboBoxItem Content="Manquantes"/>
-                            <ComboBoxItem Content="Avec un prix"/>
                         </ComboBox>
+                        <CheckBox x:Name="TtgShowAll" Content="Toutes les cartes du jeu" VerticalAlignment="Center" Margin="14,0,0,0"
+                                  Checked="TtgFilters_Changed" Unchecked="TtgFilters_Changed"
+                                  ToolTip="Affiche aussi les cartes et paquets dont le prix n'a pas encore été relevé"/>
                         <TextBlock x:Name="TtgCount" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource TextMuted}"/>
                         <TextBlock x:Name="TtgCollection" VerticalAlignment="Center" Margin="14,0,0,0" FontWeight="Bold"
                                    Foreground="{DynamicResource AccentSolid}"
                                    ToolTip="Cartes différentes présentes dans votre banque ou votre inventaire"/>
                     </WrapPanel>
 
-                    <DataGrid x:Name="TtgGrid" Grid.Row="1" SelectionChanged="TtgGrid_SelectionChanged">
+                    <Grid Grid.Row="1">
+                    <DataGrid x:Name="TtgGrid" SelectionChanged="TtgGrid_SelectionChanged">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="No." Binding="{Binding Number, StringFormat={}{0:000}}" Width="54" ElementStyle="{StaticResource IndexText}"/>
                             <DataGridTemplateColumn Width="44" CanUserSort="False">
@@ -775,6 +778,9 @@
                             <DataGridTextColumn Header="HDV" Binding="{Binding HdvPrice, StringFormat={}{0:N0}}" Width="90"/>
                         </DataGrid.Columns>
                     </DataGrid>
+                    <TextBlock x:Name="TtgEmpty" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="40"
+                               Foreground="{DynamicResource TextMuted}" FontSize="14" Visibility="Collapsed"/>
+                    </Grid>
 
                     <!-- Détail de la carte : prix et leur évolution -->
                     <Border Grid.Row="1" Grid.Column="1" Margin="10,0,0,0" Background="{DynamicResource Surface2}"
@@ -830,6 +836,9 @@
                             <ComboBoxItem Content="Donjon"/>
                             <ComboBoxItem Content="Archi-monstre"/>
                         </ComboBox>
+                        <CheckBox x:Name="PdaShowAll" Content="Tous les monstres du jeu" VerticalAlignment="Center" Margin="14,0,0,0"
+                                  Checked="PdaFilters_Changed" Unchecked="PdaFilters_Changed"
+                                  ToolTip="Affiche aussi les monstres dont le prix n'a pas encore été relevé (vue « Prix relevés à l'HDV »)"/>
                         <TextBlock x:Name="PdaCount" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource TextMuted}"/>
                         <TextBlock x:Name="PdaValue" VerticalAlignment="Center" Margin="14,0,0,0" FontWeight="Bold"
                                    Foreground="{DynamicResource AccentSolid}"

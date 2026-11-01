@@ -60,11 +60,13 @@ public partial class MainWindow
         }).ToList();
 
         IEnumerable<TtgRow> q = all;
+        // Comme l'HDV : seulement les cartes avec un prix, sauf « Toutes les cartes du jeu »
+        bool showAll = TtgShowAll.IsChecked == true;
+        if (!showAll) q = q.Where(r => r.MerchantPrice != null || r.HdvPrice != null);
         q = TtgShow.SelectedIndex switch
         {
             1 => q.Where(r => r.Owned > 0),
             2 => q.Where(r => r.Owned == 0),
-            3 => q.Where(r => r.MerchantPrice != null || r.HdvPrice != null),
             _ => q,
         };
         if (search.Length > 0) q = q.Where(r => Contains(r.Name, search) || Contains(r.Rarity, search));
@@ -80,6 +82,11 @@ public partial class MainWindow
         TtgCount.Text = $"{list.Count} objet(s)";
         TtgCollection.Text = cards.Count == 0 ? ""
             : $"Collection : {cards.Count(r => r.Owned > 0)} / {cards.Count} cartes · {_merchants.Prices.Count} prix marchand(s)";
+        TtgEmpty.Visibility = list.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        TtgEmpty.Text = showAll || all.Any(r => r.MerchantPrice != null || r.HdvPrice != null)
+            ? "Aucune carte ne correspond à ces critères."
+            : "Aucun prix relevé pour l'instant. Ouvrez la boutique d'un marchand qui vend des cartes, ou consultez-les à l'HDV. "
+              + "Cochez « Toutes les cartes du jeu » pour voir toute la collection.";
     }
 
     void TtgGrid_SelectionChanged(object sender, SelectionChangedEventArgs e) => ShowTtgDetail();

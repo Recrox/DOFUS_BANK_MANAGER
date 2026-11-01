@@ -166,7 +166,7 @@ Chaque ligne indique aussi le nombre d'exemplaires possédés, si l'objet est fa
 
 ### Onglet TTG (cartes)
 
-L'onglet liste les cartes (commune, rare, épique, unique) et les paquets de cartes, dans l'ordre du classeur (No.). Il indique combien vous en possédez (banque et inventaire) et l'avancement de votre collection.
+L'onglet liste les cartes (commune, rare, épique, unique) et les paquets de cartes, dans l'ordre du classeur (No.). Il indique combien vous en possédez (banque et inventaire) et l'avancement de votre collection. Comme dans l'onglet HDV, seules les cartes avec un prix relevé s'affichent ; cochez « Toutes les cartes du jeu » pour voir toute la collection.
 
 Les **prix marchands** se relèvent quand vous ouvrez la boutique d'un joueur en mode marchand : l'application lit la liste des objets en vente (`ECK4` puis `EL…`) et retient, pour chaque carte, le prix le plus bas de cette boutique. Le marchand n'est pas enregistré. Comme pour l'HDV, rien n'est demandé au serveur : seules les boutiques que vous consultez donnent un prix. Si le partage entre amis est activé (onglet HDV), ces prix sont partagés avec le groupe, sans le marchand ; les relevés venus du groupe sont marqués « groupe ».
 
@@ -178,7 +178,7 @@ L'HDV des pierres d'âme ne liste pas les offres par objet mais **par monstre** 
 
 Une même liste mélange les catégories : celle d'un Bulbuisson contient des pierres de monstre, mais aussi des pierres d'archi-monstre où il accompagne l'archi (Bambouské le Camouflé). Les prix sont donc tenus **par monstre et par catégorie** (Monstre, Donjon, Archi-monstre), et une pierre d'archi-monstre ne compte que pour l'archi-monstre lui-même.
 
-- **Prix relevés à l'HDV** : un monstre par ligne, avec sa race, son niveau et la catégorie de pierre (Monstre, Donjon, Archi-monstre).
+- **Prix relevés à l'HDV** : un monstre par ligne, avec sa race, son niveau et la catégorie de pierre (Monstre, Donjon, Archi-monstre). « Tous les monstres du jeu » ajoute ceux dont le prix n'a pas encore été relevé.
 - **Mes pierres** : vos pierres pleines (banque et inventaire) avec leur contenu. La valeur estimée d'une pierre est le prix relevé le plus haut parmi ses monstres.
 
 Le panneau de détail montre l'évolution du prix du monstre sélectionné. Les noms des monstres viennent du fichier de langue `monsters`.

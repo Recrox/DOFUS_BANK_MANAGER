@@ -89,7 +89,7 @@ public sealed class PdaTracker
     public static string CategoryName(int code) => code switch { 1 => Donjon, 2 => Archi, _ => Monstre };
 
     /// <summary>Un modèle de pierre de la catégorie, pour l'icône d'un prix reçu du groupe.</summary>
-    int StoneOf(string category) =>
+    public int StoneOf(string category) =>
         _data.Items.Values.FirstOrDefault(i => StoneTypes.Contains(i.TypeId) && Category(i.Id) == category)?.Id ?? 0;
 
     public bool IsStone(int tpl) => StoneTypes.Contains(_data.GetItem(tpl).TypeId);
