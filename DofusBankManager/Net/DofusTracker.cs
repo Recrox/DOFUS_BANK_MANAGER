@@ -44,6 +44,7 @@ public sealed record OwnedItem(int TemplateId, int Quantity, string Effects = ""
 ///   GE…                           fin de combat : seule la ligne du personnage (XP, kamas, drops) et les monstres sont lus
 ///   PM+…|PM~…|PM-id / PV          membres du groupe : seuls le niveau et la prospection sont lus
 ///   SL… / GJK / GA;300;…          sorts du personnage, entrée en combat, sorts lancés (partie Économe)
+///   GTS{id}|…                     début du tour d'un combattant (multi-compte : affiche le personnage qui joue)
 /// </summary>
 public sealed class DofusTracker
 {
@@ -110,6 +111,8 @@ public sealed class DofusTracker
     public event Action<string>? SpellList;
     /// <summary>Entrée en combat (message GJK).</summary>
     public event Action? FightJoined;
+    /// <summary>Début du tour d'un combattant (message GTS{id}|durée).</summary>
+    public event Action<long>? TurnStarted;
     /// <summary>Action de combat (message GA sans le préfixe) : "id;type;acteur;paramètres".</summary>
     public event Action<string>? GameAction;
 
@@ -178,6 +181,7 @@ public sealed class DofusTracker
         // Économe : sorts du personnage, entrée en combat, sorts lancés
         else if (msg.StartsWith("SL") && msg.Length > 2 && char.IsDigit(msg[2])) SpellList?.Invoke(msg[2..]);
         else if (msg.StartsWith("GJK")) FightJoined?.Invoke();
+        else if (msg.StartsWith("GTS") && long.TryParse(msg[3..].Split('|')[0], out var fighter)) TurnStarted?.Invoke(fighter);
         else if (msg.StartsWith("GA") && msg.Contains(';')) GameAction?.Invoke(msg[2..]);
     }
 

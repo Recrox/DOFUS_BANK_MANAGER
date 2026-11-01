@@ -133,11 +133,16 @@ public partial class MainWindow
         TtgDetailSub.Text = string.Join("\n", lines);
 
         // Offres vues sur la période, de la moins chère à la plus chère, avec le marchand et sa position
-        var offers = m?.Recent(days).OrderBy(s => s.Price).ThenByDescending(s => s.Time).Select(s => new TtgOfferRow(
+        // Offres de la période (moins chères d'abord), ou tout l'historique (plus récents d'abord)
+        bool all = TtgOffersMode.SelectedIndex == 1;
+        IEnumerable<Ttg.MerchantSnapshot> snapshots = m == null ? []
+            : all ? m.History.OrderByDescending(s => s.Time)
+            : m.Recent(days).OrderBy(s => s.Price).ThenByDescending(s => s.Time);
+        var offers = snapshots.Select(s => new TtgOfferRow(
             Kamas(s.Price), s.Quantity,
             OfferMerchant(s), OfferWhere(s),
-            Ago(s.Time))).ToList() ?? [];
-        TtgOffersTitle.Text = $"Offres vues ces {days} jours ({offers.Count})";
+            all ? s.Time.ToString("dd/MM HH:mm") : Ago(s.Time))).ToList();
+        TtgOffersTitle.Text = all ? $"Historique ({offers.Count} relevé(s))" : $"Offres vues ces {days} jours ({offers.Count})";
         TtgOffers.ItemsSource = offers;
 
         TtgMerchantChart.Points = m?.History.Select(sn => (sn.Time, (double)sn.Price)).ToList() ?? [];

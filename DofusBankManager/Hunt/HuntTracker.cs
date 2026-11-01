@@ -456,6 +456,20 @@ public sealed class HuntTracker
         Changed?.Invoke();
     }
 
+    /// <summary>
+    /// Début de tour : si c'est le personnage de cette fenêtre qui joue, il devient le personnage affiché
+    /// (multi-compte : l'onglet Combat suit le personnage dont c'est le tour, même s'il était choisi à la main).
+    /// </summary>
+    public void OnTurnStarted(long fighter)
+    {
+        var c = Current;
+        if (c.Id == 0 || c.Id != fighter) return;
+        c.InFight = true;
+        c.LastMove = DateTime.Now;
+        if (Pinned != null) Pinned = c.Stream;
+        Changed?.Invoke();
+    }
+
     public void ResetEconome()
     {
         Shown?.UsedSpells.Clear();

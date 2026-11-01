@@ -43,6 +43,7 @@ public partial class MainWindow
         _tracker.PartyChanged += s => Safe(() => _hunt.OnParty(s));
         _tracker.SpellList += s => Safe(() => _hunt.OnSpellList(s));
         _tracker.FightJoined += _hunt.OnFightJoined;
+        _tracker.TurnStarted += _hunt.OnTurnStarted;
         _tracker.GameAction += s => Safe(() => _hunt.OnGameAction(s));
         HuntSound.IsChecked = _hunt.SoundAlert;
     }
@@ -162,7 +163,9 @@ public partial class MainWindow
         _hunt.Prune();
         var learned = Learn();
         var labels = _hunt.Characters.Select(CharacterLabel).Order().ToList();
-        if (!HuntCharacterBox.Items.OfType<ComboBoxItem>().Skip(1).Select(i => i.Content as string).Order().SequenceEqual(labels))
+        if (!HuntCharacterBox.Items.OfType<ComboBoxItem>().Skip(1).Select(i => i.Content as string).Order().SequenceEqual(labels)
+            // Choix changé par le tracker (début de tour d'un autre personnage) : la liste suit
+            || (HuntCharacterBox.SelectedItem as ComboBoxItem)?.Tag as string != _hunt.Pinned)
             UpdateHuntCharacters();
 
         var me = _hunt.Shown;
@@ -266,7 +269,7 @@ public partial class MainWindow
         var used = me.UsedSpells.ToHashSet();
         var twice = me.UsedSpells.GroupBy(s => s).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
         var spells = _hunt!.SpellsOf(me).Concat(me.UsedSpells).Distinct().ToList();
-        EconomeSpells.ItemsSource = spells.Select(id => new EconomeSpell(
+        EconomeSpells.ItemsSource = spells.Select(id => new EconomeSpell(id,
             _data!.Spells.GetValueOrDefault(id) is { Length: > 0 } n ? n : $"Sort {id}",
             twice.Contains(id) ? "Lancé 2 fois !" : used.Contains(id) ? "Déjà lancé" : "Disponible",
             twice.Contains(id) ? -1 : used.Contains(id) ? 0 : 1)).ToList();
@@ -283,4 +286,8 @@ public partial class MainWindow
 }
 
 /// <summary>Sort de la partie Économe. State : 1 disponible, 0 déjà lancé, -1 lancé plusieurs fois (challenge raté).</summary>
-public sealed record EconomeSpell(string Name, string Status, int State);
+public sealed record EconomeSpell(int Id, string Name, string Status, int State)
+{
+    public System.Windows.Media.ImageSource? Icon => SpellIcons.Get(Id);
+    public string Tip => $"{Name} : {Status}";
+}

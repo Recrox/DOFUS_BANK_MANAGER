@@ -1034,8 +1034,12 @@
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <StackPanel>
                                     <!-- Offres de la période, de la moins chère à la plus chère -->
+                                    <ComboBox x:Name="TtgOffersMode" SelectedIndex="0" Margin="0,12,0,0" SelectionChanged="TtgFilters_Changed">
+                                        <ComboBoxItem Content="Offres de la période (moins chères d'abord)"/>
+                                        <ComboBoxItem Content="Tout l'historique (plus récents d'abord)"/>
+                                    </ComboBox>
                                     <TextBlock x:Name="TtgOffersTitle" Text="Offres vues" Foreground="{DynamicResource TextMuted}" FontWeight="SemiBold"
-                                               Margin="0,12,0,4"/>
+                                               Margin="0,8,0,4"/>
                                     <ItemsControl x:Name="TtgOffers">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
@@ -1262,23 +1266,38 @@
                                             </ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
+                                            <!-- Comme la barre de sorts du jeu : glyphe blanc sur fond coloré, grisé une fois lancé -->
                                             <DataTemplate>
-                                                <Border x:Name="Chip" CornerRadius="8" Padding="8,3" Margin="0,0,5,5" BorderThickness="1"
-                                                        Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Ok}"
-                                                        ToolTip="{Binding Status}">
-                                                    <TextBlock x:Name="ChipText" Text="{Binding Name}" FontWeight="SemiBold"
-                                                               Foreground="{DynamicResource Ok}"/>
+                                                <Border x:Name="Tile" Width="44" Height="44" CornerRadius="8" Margin="0,0,6,6" BorderThickness="2"
+                                                        Background="{DynamicResource AccentBrush}" BorderBrush="{DynamicResource AccentBorder}"
+                                                        ToolTip="{Binding Tip}">
+                                                    <Grid>
+                                                        <Image x:Name="Glyph" Source="{Binding Icon}" Margin="4" Stretch="Uniform"/>
+                                                        <!-- Sans icône (client introuvable) : le nom du sort -->
+                                                        <TextBlock Text="{Binding Name}" FontSize="9" TextWrapping="Wrap" TextAlignment="Center"
+                                                                   VerticalAlignment="Center" Foreground="White" Margin="2">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Icon}" Value="{x:Null}">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Grid>
                                                 </Border>
                                                 <DataTemplate.Triggers>
                                                     <DataTrigger Binding="{Binding State}" Value="0">
-                                                        <Setter TargetName="Chip" Property="BorderBrush" Value="{DynamicResource Border}"/>
-                                                        <Setter TargetName="Chip" Property="Opacity" Value="0.55"/>
-                                                        <Setter TargetName="ChipText" Property="Foreground" Value="{DynamicResource TextMuted}"/>
-                                                        <Setter TargetName="ChipText" Property="TextDecorations" Value="Strikethrough"/>
+                                                        <Setter TargetName="Tile" Property="Background" Value="{DynamicResource TextMuted}"/>
+                                                        <Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource Border}"/>
+                                                        <Setter TargetName="Tile" Property="Opacity" Value="0.4"/>
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding State}" Value="-1">
-                                                        <Setter TargetName="Chip" Property="BorderBrush" Value="{DynamicResource Missing}"/>
-                                                        <Setter TargetName="ChipText" Property="Foreground" Value="{DynamicResource Missing}"/>
+                                                        <Setter TargetName="Tile" Property="Background" Value="{DynamicResource Missing}"/>
+                                                        <Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource Missing}"/>
                                                     </DataTrigger>
                                                 </DataTemplate.Triggers>
                                             </DataTemplate>
