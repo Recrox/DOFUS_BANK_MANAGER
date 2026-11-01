@@ -948,7 +948,7 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Carte" Binding="{Binding Name}" Width="*" MinWidth="180">
+                            <DataGridTextColumn Header="Carte" Binding="{Binding Name}" Width="2*" MinWidth="140">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="FontWeight" Value="SemiBold"/>
@@ -956,8 +956,8 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Header="Rareté" Binding="{Binding Rarity}" Width="120"/>
-                            <DataGridTextColumn Header="Possédées" Binding="{Binding Owned}" Width="84">
+                            <DataGridTextColumn Header="Rareté" Binding="{Binding Rarity}" Width="104"/>
+                            <DataGridTextColumn Header="Poss." Binding="{Binding Owned}" Width="56">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="FontWeight" Value="Bold"/>
@@ -971,7 +971,7 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Header="Marchand" Binding="{Binding MerchantPrice, StringFormat={}{0:N0}}" Width="96">
+                            <DataGridTextColumn Header="Marchand" Binding="{Binding MerchantPrice, StringFormat={}{0:N0}}" Width="92">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="FontWeight" Value="Bold"/>
@@ -979,9 +979,9 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn x:Name="TtgBestColumn" Header="Meilleur 7 j" Binding="{Binding BestPrice, StringFormat={}{0:N0}}" Width="104"/>
+                            <DataGridTextColumn x:Name="TtgBestColumn" Header="Meilleur 7 j" Binding="{Binding BestPrice, StringFormat={}{0:N0}}" Width="100"/>
                             <!-- Où acheter : marchand et position de la meilleure offre de la période -->
-                            <DataGridTextColumn Header="Chez" Binding="{Binding BestMerchant}" Width="130">
+                            <DataGridTextColumn Header="Chez" Binding="{Binding BestMerchant}" Width="*" MinWidth="90">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="FontWeight" Value="SemiBold"/>
@@ -990,7 +990,7 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Header="Position" Binding="{Binding BestWhere}" Width="230">
+                            <DataGridTextColumn Header="Position" Binding="{Binding BestWhere}" Width="1.5*" MinWidth="120">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
@@ -999,7 +999,7 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Header="Vu" Binding="{Binding Seen}" Width="110" SortMemberPath="SeenAt">
+                            <DataGridTextColumn Header="Vu" Binding="{Binding Seen}" Width="90" SortMemberPath="SeenAt">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
@@ -1007,7 +1007,6 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Header="HDV" Binding="{Binding HdvPrice, StringFormat={}{0:N0}}" Width="90"/>
                         </DataGrid.Columns>
                     </DataGrid>
                     <TextBlock x:Name="TtgEmpty" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="40"

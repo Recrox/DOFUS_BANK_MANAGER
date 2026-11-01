@@ -252,9 +252,13 @@ public sealed class HuntTracker
             var ids = f[4].Split(',');
             var levels = f[7].Split(',');
             var monsters = new List<GroupMonster>();
+            // Un boss est affiché sans niveau (-1, ex. Kralamoure Géant dans son antre) : on prend son grade 3
             for (int i = 0; i < ids.Length; i++)
                 if (int.TryParse(ids[i], out var m))
-                    monsters.Add(new GroupMonster(m, i < levels.Length && int.TryParse(levels[i], out var l) ? l : 0));
+                {
+                    int level = i < levels.Length && int.TryParse(levels[i], out var l) ? l : 0;
+                    monsters.Add(new GroupMonster(m, level >= 1 ? level : _data.GetMonster(m).Grade3Level));
+                }
             if (monsters.Count == 0) continue;
 
             bool known = c.Groups.ContainsKey(id);
@@ -283,7 +287,8 @@ public sealed class HuntTracker
 
     /// <summary>
     /// Caractéristiques : "xp|kamas|capital|sorts|alignement|pv|énergie|initiative|prospection|PA|PM|force|vitalité|sagesse|…",
-    /// chaque caractéristique au format "base,objets,dons,bonus".
+    /// chaque caractéristique au format "base,objets,dons,bonus[,additionnel]". Le 5e morceau (colonne « Additionnel » :
+    /// parchemins) est déjà compté dans la base : seuls les 4 premiers sont additionnés.
     /// </summary>
     public void OnStats(string body)
     {
@@ -299,7 +304,7 @@ public sealed class HuntTracker
 
         static int? Total(string stat)
         {
-            var v = stat.Split(',');
+            var v = stat.Split(',').Take(4).ToArray();
             return v.Length >= 2 && v.All(x => int.TryParse(x, out _)) ? v.Sum(int.Parse) : null;
         }
     }
@@ -331,7 +336,8 @@ public sealed class HuntTracker
 
     /// <summary>
     /// Fin de combat : "durée|initiateur|type|ligne|ligne…". Ligne d'un combattant en combat contre des monstres :
-    /// "équipe;id;nom;niveau;mort;xpmin;xp;xpmax;xpgagnée;xpguilde;xpmonture;objets;kamas" (objets "modèle~qté,…").
+    /// "équipe;id;nom;niveau;mort;xpmin;xp;xpmax;?;xpgagnée;xpguilde;xpmonture;objets;kamas" (objets "modèle~qté,…") :
+    /// XP gagnée en 9, objets en 12, kamas en 13.
     /// Seule la ligne du personnage est lue ; pour les monstres (id négatif), le champ « nom » est le modèle du monstre.
     /// </summary>
     public void OnFightEnd(string body)
@@ -358,7 +364,7 @@ public sealed class HuntTracker
                 if (int.TryParse(f[2], out var tpl) && _data.Monsters.ContainsKey(tpl))
                     monsters.Add(new GroupMonster(tpl, int.TryParse(f[3], out var l) ? l : 0));
             }
-            else if (f.Length >= 13 && long.TryParse(f[8], out _)) players.Add(f);
+            else if (f.Length >= 14 && long.TryParse(f[9], out _)) players.Add(f);
         }
 
         // Ligne du personnage : son identifiant (appris à la sélection du personnage). Repli si l'appli a démarré en jeu :
@@ -386,9 +392,9 @@ public sealed class HuntTracker
             Time = DateTime.Now,
             Character = c.Name,
             DurationSeconds = (int)(durationMs / 1000),
-            Xp = long.Parse(line0[8]),
-            Kamas = long.TryParse(line0[12], out var k) ? k : 0,
-            Drops = ParseDrops(line0[11]),
+            Xp = long.Parse(line0[9]),
+            Kamas = long.TryParse(line0[13], out var k) ? k : 0,
+            Drops = ParseDrops(line0[12]),
             Monsters = monsters,
             Wisdom = c.Wisdom ?? 0,
             Prospection = c.Prospection ?? 0,

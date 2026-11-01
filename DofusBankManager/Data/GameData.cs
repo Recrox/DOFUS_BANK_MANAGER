@@ -14,8 +14,11 @@ public sealed record ItemInfo(int Id, string Name, int Level, int TypeId, string
 
 public sealed record Ingredient(int ItemId, int Quantity);
 
-/// <summary>Monstre (fichier de langue « monsters ») : sert à nommer le contenu des pierres d'âme.</summary>
-public sealed record MonsterInfo(int Id, string Name, int RaceId, string Race, int LevelMin, int LevelMax)
+/// <summary>
+/// Monstre (fichier de langue « monsters ») : sert à nommer le contenu des pierres d'âme. Grade3Level : niveau du
+/// grade 3 (le plus haut s'il en a moins), pris pour un boss affiché sur sa map sans niveau (-1).
+/// </summary>
+public sealed record MonsterInfo(int Id, string Name, int RaceId, string Race, int LevelMin, int LevelMax, int Grade3Level)
 {
     /// <summary>Race « Archi-monstres » du fichier de langue (MR[78]).</summary>
     public bool IsArchi => RaceId == 78;
@@ -74,7 +77,7 @@ public sealed class GameData
         Items.TryGetValue(id, out var it) ? it : new ItemInfo(id, $"Objet #{id}", 0, 0, "?", 0);
 
     public MonsterInfo GetMonster(int id) =>
-        Monsters.TryGetValue(id, out var m) ? m : new MonsterInfo(id, $"Monstre #{id}", -1, "?", 0, 0);
+        Monsters.TryGetValue(id, out var m) ? m : new MonsterInfo(id, $"Monstre #{id}", -1, "?", 0, 0, 0);
 
     /// <summary>Position et zone d'une map, ex. « [4,-18] Amakna (Village d'Amakna) » ; l'identifiant si la map est inconnue.</summary>
     public string MapLabel(int id) => Maps.TryGetValue(id, out var m) ? m.Label : $"map {id}";
@@ -176,12 +179,16 @@ public sealed class GameData
                 foreach (var (k, v) in M)
                 {
                     if (v is not AsObject o || !int.TryParse(k, out var mid)) continue;
-                    var levels = o.Where(kv => kv.Key.StartsWith('g') && kv.Value is AsObject)
+                    // Grades g1…g5, dans l'ordre
+                    var levels = o.Where(kv => kv.Key.Length > 1 && kv.Key[0] == 'g' && int.TryParse(kv.Key.AsSpan(1), out _)
+                            && kv.Value is AsObject)
+                        .OrderBy(kv => int.Parse(kv.Key.AsSpan(1)))
                         .Select(kv => (int)Avm1.ToNum(((AsObject)kv.Value!).GetValueOrDefault("l"))).ToList();
                     int race = (int)Avm1.ToNum(o.GetValueOrDefault("b"));
                     data.Monsters[mid] = new MonsterInfo(mid, Avm1.ToStr(o.GetValueOrDefault("n")),
                         race, races.GetValueOrDefault(race, "?"),
-                        levels.DefaultIfEmpty().Min(), levels.DefaultIfEmpty().Max());
+                        levels.DefaultIfEmpty().Min(), levels.DefaultIfEmpty().Max(),
+                        levels.Count >= 3 ? levels[2] : levels.DefaultIfEmpty().Max());
                 }
         }
 
