@@ -263,3 +263,27 @@ svg.chart circle { fill: var(--accent-solid); }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* Brisage : seuils par caractéristique */
+.stat-filters { gap: 6px; }
+.stat-filter { padding: 4px 6px 4px 10px; gap: 6px; }
+.stat-filter.on { border-color: var(--accent-solid); background: var(--selected); }
+.stat-filter input[type="text"] { width: 52px; padding: 3px 6px; text-align: center; }
+.ing.rune { grid-template-columns: 34px 1fr auto; }
+
+/* FM */
+.split.fm { grid-template-columns: 330px minmax(0, 1fr); }
+.huge { font-size: 38px; font-weight: 800; letter-spacing: -.03em; background: var(--accent); -webkit-background-clip: text;
+  background-clip: text; color: transparent; line-height: 1.1; margin: 2px 0 8px; }
+
+/* Journal */
+pre.log { flex: 1; min-height: 0; margin: 0; overflow: auto; padding: 14px; font: 12px/1.55 Consolas, "Cascadia Mono", monospace;
+  color: var(--text); white-space: pre; }
+
+/* Volume de l'alerte archi-monstre */
+label.volume { display: inline-flex; align-items: center; gap: 8px; }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 110px; height: 6px; border-radius: 3px; cursor: pointer;
+  background: linear-gradient(90deg, #8b5cf6, #06b6d4) 0 / var(--p, 70%) 100% no-repeat, var(--input); border: 1px solid var(--line-strong); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent); border: 2px solid #fff; box-shadow: var(--accent-glow); transition: transform .12s; }
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }

@@ -195,6 +195,7 @@ public partial class MainWindow
                         case ComboBox cb: cb.SelectedIndex = value.GetInt32(); break;
                         case TabControl tc: tc.SelectedIndex = value.GetInt32(); break;
                         case ToggleButton tg: tg.IsChecked = value.GetBoolean(); break;
+                        case RangeBase range: range.Value = value.GetDouble(); break;
                     }
                     break;
                 case "click":
@@ -202,6 +203,19 @@ public partial class MainWindow
                     break;
                 case "select":
                     if (el is Selector { ItemsSource: IList rows } grid && index >= 0 && index < rows.Count) grid.SelectedItem = rows[index];
+                    break;
+                case "stat":
+                    // Seuil du Brisage : field = on (case), min ou max
+                    if (_statFilters.ElementAtOrDefault(index) is { } filter)
+                    {
+                        var v = m.GetProperty("value");
+                        switch (m.GetProperty("field").GetString())
+                        {
+                            case "on": filter.Box.IsChecked = v.GetBoolean(); break;
+                            case "min": filter.Min.Text = v.GetString() ?? ""; break;
+                            case "max": filter.Max.Text = v.GetString() ?? ""; break;
+                        }
+                    }
                     break;
                 case "toggle":
                     if (el is Panel panel && panel.Children.OfType<ToggleButton>().ElementAtOrDefault(index) is { } toggle)
@@ -250,8 +264,32 @@ public partial class MainWindow
         {
             w.WriteStartObject();
             if (el is UIElement ui) w.WriteBoolean("v", ui.Visibility == Visibility.Visible);
+            if (el == BrisageStats)
+            {
+                // Seuils du Brisage (contrôles créés dans le code) : caractéristique, cochée, minimum, maximum
+                w.WriteStartArray("items");
+                foreach (var f in _statFilters)
+                {
+                    w.WriteStartObject();
+                    w.WriteString("t", f.Stat.Name);
+                    w.WriteBoolean("on", f.Box.IsChecked == true);
+                    w.WriteString("min", f.Min.Text);
+                    w.WriteString("max", f.Max.Text);
+                    w.WriteEndObject();
+                }
+                w.WriteEndArray();
+                el = null;
+            }
             switch (el)
             {
+                case RangeBase range:
+                    w.WriteNumber("val", range.Value);
+                    w.WriteNumber("min", range.Minimum);
+                    w.WriteNumber("max", range.Maximum);
+                    break;
+                case DataGridColumn column:
+                    w.WriteString("t", column.Header as string);
+                    break;
                 case ComboBox cb:
                     w.WriteStartArray("items");
                     foreach (var item in cb.Items) w.WriteStringValue(item is ContentControl cc ? cc.Content?.ToString() : item?.ToString());

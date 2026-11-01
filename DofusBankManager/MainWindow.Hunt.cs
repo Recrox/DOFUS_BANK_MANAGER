@@ -1,5 +1,6 @@
 using System.IO;
 using System.Media;
+using System.Windows.Controls.Primitives;
 using System.Windows;
 using System.Windows.Controls;
 using DofusBankManager.Data;
@@ -62,6 +63,7 @@ public partial class MainWindow
         _tracker.TurnStarted += _hunt.OnTurnStarted;
         _tracker.GameAction += s => Safe(() => _hunt.OnGameAction(s));
         HuntSound.IsChecked = _hunt.SoundAlert;
+        HuntVolume.Value = _hunt.SoundVolume;
     }
 
     /// <summary>
@@ -80,14 +82,9 @@ public partial class MainWindow
         if (_data != null) HuntStatus.Text = $"⚠ Archi-monstre sur la map : {_data.GetMonster(a.MonsterId).Name} (niveau {a.Level})";
     }
 
-    static void PlayAlert()
+    void PlayAlert()
     {
-        var alarm = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Media", "Alarm01.wav");
-        try
-        {
-            if (File.Exists(alarm)) new SoundPlayer(alarm).Play();
-            else SystemSounds.Exclamation.Play();
-        }
+        try { ArchiSound.Play(_hunt?.SoundVolume ?? 70); }
         catch { SystemSounds.Exclamation.Play(); }
     }
 
@@ -95,6 +92,16 @@ public partial class MainWindow
     {
         if (_hunt != null) _hunt.SoundAlert = HuntSound.IsChecked == true;
     }
+
+    void HuntVolume_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        // Appelé dès le chargement de la fenêtre, avant la création du libellé
+        if (HuntVolumeText != null) HuntVolumeText.Text = $"{HuntVolume.Value:0} %";
+        if (_hunt != null) _hunt.SoundVolume = (int)Math.Round(HuntVolume.Value);
+    }
+
+    /// <summary>Curseur relâché : on fait entendre le nouveau volume.</summary>
+    void HuntVolume_DragCompleted(object sender, DragCompletedEventArgs e) => PlayAlert();
 
     void HuntTestSound_Click(object sender, RoutedEventArgs e) => PlayAlert();
 

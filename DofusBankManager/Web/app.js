@@ -15,16 +15,22 @@ const TABS = [
     'LevelMin', 'LevelMax', 'SlotFilters', 'IncludeInventory', 'InventoryHint', 'RecipeCount', 'IngredientChip', 'IngredientChipText',
     'RecipeGrid', 'DetailTitle', 'DetailSub', 'DetailCostPanel', 'DetailCraftCount', 'DetailCraftMax', 'DetailCostTitle', 'DetailCost',
     'DetailCostNote', 'DetailProfit', 'DetailProfitOwned', 'DetailStatsPanel', 'DetailStats', 'DetailIngredients'] },
-  { key: 'brisage', label: 'Brisage', icon: '⚒' },
+  { key: 'brisage', label: 'Brisage', icon: '⚒', watch: ['BrisageSearch', 'BrisageSource', 'BrisageTypeFilter', 'BrisageLevelMin',
+    'BrisageLevelMax', 'BrisageCount', 'BrisageStats', 'BrisageGrid', 'BrisageGainColumn', 'BrisageEmpty', 'BrisageDetailTitle',
+    'BrisageDetailSub', 'BrisageBreakCount', 'BrisageBreakMax', 'BrisageDetailTotal', 'BrisageRunes'] },
   { key: 'hdv', label: 'HDV', icon: '⚖', watch: ['HdvSearch', 'HdvTypeFilter', 'HdvShowAll', 'HdvCount', 'HdvGrid', 'HdvEmpty',
     'HdvDetailTitle', 'HdvDetailSub', 'HdvChart', 'HdvHistory', 'HdvForget'] },
-  { key: 'ttg', label: 'TTG', icon: '❏' },
-  { key: 'pda', label: 'PDA', icon: '◆' },
+  { key: 'ttg', label: 'TTG', icon: '❏', watch: ['TtgSearch', 'TtgRarity', 'TtgShow', 'TtgShowAll', 'TtgDaysBox', 'TtgCount',
+    'TtgCollection', 'TtgGrid', 'TtgBestColumn', 'TtgEmpty', 'TtgDetailTitle', 'TtgDetailSub', 'TtgOffersMode', 'TtgOffersTitle',
+    'TtgOffers', 'TtgMerchantChart', 'TtgHdvChart'] },
+  { key: 'pda', label: 'PDA', icon: '◆', watch: ['PdaSearch', 'PdaSource', 'PdaCategory', 'PdaShowAll', 'PdaCount', 'PdaValue',
+    'PdaGrid', 'PdaEmpty', 'PdaDetailTitle', 'PdaDetailSub', 'PdaChart'] },
   { key: 'combat', label: 'Combat', icon: '⌖', watch: ['HuntCharacterBox', 'HuntLevel', 'HuntGroupLevel', 'HuntWisdom', 'HuntProspection',
-    'HuntGroupProspection', 'HuntSound', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
+    'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
     'HuntSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid'] },
-  { key: 'fm', label: 'FM', icon: '✧' },
-  { key: 'journal', label: 'Journal', icon: '☰' },
+  { key: 'fm', label: 'FM', icon: '✧', watch: ['FmItemCombo', 'FmItemName', 'FmReliquat', 'FmReliquatInput', 'FmStats',
+    'FmHistoryGrid', 'FmEmpty'] },
+  { key: 'journal', label: 'Journal', icon: '☰', watch: ['LogBox', 'LogPacketsBox'] },
 ];
 post({ type: 'watch', names: COMMON.concat(...TABS.map(t => t.watch || [])) });
 
@@ -45,7 +51,7 @@ function select(name, extra = '') {
   return `<select data-set="${name}" ${extra}>${s.items.map((o, i) => `<option value="${i}" ${i === s.i ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
 }
 const input = (name, placeholder = '', w = '') =>
-  `<input type="search" data-set="${name}" value="${esc(T(name))}" placeholder="${esc(placeholder)}" ${w ? `style="width:${w}"` : ''}>`;
+  `<input type="search" data-set="${name}" data-fk="${name}" value="${esc(T(name))}" placeholder="${esc(placeholder)}" ${w ? `style="width:${w}"` : ''}>`;
 const check = (name, label) => `<label class="check"><input type="checkbox" data-set="${name}" ${S[name]?.on ? 'checked' : ''}>${esc(label)}</label>`;
 const btn = (name, label, cls = '') => shown(name) || !S[name]
   ? `<button class="${cls}" data-act="click" data-name="${name}" ${S[name]?.e === false ? 'disabled' : ''}>${esc(S[name]?.t || label)}</button>` : '';
@@ -126,7 +132,7 @@ function banner() {
 
 function tabs(active) {
   return `<nav class="tabs glass">${TABS.map((t, i) => `<button class="tab ${i === active ? 'on' : ''}" data-act="tab" data-i="${i}">
-    <span>${t.icon}</span>${esc(t.label)}${t.watch ? '' : '<span class="soon">classique</span>'}</button>`).join('')}</nav>`;
+    <span>${t.icon}</span>${esc(t.label)}</button>`).join('')}</nav>`;
 }
 
 const views = {
@@ -210,6 +216,9 @@ const views = {
         <div class="stat"><span>Prospection</span><b>${esc(T('HuntProspection'))}</b></div>
         <div class="stat"><span>PP groupe</span><b class="acc">${esc(T('HuntGroupProspection'))}</b></div>
         ${check('HuntSound', 'Alerte sonore archi')}
+        <label class="volume" title="Volume de l'alerte archi-monstre">🔊<input type="range" data-set="HuntVolume" data-fk="HuntVolume"
+          min="${S.HuntVolume?.min ?? 0}" max="${S.HuntVolume?.max ?? 100}" step="1" value="${S.HuntVolume?.val ?? 70}"
+          style="--p:${S.HuntVolume?.val ?? 70}%"><span class="muted">${esc(T('HuntVolumeText'))}</span></label>
         <button class="small" data-act="click" data-name="HuntTestSound">Tester le son</button>
         <button class="small" data-act="click" data-name="HuntNewSession">Nouvelle session</button>
       </div>
@@ -261,6 +270,136 @@ const views = {
   },
 };
 
+const seenCol = { h: 'Relevé', k: 'SeenAt', f: r => `<span class="muted">${esc(r.Seen)}</span>` };
+const detailHead = (icon, title, sub) => `<div class="head">${icon}<div><h2>${esc(T(title))}</h2></div></div>
+  ${T(sub) ? `<div class="sub">${esc(T(sub))}</div>` : ''}`;
+
+Object.assign(views, {
+  brisage() {
+    const stats = (S.BrisageStats?.items || []).map((s, i) => `<span class="chip stat-filter ${s.on ? 'on' : ''}">
+      <label class="check"><input type="checkbox" data-stat="${i}" data-field="on" ${s.on ? 'checked' : ''}>${esc(s.t)}</label>
+      <input type="text" data-stat="${i}" data-field="min" data-fk="stat-${i}-min" value="${esc(s.min)}" placeholder="min">
+      <span class="muted">à</span>
+      <input type="text" data-stat="${i}" data-field="max" data-fk="stat-${i}-max" value="${esc(s.max)}" placeholder="max"></span>`).join('');
+    const sel = rows('BrisageGrid')[S.BrisageGrid?.sel ?? -1];
+    return `<div class="filters">${input('BrisageSearch', 'Rechercher un objet…', '220px')}${select('BrisageSource')}${select('BrisageTypeFilter')}
+        <span class="lbl">Niveau</span>${input('BrisageLevelMin', '', '60px')}<span class="lbl">à</span>${input('BrisageLevelMax', '', '60px')}
+        ${btn('BrisageReset', 'Réinitialiser les stats', 'small')}<span class="chip">${esc(T('BrisageCount'))}</span></div>
+      <div class="filters stat-filters">${stats}</div>
+      <div class="split">
+        ${table('BrisageGrid', [
+          { h: '', f: r => itemImg(r.ItemId) },
+          { h: 'Objet', k: 'Name', f: r => `<span class="strong">${esc(r.Name)}</span><div class="muted">${esc(r.Type)} · niv. ${r.Level}</div>` },
+          { h: 'Caractéristiques', k: 'Score', f: r => `<span class="ellipsis" title="${esc(r.Stats)}">${esc(r.Stats)}</span>` },
+          { h: 'Où', k: 'Where' },
+          { h: 'Poss.', k: 'Owned', num: true, f: r => `<span class="strong ${r.Owned > 0 ? 'acc' : 'muted'}">${r.Owned}</span>` },
+          { h: 'Faisable', k: 'Craftable', num: true, f: r => r.Craftable > 0 ? `<span class="ok strong">×${r.Craftable}</span>` : r.Missing ? `<span class="bad ellipsis" title="${esc(r.Missing)}">${esc(r.Missing)}</span>` : '' },
+          { h: 'Coût craft', k: 'CraftCost', num: true, f: r => fmt(r.CraftCost) },
+          { h: 'Prix HDV', k: 'HdvPrice', num: true, f: r => `<span class="acc strong">${fmt(r.HdvPrice)}</span>` },
+          { h: 'Runes ≈', k: 'RunesText', f: r => `<span class="ellipsis" title="${esc(r.RunesText)}">${esc(r.RunesText)}</span>` },
+          { h: 'Valeur runes', k: 'RunesValue', num: true, f: r => `<span class="strong">${fmt(r.RunesValue)}</span>` },
+          { h: S.BrisageGainColumn?.t || 'Gain', k: 'Gain', num: true, f: r => r.Gain == null ? '—' : `<span class="strong ${r.GainSign < 0 ? 'bad' : 'ok'}">${r.Gain > 0 ? '+' : ''}${fmt(r.Gain)}</span>` },
+        ], { empty: T('BrisageEmpty') || 'Aucun objet ne correspond à ces critères.' })}
+        <aside class="detail glass">${sel ? `${detailHead(itemImg(sel.ItemId, 'lg'), 'BrisageDetailTitle', 'BrisageDetailSub')}
+          <div class="filters"><span class="lbl">Quantité à briser</span>${input('BrisageBreakCount', '', '80px')}${btn('BrisageBreakMax', 'Max', 'small')}</div>
+          ${T('BrisageDetailTotal') ? `<div class="card strong lines" style="color:${S.BrisageDetailTotal?.c || 'inherit'}">${esc(T('BrisageDetailTotal'))}</div>` : ''}
+          <h3>Runes estimées</h3>
+          ${rows('BrisageRunes').map(r => `<div class="ing rune">${itemImg(r.ItemId)}<div><div class="name">${esc(r.Quantity)} × ${esc(r.Name)}</div>
+            <div class="price">${r.UnitPrice == null ? 'pas de prix HDV' : fmt(r.UnitPrice) + ' k / u'}</div></div><span class="ratio acc">${r.Total == null ? '—' : fmt(r.Total) + ' k'}</span></div>`).join('')
+            || '<div class="muted">Aucune rune.</div>'}
+          <div class="muted" style="font-size:11.5px">Estimation : aucune formule officielle pour Retro (Coiffe du Kitsou, niveau 61, 150 Vi ≈ 1 Ra Vi).</div>`
+          : '<div class="empty">Sélectionnez un objet.</div>'}</aside>
+      </div>`;
+  },
+
+  ttg() {
+    const sel = rows('TtgGrid')[S.TtgGrid?.sel ?? -1];
+    return `<div class="filters">${input('TtgSearch', 'Rechercher une carte…', '220px')}<span class="lbl">Rareté</span>${select('TtgRarity')}
+        <span class="lbl">Afficher</span>${select('TtgShow')}${check('TtgShowAll', 'Toutes les cartes du jeu')}
+        <span class="lbl">Période</span>${input('TtgDaysBox', '', '56px')}<span class="lbl">jours</span>
+        <span class="chip">${esc(T('TtgCount'))}</span>${T('TtgCollection') ? `<span class="chip accent">${esc(T('TtgCollection'))}</span>` : ''}</div>
+      <div class="split">
+        ${table('TtgGrid', [
+          { h: 'No.', k: 'Number', num: true, f: r => `<span class="muted">${r.Number == null ? '' : String(r.Number).padStart(3, '0')}</span>` },
+          { h: '', f: r => itemImg(r.ItemId) },
+          { h: 'Carte', k: 'Name', f: r => `<span class="strong">${esc(r.Name)}</span>` },
+          { h: 'Rareté', k: 'Rarity' },
+          { h: 'Poss.', k: 'Owned', num: true, f: r => `<span class="strong ${r.Owned > 0 ? 'ok' : 'muted'}">${r.Owned}</span>` },
+          { h: 'Marchand', k: 'MerchantPrice', num: true, f: r => `<span class="acc strong">${fmt(r.MerchantPrice)}</span>` },
+          { h: S.TtgBestColumn?.t || 'Meilleur', k: 'BestPrice', num: true, f: r => fmt(r.BestPrice) },
+          { h: 'Chez', k: 'BestMerchant', f: r => `<span class="strong">${esc(r.BestMerchant)}</span>` },
+          { h: 'Position', k: 'BestWhere', f: r => `<span class="muted ellipsis" title="${esc(r.BestWhere)}">${esc(r.BestWhere)}</span>` },
+          { h: 'Vu', k: 'SeenAt', f: r => `<span class="muted">${esc(r.Seen)}</span>` },
+        ], { empty: T('TtgEmpty') || 'Aucune carte à afficher.' })}
+        <aside class="detail glass">${detailHead(sel ? itemImg(sel.ItemId, 'lg') : '', 'TtgDetailTitle', 'TtgDetailSub')}
+          ${sel ? `${select('TtgOffersMode')}<h3>${esc(T('TtgOffersTitle'))}</h3>
+          ${rows('TtgOffers').map(o => `<div class="card"><div class="filters" style="justify-content:space-between"><b class="acc">${esc(o.Price)}<span class="muted"> · ${o.Quantity} en vente</span></b>
+            <span class="muted" style="font-size:11px">${esc(o.Seen)}</span></div><div class="strong">${esc(o.Merchant)}</div>
+            ${o.Where ? `<div class="muted" style="font-size:11.5px">${esc(o.Where)}</div>` : ''}</div>`).join('') || '<div class="muted">Aucune offre.</div>'}
+          <h3>Prix chez les marchands</h3><div class="card">${chart(S.TtgMerchantChart?.pts)}</div>
+          <h3>Prix unitaire à l'HDV</h3><div class="card">${chart(S.TtgHdvChart?.pts)}</div>
+          <button class="ghost" data-act="click" data-name="TtgForget">Oublier les prix marchands</button>` : ''}</aside>
+      </div>`;
+  },
+
+  pda() {
+    const sel = rows('PdaGrid')[S.PdaGrid?.sel ?? -1];
+    return `<div class="filters">${input('PdaSearch', 'Monstre ou race…', '220px')}<span class="lbl">Afficher</span>${select('PdaSource')}
+        <span class="lbl">Catégorie</span>${select('PdaCategory')}${check('PdaShowAll', 'Tous les monstres du jeu')}
+        <span class="chip">${esc(T('PdaCount'))}</span>${T('PdaValue') ? `<span class="chip accent">${esc(T('PdaValue'))}</span>` : ''}</div>
+      <div class="split">
+        ${table('PdaGrid', [
+          { h: '', f: r => itemImg(r.StoneTemplate) },
+          { h: 'Monstre(s)', k: 'Name', f: r => `<span class="strong ellipsis" title="${esc(r.Name)}">${esc(r.Name)}</span>` },
+          { h: 'Niv.', k: 'LevelSort', num: true, f: r => esc(r.Level) },
+          { h: 'Race', k: 'Race' },
+          { h: 'Catégorie', k: 'Category' },
+          { h: 'Prix', k: 'Price', num: true, f: r => `<span class="acc strong">${fmt(r.Price)}</span>` },
+          { h: 'Moyen', k: 'Average', num: true, f: r => fmt(r.Average) },
+          { h: 'Offres', k: 'Offers', num: true, f: r => r.Offers ?? '' },
+          seenCol,
+          { h: 'Poss.', k: 'Owned', num: true, f: r => `<span class="strong ${r.Owned > 0 ? 'ok' : 'muted'}">${r.Owned}</span>` },
+          { h: 'Où', k: 'Where' },
+        ], { empty: T('PdaEmpty') || 'Rien à afficher.' })}
+        <aside class="detail glass">${sel ? `${detailHead(itemImg(sel.StoneTemplate, 'lg'), 'PdaDetailTitle', 'PdaDetailSub')}
+          <h3>Évolution du prix</h3><div class="card">${chart(S.PdaChart?.pts)}</div>
+          <button class="ghost" data-act="click" data-name="PdaForget">Oublier ce prix</button>` : '<div class="empty">Sélectionnez un monstre.</div>'}</aside>
+      </div>`;
+  },
+
+  fm() {
+    return `<div class="filters"><span class="lbl">Objet</span>${select('FmItemCombo', 'style="min-width:340px"')}
+        <span class="muted">Le reliquat est une estimation : corrigez-le si besoin.</span></div>
+      <div class="split fm">
+        <aside class="detail glass">
+          <h2 class="acc">${esc(T('FmItemName'))}</h2>
+          <div class="card"><h3>Reliquat estimé</h3><div class="huge">${esc(T('FmReliquat'))}</div>
+            <div class="filters">${input('FmReliquatInput', 'Valeur', '90px')}<button class="small" data-act="click" data-name="FmSetReliquat">Corriger</button></div></div>
+          <div class="filters"><button class="small" data-act="click" data-name="FmClear">Effacer l'historique</button>
+            <button class="small" data-act="click" data-name="FmForget">Oublier l'objet</button>
+            <button class="small" data-act="click" data-name="FmWeights">Poids des stats</button></div>
+          <h3>Caractéristiques actuelles</h3><div class="stats">${rows('FmStats').map(s => `<span class="chip">${esc(s)}</span>`).join('') || '<span class="muted">—</span>'}</div>
+        </aside>
+        ${table('FmHistoryGrid', [
+          { h: '#', k: 'Index', num: true, f: r => `<span class="muted">${r.Index}</span>` },
+          { h: 'Heure', k: 'Time' },
+          { h: '', f: r => itemImg(r.RuneId, 'sm') },
+          { h: 'Rune', k: 'Rune', f: r => `<span class="strong">${esc(r.Rune)}</span>` },
+          { h: 'Résultat', k: 'Outcome', f: r => `<span class="strong" style="color:${r.OutcomeBrush || 'inherit'}">${esc(r.Outcome)}</span>` },
+          { h: 'Gains', k: 'Gains', f: r => `<span class="ok ellipsis" title="${esc(r.Gains)}">${esc(r.Gains)}</span>` },
+          { h: 'Pertes', k: 'Losses', f: r => `<span class="bad ellipsis" title="${esc(r.Losses)}">${esc(r.Losses)}</span>` },
+          { h: 'Poids', k: 'Weight' },
+          { h: 'Reliquat', k: 'Reliquat', f: r => `<span class="acc strong">${esc(r.Reliquat)}</span>` },
+        ], { select: false, empty: T('FmEmpty') || 'Aucun passage de rune.' })}
+      </div>`;
+  },
+
+  journal() {
+    return `<div class="filters">${check('LogPacketsBox', 'Journaliser les paquets (banque, inventaire, atelier : packets.log)')}</div>
+      <pre class="log glass" id="log">${esc(T('LogBox'))}</pre>`;
+  },
+});
+
 function recipeDetail(sel) {
   const tree = (list, path) => (list || []).map((g, i) => {
     const key = path + '/' + i, open = !!local.open[key];
@@ -280,11 +419,6 @@ function recipeDetail(sel) {
     <h3>Ingrédients</h3>${tree(rows('DetailIngredients'), 'r' + sel.Recipe?.ResultId)}`;
 }
 
-function soon(tab) {
-  return `<div class="soon-card glass"><div class="big">${esc(tab.label)}</div>
-    <div class="muted">Cet onglet n'est pas encore disponible en HTML. Il arrive dans une prochaine version.</div>
-    <button class="primary" data-act="classic">Ouvrir dans l'interface classique</button></div>`;
-}
 
 let pending = false;
 function render() {
@@ -294,16 +428,19 @@ function render() {
   const tab = TABS[active] || TABS[0];
 
   // Garder la saisie en cours et le défilement des tableaux pendant le rendu
-  const focus = document.activeElement?.dataset?.set ? { name: document.activeElement.dataset.set, value: document.activeElement.value,
+  const focus = document.activeElement?.dataset?.fk ? { key: document.activeElement.dataset.fk, value: document.activeElement.value,
     start: document.activeElement.selectionStart, end: document.activeElement.selectionEnd } : null;
   const scroll = [...document.querySelectorAll('.table-wrap, .detail')].map(e => e.scrollTop);
 
   document.getElementById('app').innerHTML = header() + banner() + tabs(active)
-    + `<main class="glass">${tab.watch ? views[tab.key]() : soon(tab)}</main>`;
+    + `<main class="glass">${views[tab.key]()}</main>`;
 
   document.querySelectorAll('.table-wrap, .detail').forEach((e, i) => { if (scroll[i]) e.scrollTop = scroll[i]; });
+  // Journal : toujours sur les derniers messages
+  const log = document.getElementById('log');
+  if (log) log.scrollTop = log.scrollHeight;
   if (focus) {
-    const el = document.querySelector(`[data-set="${focus.name}"]`);
+    const el = document.querySelector(`[data-fk="${focus.key}"]`);
     if (el) {
       el.focus();
       if (el.value !== focus.value) el.value = focus.value;
@@ -327,7 +464,6 @@ document.addEventListener('click', e => {
   switch (d.act) {
     case 'click': post({ type: 'click', name: d.name }); break;
     case 'tab': post({ type: 'set', name: 'MainTabs', value: +d.i }); S.MainTabs = { i: +d.i }; schedule(); break;
-    case 'classic': post({ type: 'ui' }); break;
     case 'ui': post({ type: 'ui' }); break;
     case 'select': post({ type: 'select', name: d.grid, index: +d.i }); break;
     case 'row': post({ type: 'row', name: d.grid, index: +d.i, handler: d.handler }); break;
@@ -347,14 +483,30 @@ document.addEventListener('click', e => {
 const timers = {};
 document.addEventListener('input', e => {
   const el = e.target;
+  // Seuil du Brisage (minimum ou maximum d'une caractéristique)
+  if (el.dataset?.stat != null && el.type !== 'checkbox') {
+    const key = 'stat' + el.dataset.stat + el.dataset.field;
+    clearTimeout(timers[key]);
+    timers[key] = setTimeout(() => post({ type: 'stat', index: +el.dataset.stat, field: el.dataset.field, value: el.value }), 250);
+    return;
+  }
   if (!el.dataset?.set || el.type === 'checkbox' || el.tagName === 'SELECT') return;
+  if (el.type === 'range') {
+    el.style.setProperty('--p', el.value + '%');
+    clearTimeout(timers[el.dataset.set]);
+    timers[el.dataset.set] = setTimeout(() => post({ type: 'set', name: el.dataset.set, value: +el.value }), 120);
+    return;
+  }
   clearTimeout(timers[el.dataset.set]);
   timers[el.dataset.set] = setTimeout(() => post({ type: 'set', name: el.dataset.set, value: el.value }), 250);
 });
 document.addEventListener('change', e => {
   const el = e.target;
+  if (el.dataset?.stat != null && el.type === 'checkbox') { post({ type: 'stat', index: +el.dataset.stat, field: 'on', value: el.checked }); return; }
   if (!el.dataset?.set) return;
   if (el.type === 'checkbox') post({ type: 'set', name: el.dataset.set, value: el.checked });
+  // Volume relâché : nouvelle valeur, puis le son pour l'entendre
+  else if (el.type === 'range') { post({ type: 'set', name: el.dataset.set, value: +el.value }); post({ type: 'click', name: 'HuntTestSound' }); }
   else if (el.tagName === 'SELECT') post({ type: 'set', name: el.dataset.set, value: +el.value });
 });
 

@@ -86,6 +86,8 @@ sealed class HuntData
     public List<FightRecord> Fights { get; set; } = new();
     public DateTime SessionStart { get; set; } = DateTime.Now;
     public bool SoundAlert { get; set; } = true;
+    /// <summary>Volume de l'alerte archi-monstre, de 0 à 100.</summary>
+    public int SoundVolume { get; set; } = 70;
     /// <summary>Sorts connus par personnage (nom -> sorts), pour l'Économe même si l'appli démarre en jeu.</summary>
     public Dictionary<string, List<int>> Spells { get; set; } = new();
 }
@@ -136,6 +138,12 @@ public sealed class HuntTracker
     {
         get => _store.SoundAlert;
         set { _store.SoundAlert = value; Save(); }
+    }
+
+    public int SoundVolume
+    {
+        get => _store.SoundVolume;
+        set { _store.SoundVolume = Math.Clamp(value, 0, 100); Save(); }
     }
 
     public event Action? Changed;

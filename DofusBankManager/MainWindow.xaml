@@ -586,7 +586,7 @@
                         <TextBox x:Name="BrisageLevelMin" Width="58" Text="1" TextChanged="BrisageFilters_Changed" Padding="4,0" HorizontalContentAlignment="Center"/>
                         <TextBlock Text="à" Style="{StaticResource Label}" Margin="6,0"/>
                         <TextBox x:Name="BrisageLevelMax" Width="58" Text="200" TextChanged="BrisageFilters_Changed" Padding="4,0" HorizontalContentAlignment="Center"/>
-                        <Button Content="Réinitialiser les stats" Click="BrisageReset_Click" Margin="14,0,0,0"/>
+                        <Button x:Name="BrisageReset" Content="Réinitialiser les stats" Click="BrisageReset_Click" Margin="14,0,0,0"/>
                         <TextBlock x:Name="BrisageCount" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource TextMuted}"/>
                     </WrapPanel>
 
@@ -1038,7 +1038,7 @@
                             </DockPanel>
                             <TextBlock x:Name="TtgDetailSub" DockPanel.Dock="Top" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,6,0,0"
                                        Text="Les prix marchands se relèvent quand vous consultez la boutique d'un marchand en jeu."/>
-                            <Button DockPanel.Dock="Bottom" Content="Oublier les prix marchands" Click="TtgForget_Click"
+                            <Button x:Name="TtgForget" DockPanel.Dock="Bottom" Content="Oublier les prix marchands" Click="TtgForget_Click"
                                     Margin="0,10,0,0" HorizontalAlignment="Left"/>
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <StackPanel>
@@ -1198,7 +1198,7 @@
                                            Foreground="{DynamicResource AccentSolid}" TextWrapping="Wrap" VerticalAlignment="Center"/>
                             </DockPanel>
                             <TextBlock x:Name="PdaDetailSub" DockPanel.Dock="Top" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,6,0,0"/>
-                            <Button DockPanel.Dock="Bottom" Content="Oublier ce prix" Click="PdaForget_Click"
+                            <Button x:Name="PdaForget" DockPanel.Dock="Bottom" Content="Oublier ce prix" Click="PdaForget_Click"
                                     Margin="0,10,0,0" HorizontalAlignment="Left"/>
                             <StackPanel>
                                 <TextBlock Text="Évolution du prix" Foreground="{DynamicResource TextMuted}" FontWeight="SemiBold" Margin="0,12,0,4"/>
@@ -1240,6 +1240,12 @@
                                    Foreground="{DynamicResource AccentSolid}"/>
                         <CheckBox x:Name="HuntSound" Content="Alerte sonore archi-monstre" VerticalAlignment="Center" Margin="18,0,0,0"
                                   IsChecked="True" Checked="HuntSound_Changed" Unchecked="HuntSound_Changed"/>
+                        <!-- Volume de l'alerte : le son est rejoué au relâchement du curseur -->
+                        <Slider x:Name="HuntVolume" Width="110" Minimum="0" Maximum="100" Value="70" Margin="12,0,0,0"
+                                VerticalAlignment="Center" IsMoveToPointEnabled="True" ToolTip="Volume de l'alerte archi-monstre"
+                                ValueChanged="HuntVolume_Changed" Thumb.DragCompleted="HuntVolume_DragCompleted"/>
+                        <TextBlock x:Name="HuntVolumeText" Text="70 %" Width="40" Margin="6,0,0,0" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextMuted}"/>
                         <Button x:Name="HuntTestSound" Content="Tester le son" Click="HuntTestSound_Click" Margin="8,0,0,0" Padding="10,3"/>
                         <Button x:Name="HuntNewSession" Content="Nouvelle session" Click="HuntNewSession_Click" Margin="8,0,0,0" Padding="10,3"
                                 ToolTip="Remet à zéro le calcul de rentabilité (les combats restent dans l'historique et servent aux estimations)"/>
@@ -1591,17 +1597,17 @@
                                         <TextBlock x:Name="FmReliquat" Text="0" FontSize="32" FontWeight="Bold" Foreground="{DynamicResource AccentSolid}"/>
                                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                                             <TextBox x:Name="FmReliquatInput" Width="80" HorizontalContentAlignment="Center"/>
-                                            <Button Content="Corriger" Click="FmSetReliquat_Click"
+                                            <Button x:Name="FmSetReliquat" Content="Corriger" Click="FmSetReliquat_Click"
                                                     ToolTip="Remplace le reliquat estimé par la valeur saisie"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
 
                                 <WrapPanel Margin="0,10,0,0">
-                                    <Button Content="Effacer l'historique" Click="FmClear_Click" Margin="0,0,8,6"
+                                    <Button x:Name="FmClear" Content="Effacer l'historique" Click="FmClear_Click" Margin="0,0,8,6"
                                             ToolTip="Vide l'historique de cet objet et remet le reliquat à 0"/>
-                                    <Button Content="Oublier l'objet" Click="FmForget_Click" Margin="0,0,8,6"/>
-                                    <Button Content="Poids des stats" Click="FmWeights_Click" Margin="0,0,0,6"
+                                    <Button x:Name="FmForget" Content="Oublier l'objet" Click="FmForget_Click" Margin="0,0,8,6"/>
+                                    <Button x:Name="FmWeights" Content="Poids des stats" Click="FmWeights_Click" Margin="0,0,0,6"
                                             ToolTip="Ouvre fm_poids.json (poids par point, par effet). Redémarrez l'application après modification."/>
                                 </WrapPanel>
 
