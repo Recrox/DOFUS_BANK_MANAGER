@@ -99,6 +99,10 @@ public sealed class DofusTracker
     public event Action<string>? FightEnded;
     /// <summary>Membres du groupe ajoutés/modifiés/retirés (message PM sans le préfixe) ; null : groupe quitté.</summary>
     public event Action<string?>? PartyChanged;
+    /// <summary>Personnage sélectionné sur cette connexion : (identifiant, nom, niveau).</summary>
+    public event Action<long, string, int>? CharacterSelected;
+    /// <summary>Nouveau niveau du personnage (message AN).</summary>
+    public event Action<int>? LevelUp;
 
     /// <summary>Codes des messages de forgemagie (fichier lang : INFOS_117, INFOS_183, INFOS_194).</summary>
     public static readonly int[] FmInfoCodes = [117, 183, 194];
@@ -161,6 +165,7 @@ public sealed class DofusTracker
         else if (msg.StartsWith("GE") && msg.Length > 2 && char.IsDigit(msg[2])) FightEnded?.Invoke(msg[2..]);
         else if (msg.StartsWith("PM") && msg.Length > 2) PartyChanged?.Invoke(msg[2..]);
         else if (msg == "PV" || msg.StartsWith("PV|")) PartyChanged?.Invoke(null);
+        else if (msg.StartsWith("AN") && int.TryParse(msg.AsSpan(2), out var level)) LevelUp?.Invoke(level);
     }
 
     /// <summary>
@@ -202,10 +207,14 @@ public sealed class DofusTracker
             State = LoadSnapshot(name) ?? new Snapshot { Character = name };
             BankChanged?.Invoke();
         }
-        if (long.TryParse(parts[1], out var id) && id != State.CharacterId)
+        if (long.TryParse(parts[1], out var id))
         {
-            State.CharacterId = id;
-            SaveSnapshot();
+            if (id != State.CharacterId)
+            {
+                State.CharacterId = id;
+                SaveSnapshot();
+            }
+            CharacterSelected?.Invoke(id, name, parts.Length > 3 && int.TryParse(parts[3], out var level) ? level : 0);
         }
         State.Inventory.Clear();
         var items = parts.LastOrDefault(p => p.Contains('~')) ?? "";

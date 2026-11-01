@@ -33,6 +33,8 @@ public partial class MainWindow
         _hunt.Log += AddLog;
         _hunt.Changed += RefreshHunt;
         _hunt.ArchiSpotted += OnArchiSpotted;
+        _tracker.CharacterSelected += _hunt.OnCharacterSelected;
+        _tracker.LevelUp += _hunt.OnLevelUp;
         _tracker.MapChanged += _hunt.OnMapChanged;
         _tracker.MapSprites += s => Safe(() => _hunt.OnSprites(s));
         _tracker.CharacterStats += s => Safe(() => _hunt.OnStats(s));
@@ -76,6 +78,30 @@ public partial class MainWindow
     void HuntTestSound_Click(object sender, RoutedEventArgs e) => PlayAlert();
 
     void HuntNewSession_Click(object sender, RoutedEventArgs e) => _hunt?.NewSession();
+
+    bool _huntCharactersUpdating;
+
+    void HuntCharacter_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_huntCharactersUpdating || _hunt == null) return;
+        _hunt.Pinned = (HuntCharacterBox.SelectedItem as ComboBoxItem)?.Tag as string;
+        RefreshHunt();
+    }
+
+    static string CharacterLabel(HuntCharacter c) => c.Label + (c.Level is { } l ? $" (niv. {l})" : "");
+
+    /// <summary>Liste des personnages (une entrée par fenêtre de jeu), en gardant le choix courant.</summary>
+    void UpdateHuntCharacters()
+    {
+        _huntCharactersUpdating = true;
+        HuntCharacterBox.Items.Clear();
+        HuntCharacterBox.Items.Add(new ComboBoxItem { Content = "Fenêtre active (auto)", Tag = null });
+        foreach (var c in _hunt!.Characters.OrderBy(c => c.Label))
+            HuntCharacterBox.Items.Add(new ComboBoxItem { Content = CharacterLabel(c), Tag = c.Stream });
+        HuntCharacterBox.SelectedItem = HuntCharacterBox.Items.OfType<ComboBoxItem>().FirstOrDefault(i => (string?)i.Tag == _hunt.Pinned)
+            ?? HuntCharacterBox.Items[0];
+        _huntCharactersUpdating = false;
+    }
 
     void HuntClearArchis_Click(object sender, RoutedEventArgs e) => _hunt?.ClearArchis();
 
@@ -127,17 +153,26 @@ public partial class MainWindow
     {
         if (!_ready || _data == null || _hunt == null) return;
         var learned = Learn();
-        int wisdom = _hunt.Wisdom ?? 0;
+        var labels = _hunt.Characters.Select(CharacterLabel).Order().ToList();
+        if (!HuntCharacterBox.Items.OfType<ComboBoxItem>().Skip(1).Select(i => i.Content as string).Order().SequenceEqual(labels))
+            UpdateHuntCharacters();
 
-        HuntWisdom.Text = _hunt.Wisdom?.ToString("N0") ?? "?";
-        HuntProspection.Text = _hunt.Prospection?.ToString("N0") ?? "?";
-        HuntGroupProspection.Text = _hunt.GroupProspection?.ToString("N0") ?? "?";
-        HuntGroupProspection.ToolTip = _hunt.Party.Count > 0
-            ? $"Somme des {_hunt.Party.Count} membres du groupe : " + string.Join(" + ", _hunt.Party.Values.Select(p => p.Prospection))
+        var me = _hunt.Shown;
+        int wisdom = me?.Wisdom ?? 0;
+        HuntLevel.Text = me?.Level?.ToString() ?? "?";
+        HuntGroupLevel.Text = me?.GroupLevel?.ToString() ?? "?";
+        HuntGroupLevel.ToolTip = me?.Party.Count > 0
+            ? $"Somme des {me.Party.Count} membres du groupe : " + string.Join(" + ", me.Party.Values.Select(p => p.Level))
+            : "Pas de groupe : niveau du personnage seul";
+        HuntWisdom.Text = me?.Wisdom?.ToString("N0") ?? "?";
+        HuntProspection.Text = me?.Prospection?.ToString("N0") ?? "?";
+        HuntGroupProspection.Text = me?.GroupProspection?.ToString("N0") ?? "?";
+        HuntGroupProspection.ToolTip = me?.Party.Count > 0
+            ? $"Somme des {me.Party.Count} membres du groupe : " + string.Join(" + ", me.Party.Values.Select(p => p.Prospection))
             : "Pas de groupe : prospection du personnage seul";
 
         // Groupes de la map
-        var groups = _hunt.Groups.Values.OrderByDescending(g => g.Monsters.Sum(m => m.Level)).Select(g =>
+        var groups = (me?.Groups.Values ?? Enumerable.Empty<MapGroup>()).OrderByDescending(g => g.Monsters.Sum(m => m.Level)).Select(g =>
         {
             var names = string.Join(", ", g.Monsters.GroupBy(m => m.Id).Select(x =>
                 (x.Count() > 1 ? $"{x.Count()}× " : "") + _data.GetMonster(x.Key).Name
@@ -163,7 +198,9 @@ public partial class MainWindow
                 archi != null, archi != null ? _data.GetMonster(archi.Id).Name : "", archiPrice);
         }).ToList();
         SetRows(HuntGroupGrid, groups);
-        HuntMap.Text = _hunt.MapId.Length > 0 ? $"Map {_hunt.MapId} · {groups.Count} groupe(s)" : "Map inconnue : changez de map en jeu";
+        HuntMap.Text = me?.MapId.Length > 0
+            ? $"{me.Label} · map {me.MapId} · {groups.Count} groupe(s)"
+            : "Map inconnue : changez de map en jeu";
         HuntEmpty.Visibility = groups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         if (!groups.Any(g => g.HasArchi)) HuntStatus.Text = "";
 
@@ -177,7 +214,9 @@ public partial class MainWindow
 
         // Combats et rentabilité de la session
         double Value(FightRecord f) => f.Drops.Sum(d => d.Quantity * (UnitPrice(d.ItemId) ?? 0));
-        var session = _hunt.Fights.Where(f => f.Time >= _hunt.SessionStart).ToList();
+        // Session du personnage affiché ; en multi-compte, le total de tous les personnages est rappelé
+        var allSession = _hunt.Fights.Where(f => f.Time >= _hunt.SessionStart).ToList();
+        var session = allSession.Where(f => f.Character == (me?.Name ?? "")).ToList();
         SetRows(HuntFightGrid, session.AsEnumerable().Reverse().Take(100).Select(f => new FightRow(
             f.Time.ToString("HH:mm"), f.Time, $"{f.DurationSeconds / 60}:{f.DurationSeconds % 60:00}",
             string.Join(", ", f.Monsters.GroupBy(m => m.Id).Select(x => (x.Count() > 1 ? $"{x.Count()}× " : "") + _data.GetMonster(x.Key).Name)),
@@ -189,7 +228,10 @@ public partial class MainWindow
         int unpriced = session.SelectMany(f => f.Drops).Select(d => d.ItemId).Distinct().Count(id => UnitPrice(id) == null);
         HuntSession.Text = $"Session depuis {_hunt.SessionStart:HH:mm} ({minutes:0} min) · {session.Count} combat(s) · "
             + $"{xpTotal:N0} XP · {kamasTotal:N0} kamas · drops {Kamas(dropsTotal)}"
-            + (unpriced > 0 ? $" ({unpriced} objet(s) sans prix HDV, comptés 0)" : "");
+            + (unpriced > 0 ? $" ({unpriced} objet(s) sans prix HDV, comptés 0)" : "")
+            + (allSession.Select(f => f.Character).Distinct().Count() > 1
+                ? $"\nTous les personnages : {allSession.Count} combat(s) · {allSession.Sum(f => f.Kamas):N0} kamas · drops {Kamas(allSession.Sum(Value))}"
+                : "");
         HuntProjection.ItemsSource = session.Count == 0 ? null : new[] { 30, 60, 120 }.Select(span =>
         {
             double k = span / minutes;

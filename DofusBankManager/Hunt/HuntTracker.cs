@@ -29,6 +29,8 @@ public sealed class FightDrop
 public sealed class FightRecord
 {
     public DateTime Time { get; set; }
+    /// <summary>Personnage du joueur qui a fait le combat (multi-compte : un combat par personnage).</summary>
+    public string Character { get; set; } = "";
     public int DurationSeconds { get; set; }
     public long Xp { get; set; }
     public long Kamas { get; set; }
@@ -37,6 +39,33 @@ public sealed class FightRecord
     public int Wisdom { get; set; }
     public int Prospection { get; set; }
     public int GroupProspection { get; set; }
+}
+
+/// <summary>
+/// Personnage suivi sur une connexion au jeu. En multi-compte, chaque fenêtre a sa propre connexion :
+/// sagesse, prospection, groupe et map sont tenus séparément pour chacune.
+/// </summary>
+public sealed class HuntCharacter(string stream, int number)
+{
+    public string Stream { get; } = stream;
+    public long Id { get; set; }
+    public string Name { get; set; } = "";
+    public int? Level { get; set; }
+    public int? Wisdom { get; set; }
+    public int? Prospection { get; set; }
+    /// <summary>Membres du groupe : identifiant -> (niveau, prospection). Vide hors groupe.</summary>
+    public Dictionary<long, (int Level, int Prospection)> Party { get; } = new();
+    public string MapId { get; set; } = "";
+    public Dictionary<long, MapGroup> Groups { get; } = new();
+    /// <summary>Dernier changement de map : la fenêtre où l'on joue est celle qui bouge.</summary>
+    public DateTime LastMove { get; set; }
+
+    public string Label => Name.Length > 0 ? Name : $"Connexion {number}";
+
+    /// <summary>Prospection du groupe (somme des membres), sinon celle du personnage.</summary>
+    public int? GroupProspection => Party.Count > 0 ? Party.Values.Sum(p => p.Prospection) : Prospection;
+    /// <summary>Niveau du groupe (somme des membres), sinon celui du personnage.</summary>
+    public int? GroupLevel => Party.Count > 0 ? Party.Values.Sum(p => p.Level) : Level;
 }
 
 sealed class HuntData
@@ -64,11 +93,23 @@ public sealed class HuntTracker
     static string DataPath => Path.Combine(GameData.AppDir, "chasse.json");
 
     readonly GameData _data;
-    readonly Func<long> _characterId;
+    /// <summary>Identifiant du dernier personnage connu (sauvegardé avec la banque) : repli si l'appli a démarré en jeu.</summary>
+    readonly Func<long> _savedCharacterId;
+    readonly Dictionary<string, HuntCharacter> _characters = new();
     HuntData _store = new();
 
-    public string MapId { get; private set; } = "";
-    public Dictionary<long, MapGroup> Groups { get; } = new();
+    /// <summary>Connexion du message en cours de traitement (à renseigner avant chaque message).</summary>
+    public string Stream { get; set; } = "";
+
+    /// <summary>Connexion choisie dans la liste ; null : la fenêtre où l'on joue (dernier changement de map).</summary>
+    public string? Pinned { get; set; }
+
+    public IReadOnlyCollection<HuntCharacter> Characters => _characters.Values;
+
+    /// <summary>Personnage affiché.</summary>
+    public HuntCharacter? Shown =>
+        Pinned != null && _characters.TryGetValue(Pinned, out var c) ? c : _characters.Values.MaxBy(x => x.LastMove);
+
     public IReadOnlyList<ArchiSighting> Archis => _store.Archis;
     public IReadOnlyList<FightRecord> Fights => _store.Fights;
     public DateTime SessionStart => _store.SessionStart;
@@ -79,24 +120,25 @@ public sealed class HuntTracker
         set { _store.SoundAlert = value; Save(); }
     }
 
-    /// <summary>Sagesse et prospection totales du personnage (null tant que le message As n'a pas été vu).</summary>
-    public int? Wisdom { get; private set; }
-    public int? Prospection { get; private set; }
-    /// <summary>Membres du groupe : identifiant -> (niveau, prospection). Vide hors groupe.</summary>
-    public Dictionary<long, (int Level, int Prospection)> Party { get; } = new();
-
-    /// <summary>Prospection du groupe (somme des membres), sinon celle du personnage.</summary>
-    public int? GroupProspection => Party.Count > 0 ? Party.Values.Sum(p => p.Prospection) : Prospection;
-
     public event Action? Changed;
     public event Action<ArchiSighting>? ArchiSpotted;
     public event Action<string>? Log;
 
-    public HuntTracker(GameData data, Func<long> characterId)
+    public HuntTracker(GameData data, Func<long> savedCharacterId)
     {
         _data = data;
-        _characterId = characterId;
+        _savedCharacterId = savedCharacterId;
         Load();
+    }
+
+    HuntCharacter Current
+    {
+        get
+        {
+            if (!_characters.TryGetValue(Stream, out var c))
+                _characters[Stream] = c = new HuntCharacter(Stream, _characters.Count + 1);
+            return c;
+        }
     }
 
     public void NewSession()
@@ -113,10 +155,28 @@ public sealed class HuntTracker
         Changed?.Invoke();
     }
 
+    public void OnCharacterSelected(long id, string name, int level)
+    {
+        var c = Current;
+        c.Id = id;
+        c.Name = name;
+        if (level > 0) c.Level = level;
+        c.Party.Clear();
+        Changed?.Invoke();
+    }
+
+    public void OnLevelUp(int level)
+    {
+        Current.Level = level;
+        Changed?.Invoke();
+    }
+
     public void OnMapChanged(string mapId)
     {
-        MapId = mapId;
-        Groups.Clear();
+        var c = Current;
+        c.MapId = mapId;
+        c.Groups.Clear();
+        c.LastMove = DateTime.Now;
         Changed?.Invoke();
     }
 
@@ -126,13 +186,14 @@ public sealed class HuntTracker
     /// </summary>
     public void OnSprites(string body)
     {
+        var c = Current;
         bool changed = false;
         foreach (var s in body.Split('|'))
         {
             if (s.Length < 2) continue;
             if (s[0] == '-')
             {
-                if (long.TryParse(s.AsSpan(1), out var gone)) changed |= Groups.Remove(gone);
+                if (long.TryParse(s.AsSpan(1), out var gone)) changed |= c.Groups.Remove(gone);
                 continue;
             }
             if (s[0] is not ('+' or '~')) continue;
@@ -147,25 +208,26 @@ public sealed class HuntTracker
                     monsters.Add(new GroupMonster(m, i < levels.Length && int.TryParse(levels[i], out var l) ? l : 0));
             if (monsters.Count == 0) continue;
 
-            bool known = Groups.ContainsKey(id);
-            Groups[id] = new MapGroup(id, int.TryParse(f[2], out var bonus) ? bonus : 0, monsters, DateTime.Now);
+            bool known = c.Groups.ContainsKey(id);
+            c.Groups[id] = new MapGroup(id, int.TryParse(f[2], out var bonus) ? bonus : 0, monsters, DateTime.Now);
             changed = true;
-            if (!known) CheckArchis(monsters);
+            if (!known) CheckArchis(c.MapId, monsters);
         }
         if (changed) Changed?.Invoke();
     }
 
-    void CheckArchis(List<GroupMonster> monsters)
+    void CheckArchis(string mapId, List<GroupMonster> monsters)
     {
         foreach (var m in monsters.Where(m => _data.GetMonster(m.Id).IsArchi))
         {
             var now = DateTime.Now;
-            if (_store.Archis.Any(a => a.MonsterId == m.Id && a.MapId == MapId && now - a.Time < ArchiRepeat)) continue;
-            var sighting = new ArchiSighting { Time = now, MonsterId = m.Id, Level = m.Level, MapId = MapId };
+            // Multi-compte : plusieurs fenêtres sur la même map voient le même archi, une seule alerte
+            if (_store.Archis.Any(a => a.MonsterId == m.Id && a.MapId == mapId && now - a.Time < ArchiRepeat)) continue;
+            var sighting = new ArchiSighting { Time = now, MonsterId = m.Id, Level = m.Level, MapId = mapId };
             _store.Archis.Insert(0, sighting);
             if (_store.Archis.Count > MaxArchis) _store.Archis.RemoveRange(MaxArchis, _store.Archis.Count - MaxArchis);
             Save();
-            Log?.Invoke($"Archi-monstre repéré : {_data.GetMonster(m.Id).Name} (niveau {m.Level}, map {MapId}).");
+            Log?.Invoke($"Archi-monstre repéré : {_data.GetMonster(m.Id).Name} (niveau {m.Level}, map {mapId}).");
             ArchiSpotted?.Invoke(sighting);
         }
     }
@@ -178,11 +240,12 @@ public sealed class HuntTracker
     {
         var p = body.Split('|');
         if (p.Length < 14) return;
+        var c = Current;
         int? prospection = int.TryParse(p[8].Split(',')[0], out var pp) ? pp : null;
         int? wisdom = Total(p[13]);
-        if (prospection == Prospection && wisdom == Wisdom) return;
-        Prospection = prospection ?? Prospection;
-        Wisdom = wisdom ?? Wisdom;
+        if (prospection == c.Prospection && wisdom == c.Wisdom) return;
+        c.Prospection = prospection ?? c.Prospection;
+        c.Wisdom = wisdom ?? c.Wisdom;
         Changed?.Invoke();
 
         static int? Total(string stat)
@@ -199,10 +262,11 @@ public sealed class HuntTracker
     /// </summary>
     public void OnParty(string? body)
     {
-        if (body == null) Party.Clear();
+        var c = Current;
+        if (body == null) c.Party.Clear();
         else if (body[0] == '-')
         {
-            if (long.TryParse(body.AsSpan(1), out var gone)) Party.Remove(gone);
+            if (long.TryParse(body.AsSpan(1), out var gone)) c.Party.Remove(gone);
         }
         else if (body[0] is '+' or '~')
             foreach (var s in body[1..].Split('|'))
@@ -210,7 +274,7 @@ public sealed class HuntTracker
                 var f = s.Split(';');
                 if (f.Length >= 11 && long.TryParse(f[0], out var id) && int.TryParse(f[8], out var level)
                     && int.TryParse(f[10], out var pp))
-                    Party[id] = (level, pp);
+                    c.Party[id] = (level, pp);
             }
         else return;
         Changed?.Invoke();
@@ -225,9 +289,9 @@ public sealed class HuntTracker
     {
         var parts = body.Split('|');
         if (parts.Length < 4 || !long.TryParse(parts[0], out var durationMs)) return;
-        long me = _characterId();
-        FightRecord? fight = null;
+        var c = Current;
         var monsters = new List<GroupMonster>();
+        var players = new List<string[]>();
 
         foreach (var line in parts.Skip(3))
         {
@@ -238,23 +302,37 @@ public sealed class HuntTracker
                 if (int.TryParse(f[2], out var tpl) && _data.Monsters.ContainsKey(tpl))
                     monsters.Add(new GroupMonster(tpl, int.TryParse(f[3], out var l) ? l : 0));
             }
-            else if (id == me && me != 0 && f.Length >= 13 && long.TryParse(f[8], out var xp))
-            {
-                fight = new FightRecord
-                {
-                    Time = DateTime.Now,
-                    DurationSeconds = (int)(durationMs / 1000),
-                    Xp = xp,
-                    Kamas = long.TryParse(f[12], out var k) ? k : 0,
-                    Drops = ParseDrops(f[11]),
-                    Wisdom = Wisdom ?? 0,
-                    Prospection = Prospection ?? 0,
-                    GroupProspection = GroupProspection ?? 0,
-                };
-            }
+            else if (f.Length >= 13 && long.TryParse(f[8], out _)) players.Add(f);
         }
-        if (fight == null) return;
-        fight.Monsters = monsters;
+
+        // Ligne du personnage : son identifiant (appris à la sélection du personnage). Repli si l'appli a démarré en jeu :
+        // l'identifiant sauvegardé (une seule fenêtre), ou le seul joueur du combat (combat en solo).
+        long me = c.Id != 0 ? c.Id
+            : _characters.Count == 1 && players.Any(f => f[1] == _savedCharacterId().ToString()) ? _savedCharacterId()
+            : players.Count == 1 ? long.Parse(players[0][1]) : 0;
+        var line0 = players.FirstOrDefault(f => f[1] == me.ToString());
+        if (line0 == null)
+        {
+            if (players.Count > 1)
+                Log?.Invoke("Fin de combat : personnage inconnu sur cette fenêtre, combat non compté. "
+                    + "Lancez l'application avant de choisir votre personnage (ou revenez à la sélection des personnages).");
+            return;
+        }
+        if (c.Id == 0) c.Id = me;
+
+        var fight = new FightRecord
+        {
+            Time = DateTime.Now,
+            Character = c.Name,
+            DurationSeconds = (int)(durationMs / 1000),
+            Xp = long.Parse(line0[8]),
+            Kamas = long.TryParse(line0[12], out var k) ? k : 0,
+            Drops = ParseDrops(line0[11]),
+            Monsters = monsters,
+            Wisdom = c.Wisdom ?? 0,
+            Prospection = c.Prospection ?? 0,
+            GroupProspection = c.GroupProspection ?? 0,
+        };
 
         // Longue pause depuis le dernier combat (et pas de session ouverte à la main depuis) : nouvelle session
         var last = _store.Fights.LastOrDefault();
@@ -263,7 +341,7 @@ public sealed class HuntTracker
         _store.Fights.Add(fight);
         if (_store.Fights.Count > MaxFights) _store.Fights.RemoveRange(0, _store.Fights.Count - MaxFights);
         Save();
-        Log?.Invoke($"Combat terminé : {fight.Xp:N0} XP, {fight.Kamas:N0} kamas, {fight.Drops.Sum(d => d.Quantity)} objet(s).");
+        Log?.Invoke($"Combat terminé ({c.Label}) : {fight.Xp:N0} XP, {fight.Kamas:N0} kamas, {fight.Drops.Sum(d => d.Quantity)} objet(s).");
         Changed?.Invoke();
     }
 

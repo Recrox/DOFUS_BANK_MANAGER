@@ -1039,7 +1039,15 @@
                     </Grid.ColumnDefinitions>
 
                     <WrapPanel Grid.ColumnSpan="2" Margin="0,0,0,10">
-                        <TextBlock Text="Sagesse" Style="{StaticResource Label}" Margin="0,0,6,0"/>
+                        <TextBlock Text="Personnage" Style="{StaticResource Label}" Margin="0,0,6,0"/>
+                        <ComboBox x:Name="HuntCharacterBox" Width="200" SelectionChanged="HuntCharacter_Changed"
+                                  ToolTip="Multi-compte : une entrée par fenêtre de jeu. « Auto » suit la fenêtre qui vient de changer de map."/>
+                        <TextBlock Text="Niveau" Style="{StaticResource Label}" Margin="18,0,6,0"/>
+                        <TextBlock x:Name="HuntLevel" Text="?" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Text="Niv. du groupe" Style="{StaticResource Label}" Margin="18,0,6,0"/>
+                        <TextBlock x:Name="HuntGroupLevel" Text="?" FontWeight="Bold" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource AccentSolid}"/>
+                        <TextBlock Text="Sagesse" Style="{StaticResource Label}" Margin="18,0,6,0"/>
                         <TextBlock x:Name="HuntWisdom" Text="?" FontWeight="Bold" VerticalAlignment="Center"
                                    ToolTip="Lue dans vos caractéristiques (ouvrez la fiche du personnage ou changez d'équipement si elle reste inconnue)"/>
                         <TextBlock Text="Prospection" Style="{StaticResource Label}" Margin="18,0,6,0"/>
@@ -1065,7 +1073,7 @@
                         </Grid.RowDefinitions>
                         <TextBlock x:Name="HuntMap" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,6"/>
                         <Grid Grid.Row="1">
-                            <DataGrid x:Name="HuntGroupGrid">
+                            <DataGrid x:Name="HuntGroupGrid" RowHeight="NaN" MinRowHeight="38">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Monstres (niveaux)" Binding="{Binding Monsters}" Width="*" MinWidth="200">
                                         <DataGridTextColumn.ElementStyle>
@@ -1075,7 +1083,15 @@
                                             </Style>
                                         </DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
-                                    <DataGridTextColumn Header="Niv. total" Binding="{Binding TotalLevel}" Width="78"/>
+                                    <DataGridTextColumn Header="Niv. groupe" Binding="{Binding TotalLevel}" Width="90">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentSolid}"/>
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
                                     <DataGridTextColumn Header="Étoiles" Binding="{Binding Stars}" Width="70"/>
                                     <DataGridTextColumn Header="XP estimée" Binding="{Binding Xp, StringFormat={}{0:N0}}" Width="100"/>
                                     <DataGridTextColumn Header="Drops observés" Binding="{Binding Drops}" Width="200">

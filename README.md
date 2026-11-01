@@ -197,7 +197,10 @@ Le panneau de détail montre l'évolution du prix du monstre sélectionné. Les 
 
 ### Onglet Chasse
 
-L'onglet affiche les **groupes de monstres de la map** où vous êtes (monstres, niveaux, étoiles), votre **sagesse**, votre **prospection** et celle du **groupe** (somme des membres, lue dans les messages de groupe ; la vôtre seule hors groupe).
+L'onglet affiche les **groupes de monstres de la map** où vous êtes (monstres, niveau du groupe, étoiles), votre **niveau**, votre **sagesse**, votre **prospection**, et le niveau et la prospection du **groupe** (somme des membres, lue dans les messages de groupe ; les vôtres seuls hors groupe).
+
+- **Multi-compte** : chaque fenêtre de jeu est suivie séparément. La liste « Personnage » choisit celle à afficher ; « Fenêtre active (auto) » suit la fenêtre qui vient de changer de map. La rentabilité est celle du personnage affiché, avec le total de tous les personnages en dessous.
+- **Lancez l'application avant de choisir votre personnage** : c'est à ce moment qu'elle apprend son identifiant, nécessaire pour retrouver sa ligne dans les résultats de combat. Sinon, seuls les combats en solo sont comptés (revenir à la sélection des personnages suffit).
 
 - **Archi-monstres** : quand un groupe contenant un archi-monstre apparaît sur la map, une alerte sonore retentit (case « Alerte sonore archi-monstre »). L'historique liste les derniers archi-monstres vus, avec leur niveau, la map et le dernier prix relevé de leur pierre (onglet PDA). Un même archi sur la même map n'est signalé qu'une fois toutes les 10 minutes.
 - **XP et drops estimés** : les données du jeu ne contiennent ni l'XP ni les drops des monstres. L'application les **apprend de vos fins de combat** : l'XP gagnée est ramenée sans sagesse, puis répartie entre les monstres selon leur niveau ; les objets obtenus sont attribués aux monstres du combat, d'où une fréquence observée. Pour un groupe de la map, l'XP estimée applique votre sagesse actuelle et les étoiles du groupe. Ce sont des **estimations** : elles se précisent au fil des combats, et ne tiennent compte ni de la taille du groupe ni de l'écart de niveau.
