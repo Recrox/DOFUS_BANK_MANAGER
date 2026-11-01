@@ -103,6 +103,7 @@ public partial class MainWindow
                 c?.Level?.ToString() ?? "?", c?.Initiative, state, IsExcluded(w), w.Handle == foreground);
         }).ToList();
 
+        UpdateOverlay(); // ordre de jeu et fenêtre au premier plan
         // La grille n'est remplacée que si quelque chose a changé (sinon un clic en cours serait perdu)
         if (OrganizerGrid.ItemsSource is IEnumerable<OrganizerRow> old && old.SequenceEqual(rows)) return;
         SetRows(OrganizerGrid, rows);

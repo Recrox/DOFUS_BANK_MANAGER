@@ -1600,6 +1600,25 @@
                     </WrapPanel>
 
                     <DockPanel Grid.Row="2" Margin="0,0,0,8">
+                        <!-- Superposition en jeu : infos utiles affichées au-dessus du jeu -->
+                        <Border DockPanel.Dock="Top" Margin="0,0,0,10" Padding="12,8" Background="{DynamicResource Surface2}"
+                                BorderBrush="{DynamicResource AccentBorder}" BorderThickness="1" CornerRadius="{DynamicResource RadiusMd}">
+                            <WrapPanel>
+                                <CheckBox x:Name="OverlayEnabled" Content="Superposition en jeu" FontWeight="Bold" Margin="0,0,18,0"
+                                          Checked="OverlayOption_Changed" Unchecked="OverlayOption_Changed"
+                                          ToolTip="Affiche les infos utiles au-dessus du jeu, seulement quand une fenêtre de jeu est au premier plan. Les clics passent au jeu."/>
+                                <CheckBox x:Name="OverlayEconome" Content="Économe" Margin="0,0,14,0" Checked="OverlayOption_Changed" Unchecked="OverlayOption_Changed"/>
+                                <CheckBox x:Name="OverlayGroups" Content="Groupes de la map" Margin="0,0,14,0" Checked="OverlayOption_Changed" Unchecked="OverlayOption_Changed"/>
+                                <CheckBox x:Name="OverlayRotation" Content="Ordre de jeu" Margin="0,0,14,0" Checked="OverlayOption_Changed" Unchecked="OverlayOption_Changed"/>
+                                <TextBlock Text="Opacité" Style="{StaticResource Label}" Margin="4,0,8,0"/>
+                                <Slider x:Name="OverlayOpacity" Width="100" Minimum="40" Maximum="100" Value="92" VerticalAlignment="Center"
+                                        IsMoveToPointEnabled="True" ValueChanged="OverlayOpacity_Changed"/>
+                                <TextBlock x:Name="OverlayOpacityText" Text="92 %" Width="40" Margin="6,0,0,0" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextMuted}"/>
+                                <Button x:Name="OverlayMove" Content="Déplacer" Click="OverlayMove_Click" Padding="10,3"
+                                        ToolTip="Affiche la superposition pour la faire glisser à sa place, puis Verrouiller"/>
+                            </WrapPanel>
+                        </Border>
                         <TextBlock x:Name="OrganizerCount" DockPanel.Dock="Right" Foreground="{DynamicResource AccentSolid}" FontWeight="Bold"/>
                         <TextBlock Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"
                                    Text="Ordre de jeu : initiative décroissante. L'initiative est envoyée par le jeu à la connexion ou quand elle change (changer un équipement suffit). Excluez un personnage (compte métier) pour le sortir de la rotation."/>

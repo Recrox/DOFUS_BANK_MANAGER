@@ -369,6 +369,7 @@ public partial class MainWindow
             + $"({learned.Count} monstre(s) connus). Sagesse et étoiles du groupe appliquées à l'XP.";
 
         ShowEconome(me);
+        UpdateOverlay();
     }
 
     /// <summary>

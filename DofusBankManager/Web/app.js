@@ -29,7 +29,8 @@ const TABS = [
     'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
     'HuntSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid'] },
   { key: 'windows', label: 'Fenêtres', icon: '⧉', watch: ['HotkeyNext', 'HotkeyPrevious', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
-    'NotifyExchange', 'NotifyParty', 'NotifyToast', 'NotifyFlash', 'NotifySound', 'OrganizerCount', 'OrganizerGrid'] },
+    'NotifyExchange', 'NotifyParty', 'NotifyToast', 'NotifyFlash', 'NotifySound', 'OrganizerCount', 'OrganizerGrid', 'OverlayEnabled', 'OverlayEconome', 'OverlayGroups',
+    'OverlayRotation', 'OverlayOpacity', 'OverlayOpacityText', 'OverlayMove'] },
   { key: 'fm', label: 'FM', icon: '✧', watch: ['FmItemCombo', 'FmItemName', 'FmReliquat', 'FmReliquatInput', 'FmStats',
     'FmHistoryGrid', 'FmEmpty'] },
   { key: 'journal', label: 'Journal', icon: '☰', watch: ['LogBox', 'LogPacketsBox'] },
@@ -402,6 +403,12 @@ Object.assign(views, {
     return `<div class="filters">${hotkey('HotkeyNext', 'Personnage suivant')}${hotkey('HotkeyPrevious', 'Précédent')}
         <span class="muted">Les raccourcis marchent aussi en jeu ; ils ne font qu'afficher la fenêtre.</span>
         ${T('HotkeyStatus') ? `<span class="bad strong">${esc(T('HotkeyStatus'))}</span>` : ''}</div>
+      <div class="filters card overlay-opts">${check('OverlayEnabled', 'Superposition en jeu')}${check('OverlayEconome', 'Économe')}
+        ${check('OverlayGroups', 'Groupes de la map')}${check('OverlayRotation', 'Ordre de jeu')}
+        <label class="volume">Opacité<input type="range" data-set="OverlayOpacity" data-fk="OverlayOpacity" min="${S.OverlayOpacity?.min ?? 40}"
+          max="${S.OverlayOpacity?.max ?? 100}" step="1" value="${S.OverlayOpacity?.val ?? 92}"
+          style="--p:${(((S.OverlayOpacity?.val ?? 92) - 40) / 60 * 100).toFixed(0)}%"><span class="muted">${esc(T('OverlayOpacityText'))}</span></label>
+        ${btn('OverlayMove', 'Déplacer', 'small')}</div>
       <div class="filters"><span class="lbl">Notifier</span>${check('NotifyFight', 'Début de combat')}${check('NotifyTurn', 'Début de votre tour')}
         ${check('NotifyExchange', "Demande d'échange")}${check('NotifyParty', 'Invitation de groupe')}
         <span class="lbl">par</span>${check('NotifyToast', 'Bulle')}${check('NotifyFlash', 'Clignotement')}${check('NotifySound', 'Son')}</div>
@@ -532,7 +539,7 @@ document.addEventListener('input', e => {
   }
   if (!el.dataset?.set || el.type === 'checkbox' || el.tagName === 'SELECT') return;
   if (el.type === 'range') {
-    el.style.setProperty('--p', el.value + '%');
+    el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100) + '%');
     clearTimeout(timers[el.dataset.set]);
     timers[el.dataset.set] = setTimeout(() => post({ type: 'set', name: el.dataset.set, value: +el.value }), 120);
     return;
@@ -546,7 +553,10 @@ document.addEventListener('change', e => {
   if (!el.dataset?.set) return;
   if (el.type === 'checkbox') post({ type: 'set', name: el.dataset.set, value: el.checked });
   // Volume relâché : nouvelle valeur, puis le son pour l'entendre
-  else if (el.type === 'range') { post({ type: 'set', name: el.dataset.set, value: +el.value }); post({ type: 'click', name: 'HuntTestSound' }); }
+  else if (el.type === 'range') {
+    post({ type: 'set', name: el.dataset.set, value: +el.value });
+    if (el.dataset.set === 'HuntVolume') post({ type: 'click', name: 'HuntTestSound' });
+  }
   else if (el.tagName === 'SELECT') post({ type: 'set', name: el.dataset.set, value: +el.value });
 });
 

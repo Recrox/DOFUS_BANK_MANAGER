@@ -232,6 +232,8 @@ L'onglet liste les fenêtres Dofus Retro ouvertes (le personnage est lu dans le 
 - **Exclure** sort un personnage de la rotation (ex. un compte métier) ; le choix est retenu.
 - **Notifications** (chacune activable) : début de combat, début de votre tour, demande d'échange, invitation de groupe. Elles prennent la forme d'une **bulle** en bas à droite (elle ne prend pas le focus ; un clic affiche la fenêtre concernée), d'un **clignotement** dans la barre des tâches et d'un **son** (même volume que l'alerte archi-monstre). Rien n'est notifié pour la fenêtre déjà au premier plan.
 
+- **Superposition en jeu** (case à cocher, désactivée par défaut) : une petite fenêtre au-dessus du jeu affiche le personnage (niveau, PP, sagesse), l'**Économe**, les **groupes de la map** (les 3 plus forts, avec XP et drops estimés, archi-monstre encadré de rouge) et l'**ordre de jeu**. Chaque bloc s'active séparément, l'opacité se règle. Elle n'apparaît que quand une fenêtre de jeu est au premier plan et laisse passer les clics vers le jeu ; **Déplacer** permet de la faire glisser à sa place, puis **Verrouiller**. C'est une fenêtre de l'application posée par-dessus : rien n'est injecté ni dessiné dans le client (règle 2).
+
 Comme le reste, l'onglet ne joue pas à votre place : il ne fait qu'afficher une fenêtre quand vous le demandez (règle 3).
 
 ### Onglet FM (forgemagie)

@@ -23,6 +23,15 @@ public sealed class OrganizerSettings
     public bool FlashTaskbar { get; set; } = true;
     public bool PlaySound { get; set; } = true;
 
+    /// <summary>Superposition en jeu : activée, blocs affichés, opacité et position (null : en haut à droite).</summary>
+    public bool OverlayEnabled { get; set; }
+    public bool OverlayEconome { get; set; } = true;
+    public bool OverlayGroups { get; set; } = true;
+    public bool OverlayRotation { get; set; } = true;
+    public double OverlayOpacity { get; set; } = 0.92;
+    public double? OverlayLeft { get; set; }
+    public double? OverlayTop { get; set; }
+
     static string Path => System.IO.Path.Combine(GameData.AppDir, "organizer.json");
 
     public static OrganizerSettings Load()
