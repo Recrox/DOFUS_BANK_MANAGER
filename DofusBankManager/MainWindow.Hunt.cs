@@ -169,6 +169,9 @@ public partial class MainWindow
             UpdateHuntCharacters();
 
         var me = _hunt.Shown;
+        // Mode auto : la liste montre le personnage suivi (celui qui joue ou qui vient de changer de map)
+        if (HuntCharacterBox.Items.Count > 0 && HuntCharacterBox.Items[0] is ComboBoxItem auto)
+            auto.Content = me != null && _hunt.Pinned == null ? $"Auto · {CharacterLabel(me)}" : "Fenêtre active (auto)";
         int wisdom = me?.Wisdom ?? 0;
         HuntLevel.Text = me?.Level?.ToString() ?? "?";
         HuntGroupLevel.Text = me?.GroupLevel?.ToString() ?? "?";
@@ -268,12 +271,14 @@ public partial class MainWindow
         }
         var used = me.UsedSpells.ToHashSet();
         var twice = me.UsedSpells.GroupBy(s => s).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
-        var spells = _hunt!.SpellsOf(me).Concat(me.UsedSpells).Distinct().ToList();
+        // L'arme (corps-à-corps) compte comme un sort : une seule attaque par combat
+        var spells = _hunt!.SpellsOf(me).Prepend(HuntTracker.Weapon).Concat(me.UsedSpells).Distinct().ToList();
         EconomeSpells.ItemsSource = spells.Select(id => new EconomeSpell(id,
-            _data!.Spells.GetValueOrDefault(id) is { Length: > 0 } n ? n : $"Sort {id}",
+            id == HuntTracker.Weapon ? "Arme (corps-à-corps)"
+            : _data!.Spells.GetValueOrDefault(id) is { Length: > 0 } n ? n : $"Sort {id}",
             twice.Contains(id) ? "Lancé 2 fois !" : used.Contains(id) ? "Déjà lancé" : "Disponible",
             twice.Contains(id) ? -1 : used.Contains(id) ? 0 : 1,
-            _data.SpellLooks.GetValueOrDefault(id))).ToList();
+            _data!.SpellLooks.GetValueOrDefault(id))).ToList();
 
         int left = spells.Count(id => !used.Contains(id));
         EconomeStatus.Text = spells.Count == 0

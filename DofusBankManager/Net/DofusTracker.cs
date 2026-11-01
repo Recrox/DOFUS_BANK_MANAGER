@@ -43,7 +43,8 @@ public sealed record OwnedItem(int TemplateId, int Quantity, string Effects = ""
 ///   As…                           caractéristiques du personnage (sagesse, prospection)
 ///   GE…                           fin de combat : seule la ligne du personnage (XP, kamas, drops) et les monstres sont lus
 ///   PM+…|PM~…|PM-id / PV          membres du groupe : seuls le niveau et la prospection sont lus
-///   SL… / GJK / GA;300;…          sorts du personnage, entrée en combat, sorts lancés (partie Économe)
+///   SL… / GJK / GA;300;… / GA;303;…   sorts du personnage, entrée en combat, sorts lancés et attaques à l'arme (partie Économe)
+///   GA300{sort};{case} / GA303{case}  envoyés par le client : action du personnage de cette fenêtre (son identifiant)
 ///   GTS{id}|…                     début du tour d'un combattant (multi-compte : affiche le personnage qui joue)
 /// </summary>
 public sealed class DofusTracker
@@ -182,7 +183,7 @@ public sealed class DofusTracker
         else if (msg.StartsWith("SL") && msg.Length > 2 && char.IsDigit(msg[2])) SpellList?.Invoke(msg[2..]);
         else if (msg.StartsWith("GJK")) FightJoined?.Invoke();
         else if (msg.StartsWith("GTS") && long.TryParse(msg[3..].Split('|')[0], out var fighter)) TurnStarted?.Invoke(fighter);
-        else if (msg.StartsWith("GA") && msg.Contains(';')) GameAction?.Invoke(msg[2..]);
+        else if (msg.StartsWith("GA") && (msg.Contains(';') || msg.StartsWith("GA303"))) GameAction?.Invoke(msg[2..]);
     }
 
     /// <summary>

@@ -438,18 +438,43 @@ public sealed class HuntTracker
         Changed?.Invoke();
     }
 
+    /// <summary>Économe : l'arme (corps-à-corps) compte comme un sort, sous l'identifiant 0 (sort « arme » du fichier de langue).</summary>
+    public const int Weapon = 0;
+
+    /// <summary>Dernière action demandée par chaque fenêtre (clé : connexion serveur -> client), en attente de la réponse du serveur.</summary>
+    readonly Dictionary<string, (int Spell, DateTime Time)> _ownActions = new();
+
+    /// <summary>"ip:port > ip:port" -> sens inverse (même fenêtre de jeu, autre direction).</summary>
+    static string Reverse(string stream) => stream.Split(" > ") is [var a, var b] ? $"{b} > {a}" : stream;
+
     /// <summary>
-    /// Action de combat : "id;type;acteur;paramètres". Type 300 = sort lancé, 302 = échec critique (le sort est quand même
-    /// utilisé) ; le premier paramètre est le sort. Seuls les sorts du personnage sont retenus.
+    /// Action de combat. Reçue du serveur : "id;type;acteur;paramètres", type 300 = sort lancé, 302 = échec critique
+    /// (le sort est quand même utilisé), le premier paramètre étant le sort ; 303 = attaque à l'arme. Seules les actions
+    /// du personnage sont retenues. Envoyée par le client : "300{sort};{case}" ou "303{case}" : c'est le tour du
+    /// personnage de cette fenêtre, et la réponse du serveur donne son identifiant (appli lancée après la connexion).
     /// </summary>
     public void OnGameAction(string body)
     {
         var f = body.Split(';');
-        if (f.Length < 4 || f[1] is not ("300" or "302") || !long.TryParse(f[2], out var actor)
-            || !int.TryParse(f[3].Split(',')[0], out var spell)) return;
+        if (f.Length <= 2)
+        {
+            if (f[0].StartsWith("300") && int.TryParse(f[0].AsSpan(3), out var asked)) OnOwnAction(asked);
+            else if (f.Length == 1 && f[0].StartsWith("303")) OnOwnAction(Weapon);
+            return;
+        }
+        if (f.Length < 4 || !long.TryParse(f[2], out var actor)) return;
+        int spell;
+        if (f[1] == "303") spell = Weapon;
+        else if (f[1] is not ("300" or "302") || !int.TryParse(f[3].Split(',')[0], out spell)) return;
         var c = Current;
-        // Personnage inconnu (appli lancée en jeu) : on garde les sorts qu'il connaît, faute de mieux
-        bool mine = c.Id != 0 ? actor == c.Id : SpellsOf(c).Contains(spell);
+        // Réponse à l'action demandée par cette fenêtre : l'acteur est son personnage
+        if (_ownActions.TryGetValue(Stream, out var own) && own.Spell == spell && DateTime.Now - own.Time < TimeSpan.FromSeconds(10))
+        {
+            _ownActions.Remove(Stream);
+            if (c.Id == 0) c.Id = actor;
+        }
+        // Personnage inconnu (aucune action demandée encore) : on garde les sorts qu'il connaît, faute de mieux
+        bool mine = c.Id != 0 ? actor == c.Id : spell != Weapon && SpellsOf(c).Contains(spell);
         if (!mine) return;
         c.InFight = true;
         c.UsedSpells.Add(spell);
@@ -467,6 +492,21 @@ public sealed class HuntTracker
         c.InFight = true;
         c.LastMove = DateTime.Now;
         if (Pinned != null) Pinned = c.Stream;
+        Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// Le client de cette fenêtre lance un sort ou attaque : c'est son tour, son personnage devient le personnage affiché.
+    /// Le message est reçu sur la connexion client -> serveur ; le personnage est suivi sur la connexion inverse.
+    /// </summary>
+    void OnOwnAction(int spell)
+    {
+        var stream = Reverse(Stream);
+        _ownActions[stream] = (spell, DateTime.Now);
+        if (!_characters.TryGetValue(stream, out var c)) return;
+        c.InFight = true;
+        c.LastMove = DateTime.Now;
+        if (Pinned != null) Pinned = stream;
         Changed?.Invoke();
     }
 
