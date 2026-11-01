@@ -47,6 +47,19 @@ C'est tout : le workflow [release.yml](.github/workflows/release.yml) construit 
 
 Changez au moins le 3e chiffre (`1.2.0` → `1.2.1`) : Windows Installer ignore le 4e.
 
+#### Quel chiffre augmenter ? (`MAJEUR.MINEUR.CORRECTIF`)
+
+| Changement | Chiffre | Exemple |
+|---|---|---|
+| **Incompatible** : données sauvegardées (`banks/`, `fm.json`, `hdv.json`…) plus lisibles par l'ancienne version, protocole du serveur de partage modifié (les anciennes versions ne peuvent plus synchroniser), fonctionnalité supprimée, nouveau prérequis à installer | **MAJEUR** | `1.4.2` → `2.0.0` |
+| **Nouvelle fonctionnalité** compatible : nouvel onglet, filtre, colonne, bouton, option, nouvelle donnée affichée | **MINEUR** | `1.4.2` → `1.5.0` |
+| **Correction** sans nouvelle fonctionnalité : bug, affichage, texte, performance, documentation livrée avec l'appli | **CORRECTIF** | `1.4.2` → `1.4.3` |
+
+- Augmenter un chiffre **remet les suivants à 0** (`1.4.2` → `1.5.0`, jamais `1.5.2`).
+- Plusieurs changements dans une même version : on prend **le plus important** (une fonctionnalité + un correctif = MINEUR).
+- On ne change la version **qu'au moment de publier**, une seule fois par publication ; les commits intermédiaires gardent la version en cours.
+- Un changement qui ne touche ni l'application ni l'installateur (ex. `server/`, README seul) ne demande pas de nouvelle version de l'application.
+
 Les applications déjà installées compareront leur version au tag de la dernière Release et afficheront le bandeau de mise à jour. Ne changez jamais l'`UpgradeCode` de [installer/Package.wxs](installer/Package.wxs) : c'est lui qui permet au nouvel installateur de remplacer l'ancien.
 
 ## Lancement (développement)

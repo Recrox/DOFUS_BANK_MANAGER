@@ -13,6 +13,8 @@ public sealed record RecipeRow(Recipe Recipe, string Name, int Level, string Typ
     int Craftable, int MissingKinds, string MissingText, bool UsesOwned)
 {
     public int Index { get; init; }
+    /// <summary>Nombre de cases de la recette (ingrédients différents).</summary>
+    public int Slots => Recipe.Ingredients.Count;
 }
 
 public sealed record IngredientRow(int ItemId, string Name, string Ratio, Brush Brush, string Note);
@@ -60,7 +62,11 @@ public partial class MainWindow : Window
         _sniffer.StreamClassified += OnStreamClassified;
         _tracker.Log += m => Ui(() => AddLog(m));
         _tracker.BankChanged += () => Ui(Refresh);
-        _tracker.InventoryChanged += () => Ui(() => { if (IncludeInventory.IsChecked == true) Refresh(); });
+        _tracker.InventoryChanged += () => Ui(() =>
+        {
+            UpdateInventoryHint();
+            if (IncludeInventory.IsChecked == true) Refresh();
+        });
 
         Loaded += async (_, _) => await InitAsync();
         Closed += (_, _) => { _sniffer.Dispose(); ThemeManager.Changed -= OnThemeChanged; };
@@ -275,9 +281,23 @@ public partial class MainWindow : Window
         foreach (var j in _data.JobNames) JobFilter.Items.Add(j);
         JobFilter.SelectedIndex = 0;
 
+        // Un bouton par nombre de cases existant dans le jeu (choix multiple)
+        foreach (var n in _data.Recipes.Select(r => r.Ingredients.Count).Distinct().Order())
+        {
+            var toggle = new System.Windows.Controls.Primitives.ToggleButton
+            {
+                Content = n.ToString(), Tag = n, Style = (Style)FindResource("PillToggle"),
+                ToolTip = $"Recettes à {n} case(s)",
+            };
+            toggle.Checked += Filters_Changed;
+            toggle.Unchecked += Filters_Changed;
+            SlotFilters.Children.Add(toggle);
+        }
+
         _ready = true;
         _tracker.LoadLatest();
         Refresh();
+        UpdateInventoryHint();
 
         if (_isAdmin) StartCapture();
     }
@@ -427,6 +447,9 @@ public partial class MainWindow : Window
         };
         if (job != null && job != AllJobs) q = q.Where(r => r.Recipe.Jobs.Contains(job));
         q = q.Where(r => r.Level >= min && r.Level <= max);
+        var slots = SlotFilters.Children.OfType<System.Windows.Controls.Primitives.ToggleButton>()
+            .Where(t => t.IsChecked == true).Select(t => (int)t.Tag).ToHashSet();
+        if (slots.Count > 0) q = q.Where(r => slots.Contains(r.Slots));
         if (search.Length > 0)
             q = q.Where(r => Contains(r.Name, search) || Contains(r.Type, search)
                 || r.Recipe.Ingredients.Any(i => Contains(_data!.GetItem(i.ItemId).Name, search)));
@@ -612,8 +635,26 @@ public partial class MainWindow : Window
     void Filters_Changed(object sender, RoutedEventArgs e)
     {
         if (!_ready) return;
-        if (sender == IncludeInventory) Refresh();
+        if (sender == IncludeInventory) { UpdateInventoryHint(); Refresh(); }
         else ApplyRecipeFilters();
+    }
+
+    /// <summary>Indique à côté de « Inclure l'inventaire » si l'inventaire est réellement connu.</summary>
+    void UpdateInventoryHint()
+    {
+        int count = _tracker.State.Inventory.Count;
+        if (_tracker.InventoryComplete)
+        {
+            InventoryHint.Text = $"({count} objet(s) en inventaire)";
+            InventoryHint.Foreground = (Brush)FindResource("TextMuted");
+        }
+        else
+        {
+            InventoryHint.Text = IncludeInventory.IsChecked == true
+                ? "Inventaire inconnu : l'application doit être lancée avant de vous connecter à votre personnage. Reconnectez-vous (ou changez de personnage et revenez)."
+                : "";
+            InventoryHint.Foreground = (Brush)FindResource("Warning");
+        }
     }
 
     void BankSearch_TextChanged(object sender, TextChangedEventArgs e) => ApplyBankFilter();

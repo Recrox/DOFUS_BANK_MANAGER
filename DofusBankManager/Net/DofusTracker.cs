@@ -44,6 +44,12 @@ public sealed class DofusTracker
 
     public bool InCraft => _exchangeType == CraftExchangeType;
 
+    /// <summary>
+    /// Vrai une fois l'inventaire complet reçu (message ASK, envoyé seulement à la sélection du personnage).
+    /// Si l'application démarre en cours de partie, l'inventaire n'est connu qu'en partie.
+    /// </summary>
+    public bool InventoryComplete { get; private set; }
+
     public event Action? BankChanged;
     public event Action? InventoryChanged;
     public event Action<string>? Log;
@@ -166,6 +172,7 @@ public sealed class DofusTracker
         var items = parts.LastOrDefault(p => p.Contains('~')) ?? "";
         foreach (var s in items.Split(';', StringSplitOptions.RemoveEmptyEntries))
             if (TryParseHexItem(s, out var uid, out var item)) State.Inventory[uid] = item;
+        InventoryComplete = true;
         Log?.Invoke($"Personnage détecté : {name} ({State.Inventory.Count} objets en inventaire).");
         InventoryChanged?.Invoke();
     }

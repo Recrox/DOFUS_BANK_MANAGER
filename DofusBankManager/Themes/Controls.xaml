@@ -83,6 +83,39 @@
         </Setter>
     </Style>
 
+    <!-- Petit bouton à cocher (filtres à choix multiples) -->
+    <Style x:Key="PillToggle" TargetType="ToggleButton">
+        <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="MinWidth" Value="30"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="Margin" Value="0,0,4,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid>
+                        <Border x:Name="Bd" Background="{DynamicResource InputBg}" BorderBrush="{DynamicResource Border}"
+                                BorderThickness="1" CornerRadius="8"/>
+                        <Border x:Name="Shine" Background="White" Opacity="0" CornerRadius="8"/>
+                        <ContentPresenter Margin="9,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBorder}"/>
+                            <Setter TargetName="Shine" Property="Opacity" Value="0.08"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBorder}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource AccentText}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Champs de saisie -->
     <Style TargetType="TextBox">
         <Setter Property="Foreground" Value="{DynamicResource Text}"/>

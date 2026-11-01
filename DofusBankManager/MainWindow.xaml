@@ -149,8 +149,13 @@
                         <TextBox x:Name="LevelMin" Width="58" Text="1" TextChanged="Filters_Changed" Padding="4,0" HorizontalContentAlignment="Center"/>
                         <TextBlock Text="à" Style="{StaticResource Label}" Margin="6,0"/>
                         <TextBox x:Name="LevelMax" Width="58" Text="200" TextChanged="Filters_Changed" Padding="4,0" HorizontalContentAlignment="Center"/>
+                        <TextBlock Text="Cases" Style="{StaticResource Label}"
+                                   ToolTip="Nombre d'ingrédients différents de la recette. Cochez une ou plusieurs valeurs ; aucune = toutes."/>
+                        <StackPanel x:Name="SlotFilters" Orientation="Horizontal" VerticalAlignment="Center"/>
                         <CheckBox x:Name="IncludeInventory" Content="Inclure l'inventaire" VerticalAlignment="Center" Margin="14,0,0,0"
                                   Checked="Filters_Changed" Unchecked="Filters_Changed"/>
+                        <TextBlock x:Name="InventoryHint" VerticalAlignment="Center" Margin="8,0,0,0" TextWrapping="Wrap" MaxWidth="460"
+                                   Foreground="{DynamicResource TextMuted}"/>
                         <TextBlock x:Name="RecipeCount" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource TextMuted}"/>
                     </WrapPanel>
 
@@ -172,6 +177,7 @@
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
                             <DataGridTextColumn Header="Niv." Binding="{Binding Level}" Width="50"/>
+                            <DataGridTextColumn Header="Cases" Binding="{Binding Slots}" Width="58"/>
                             <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="130"/>
                             <DataGridTextColumn Header="Métier" Binding="{Binding Jobs}" Width="170"/>
                             <DataGridTextColumn Header="Faisable ×" Binding="{Binding Craftable}" Width="86">

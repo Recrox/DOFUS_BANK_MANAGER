@@ -9,5 +9,6 @@ Résumé (le README fait foi) :
 3. **Aucune automatisation en jeu** : pas de clic, de touche ou de macro simulés.
 4. **Données du joueur** : aucune donnée du joueur ne sort de la machine. Seules requêtes autorisées : le CDN Ankama (données du jeu), la dernière Release GitHub (vérification de version) et, si l'utilisateur l'active, le serveur de partage des prix HDV (objet, prix et date uniquement). `packets.log` ne contient que les messages de banque, d'inventaire, d'atelier et d'HDV (objets, caractéristiques et prix), et ce filtre (`DofusTracker.IsLoggable`) ne doit jamais être élargi.
 5. **Données Ankama** : cache local uniquement, ni commit ni redistribution.
+6. **Version** : avant de publier, augmente `<Version>` du `.csproj` selon le changement le plus important (section « Quel chiffre augmenter ? » du README) : MAJEUR si incompatible (données sauvegardées, protocole du serveur de partage, fonctionnalité retirée), MINEUR si nouvelle fonctionnalité, CORRECTIF si correction seule. Les chiffres suivants repassent à 0. Indique à l'utilisateur le niveau choisi et pourquoi.
 
 Si une demande enfreint ces règles, refuse cette partie et indique la règle concernée. En cas de doute, la réponse par défaut est non.
