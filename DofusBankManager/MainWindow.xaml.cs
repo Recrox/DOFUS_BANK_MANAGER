@@ -283,6 +283,8 @@ public partial class MainWindow : Window
             .GroupBy(id => id).ToDictionary(g => g.Key, g => g.Count());
         _recipeByResult = _data.Recipes.GroupBy(r => r.ResultId).ToDictionary(g => g.Key, g => g.First());
         InitBrisage(_data);
+        InitTtg(_data);
+        InitPda(_data);
 
         JobFilter.Items.Add(AllJobs);
         foreach (var j in _data.JobNames) JobFilter.Items.Add(j);
@@ -445,6 +447,8 @@ public partial class MainWindow : Window
         ApplyRecipeFilters();
         ApplyBankFilter();
         ApplyBrisageFilters();
+        ApplyTtgFilters();
+        ApplyPdaFilters();
     }
 
     void ApplyRecipeFilters()
@@ -469,6 +473,7 @@ public partial class MainWindow : Window
         var slots = SlotFilters.Children.OfType<System.Windows.Controls.Primitives.ToggleButton>()
             .Where(t => t.IsChecked == true).Select(t => (int)t.Tag).ToHashSet();
         if (slots.Count > 0) q = q.Where(r => slots.Contains(r.Slots));
+        if (_ingredientFilter is { } ingredient) q = q.Where(r => r.Recipe.Ingredients.Any(i => i.ItemId == ingredient));
         if (search.Length > 0)
             q = q.Where(r => Contains(r.Name, search) || Contains(r.Type, search)
                 || r.Recipe.Ingredients.Any(i => Contains(_data!.GetItem(i.ItemId).Name, search)));
@@ -538,6 +543,8 @@ public partial class MainWindow : Window
             ApplyHdvFilters();
             ApplyBankFilter();
             ApplyBrisageFilters();
+            ApplyTtgFilters();
+            ShowTtgDetail();
             RecipeGrid_SelectionChanged(RecipeGrid, null!); // coûts du détail de la recette
         };
         _tracker.HdvOffers += _hdv.OnOffers;
@@ -628,6 +635,8 @@ public partial class MainWindow : Window
         HdvDetailSub.Text = price == null
             ? "Pas encore de prix relevé : consultez cet objet dans un hôtel de vente en jeu."
             : $"Prix unitaire : {Kamas(price.UnitPrice)} · moyen : {Kamas(price.Average)}\n{price.Offers} lot(s) en vente au dernier relevé ({Ago(price.SeenAt)})";
+        HdvChart.Points = price?.History
+            .Where(s => s.UnitPrice != null).Select(s => (s.Time, s.UnitPrice!.Value)).ToList() ?? [];
         HdvHistory.ItemsSource = price?.History.AsEnumerable().Reverse()
             .Select(s => new HdvHistoryRow(s.Time.ToString("dd/MM/yyyy HH:mm"),
                 $"×1 {Kamas(s.Lot1)} · ×10 {Kamas(s.Lot10)} · ×100 {Kamas(s.Lot100)}"))
@@ -767,6 +776,50 @@ public partial class MainWindow : Window
     }
 
     void BankFilter_Changed(object sender, RoutedEventArgs e) => ApplyBankFilter();
+
+    // --- Banque -> recettes utilisant un objet ---
+
+    /// <summary>Objet dont on affiche les recettes qui l'utilisent (posé depuis l'onglet Banque).</summary>
+    int? _ingredientFilter;
+
+    void BankRecipes_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is BankRow row) ShowRecipesUsing(row.ItemId);
+    }
+
+    void BankGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        // Double-clic sur une ligne seulement (pas sur un en-tête de colonne)
+        if (ItemsControl.ContainerFromElement(BankGrid, e.OriginalSource as DependencyObject) is DataGridRow { Item: BankRow { UsedIn: > 0 } row })
+            ShowRecipesUsing(row.ItemId);
+    }
+
+    /// <summary>Ouvre l'onglet Recettes sur toutes les recettes qui utilisent cet objet, les autres filtres remis à zéro.</summary>
+    void ShowRecipesUsing(int itemId)
+    {
+        if (_data == null) return;
+        _ready = false; // une seule mise à jour à la fin
+        _ingredientFilter = itemId;
+        RecipeSearch.Text = "";
+        JobFilter.SelectedIndex = 0;
+        ModeFilter.SelectedIndex = 4; // Toutes les recettes (les faisables restent en haut)
+        LevelMin.Text = "1";
+        LevelMax.Text = "200";
+        foreach (var t in SlotFilters.Children.OfType<System.Windows.Controls.Primitives.ToggleButton>()) t.IsChecked = false;
+        _ready = true;
+
+        IngredientChipText.Text = $"Utilisant : {_data.GetItem(itemId).Name}";
+        IngredientChip.Visibility = Visibility.Visible;
+        ApplyRecipeFilters();
+        RecipesTab.IsSelected = true;
+    }
+
+    void IngredientChipClear_Click(object sender, RoutedEventArgs e)
+    {
+        _ingredientFilter = null;
+        IngredientChip.Visibility = Visibility.Collapsed;
+        ApplyRecipeFilters();
+    }
 
     // --- Utilitaires ---
 

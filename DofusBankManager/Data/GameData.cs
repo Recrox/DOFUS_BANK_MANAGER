@@ -14,6 +14,13 @@ public sealed record ItemInfo(int Id, string Name, int Level, int TypeId, string
 
 public sealed record Ingredient(int ItemId, int Quantity);
 
+/// <summary>Monstre (fichier de langue « monsters ») : sert à nommer le contenu des pierres d'âme.</summary>
+public sealed record MonsterInfo(int Id, string Name, int RaceId, string Race, int LevelMin, int LevelMax)
+{
+    /// <summary>Race « Archi-monstres » du fichier de langue (MR[78]).</summary>
+    public bool IsArchi => RaceId == 78;
+}
+
 public sealed record Recipe(int ResultId, IReadOnlyList<Ingredient> Ingredients, IReadOnlyList<string> Jobs);
 
 /// <summary>Effet d'objet. Characteristic est commune au bonus et au malus d'une même stat (ex. +Force / -Force).</summary>
@@ -27,7 +34,9 @@ public sealed class GameData
 {
     const string DefaultDataUrl = "https://dofusretro.cdn.ankama.com/static-data/612/";
     const string Lang = "fr";
-    static readonly string[] Files = ["items", "crafts", "skills", "jobs", "effects"];
+    static readonly string[] Files = ["items", "crafts", "skills", "jobs", "effects", "monsters"];
+    /// <summary>Fichiers dont l'absence n'empêche pas de démarrer (ajoutés après coup, peut-être pas encore en cache).</summary>
+    static readonly string[] Optional = ["monsters"];
 
     public static string AppDir { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DofusBankManager");
@@ -36,9 +45,13 @@ public sealed class GameData
     public List<Recipe> Recipes { get; } = new();
     public List<string> JobNames { get; } = new();
     public Dictionary<int, EffectInfo> Effects { get; } = new();
+    public Dictionary<int, MonsterInfo> Monsters { get; } = new();
 
     public ItemInfo GetItem(int id) =>
         Items.TryGetValue(id, out var it) ? it : new ItemInfo(id, $"Objet #{id}", 0, 0, "?", 0);
+
+    public MonsterInfo GetMonster(int id) =>
+        Monsters.TryGetValue(id, out var m) ? m : new MonsterInfo(id, $"Monstre #{id}", -1, "?", 0, 0);
 
     /// <summary>Libellé d'un effet avec sa valeur, ex. « +12 en force ».</summary>
     public string FormatEffect(int effectId, int value)
@@ -125,6 +138,27 @@ public sealed class GameData
                     jobsByResult.TryGetValue(rid, out var js) ? js.ToList() : ["?"]));
             }
 
+        // Monstres : M[id] = { n: nom, b: race, g1…g5: { l: niveau } }, MR[race] = { n: nom }
+        if (paths.TryGetValue("monsters", out var monstersPath))
+        {
+            var monsters = Avm1.Run(await File.ReadAllBytesAsync(monstersPath));
+            var races = new Dictionary<int, string>();
+            if (monsters.GetValueOrDefault("MR") is AsObject MR)
+                foreach (var (k, v) in MR)
+                    if (v is AsObject o && int.TryParse(k, out var rid)) races[rid] = Avm1.ToStr(o.GetValueOrDefault("n"));
+            if (monsters.GetValueOrDefault("M") is AsObject M)
+                foreach (var (k, v) in M)
+                {
+                    if (v is not AsObject o || !int.TryParse(k, out var mid)) continue;
+                    var levels = o.Where(kv => kv.Key.StartsWith('g') && kv.Value is AsObject)
+                        .Select(kv => (int)Avm1.ToNum(((AsObject)kv.Value!).GetValueOrDefault("l"))).ToList();
+                    int race = (int)Avm1.ToNum(o.GetValueOrDefault("b"));
+                    data.Monsters[mid] = new MonsterInfo(mid, Avm1.ToStr(o.GetValueOrDefault("n")),
+                        race, races.GetValueOrDefault(race, "?"),
+                        levels.DefaultIfEmpty().Min(), levels.DefaultIfEmpty().Max());
+                }
+        }
+
         data.JobNames.AddRange(data.Recipes.SelectMany(r => r.Jobs).Distinct().Order());
         log($"Données du jeu : {data.Items.Count} objets, {data.Recipes.Count} recettes.");
         return data;
@@ -165,6 +199,11 @@ public sealed class GameData
             var cached = Directory.GetFiles(dir, $"{f}_{Lang}_*.swf")
                 .OrderByDescending(p => int.TryParse(Path.GetFileNameWithoutExtension(p).Split('_').Last(), out var v) ? v : 0)
                 .FirstOrDefault();
+            if (cached == null && Optional.Contains(f))
+            {
+                log($"Fichier de langue '{f}' indisponible pour l'instant : fonctions associées limitées.");
+                continue;
+            }
             result[f] = cached ?? throw new FileNotFoundException(
                 $"Fichier de langue '{f}' introuvable (ni sur le CDN, ni en cache).");
         }

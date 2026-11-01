@@ -12,6 +12,10 @@ public sealed class HdvSnapshot
     public long? Lot10 { get; set; }
     public long? Lot100 { get; set; }
     public int Offers { get; set; }
+
+    /// <summary>Meilleur prix par unité de ce relevé (voir HdvPrice.UnitPrice).</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public double? UnitPrice => new double?[] { Lot1, Lot10 / 10.0, Lot100 / 100.0 }.Where(p => p > 0).Min();
 }
 
 public sealed class HdvPrice
@@ -67,6 +71,17 @@ public sealed class HdvTracker
         Load();
     }
 
+    /// <summary>
+    /// Pierres d'âme pleines (de monstre, de gardien de donjon, d'archi-monstre) : leur prix dépend des monstres
+    /// capturés, pas de l'objet. L'HDV les liste par monstre (EHl{monstre}|…) : ils sont relevés par PdaTracker.
+    /// </summary>
+    static readonly HashSet<int> SoulStoneTypes = [.. PdaTracker.StoneTypes];
+
+    /// <summary>Dernière liste d'offres ignorée (pierres d'âme) : son prix moyen (EHP) qui suit l'est aussi.</summary>
+    int? _ignoredListing;
+
+    bool IsSoulStone(int tpl) => SoulStoneTypes.Contains(_data.GetItem(tpl).TypeId);
+
     /// <summary>Offres d'un objet (message EHl sans le préfixe) : remplacent les offres connues.</summary>
     public void OnOffers(string body)
     {
@@ -79,8 +94,15 @@ public sealed class HdvTracker
             // "id;effets;×1;×10;×100;tpl" : les effets utilisent ',' et '#', jamais ';'
             var f = line.Split(';');
             if (f.Length < 5 || !long.TryParse(f[0], out var id)) continue;
+            // Pierres d'âme : la liste est faite par monstre, son identifiant n'est pas celui d'un objet
+            if (f.Length >= 6 && int.TryParse(f[5], out var offerTpl) && (offerTpl != tpl || IsSoulStone(offerTpl)))
+            {
+                _ignoredListing = tpl;
+                return;
+            }
             lines[id] = (ParsePrice(f[2]), ParsePrice(f[3]), ParsePrice(f[4]));
         }
+        _ignoredListing = null;
         foreach (var id in _offers.GetValueOrDefault(tpl)?.Keys ?? Enumerable.Empty<long>()) _templateOfOffer.Remove(id);
         foreach (var id in lines.Keys) _templateOfOffer[id] = tpl;
         _offers[tpl] = lines;
@@ -97,7 +119,7 @@ public sealed class HdvTracker
         var f = body[1..].Split('|');
         if (!long.TryParse(f[0], out var id)) return;
 
-        if (body[0] == '+' && f.Length >= 6 && int.TryParse(f[1], out var tpl))
+        if (body[0] == '+' && f.Length >= 6 && int.TryParse(f[1], out var tpl) && !IsSoulStone(tpl))
         {
             if (!_offers.TryGetValue(tpl, out var lines)) _offers[tpl] = lines = new();
             lines[id] = (ParsePrice(f[3]), ParsePrice(f[4]), ParsePrice(f[5]));
@@ -146,6 +168,7 @@ public sealed class HdvTracker
     {
         var parts = body.Split('|');
         if (parts.Length < 2 || !int.TryParse(parts[0], out var tpl) || ParsePrice(parts[1]) is not { } avg) return;
+        if (tpl == _ignoredListing || IsSoulStone(tpl)) return; // prix moyen d'un monstre (pierres d'âme)
         var price = Get(tpl);
         price.Average = avg;
         if (price.SeenAt == default) price.SeenAt = DateTime.Now;

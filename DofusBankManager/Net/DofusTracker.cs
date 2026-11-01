@@ -27,6 +27,7 @@ public sealed record OwnedItem(int TemplateId, int Quantity, string Effects = ""
 ///   EsKO+uid|qté|tpl|effets       objet ajouté/modifié dans la banque (décimal)
 ///   EsKO-uid                      objet retiré de la banque
 ///   EsKG123                       kamas en banque
+///   ECK4|id + EL{uid;qté;tpl;effets;prix}|…   boutique d'un marchand (cartes TTG relevées)
 ///   EV                            fin de l'échange
 ///   OAKO...  / OR uid / OQ uid|qté   modifications de l'inventaire
 ///   OCO...                        objet de l'inventaire modifié (nouvelles caractéristiques, ex. après une rune)
@@ -38,6 +39,8 @@ public sealed class DofusTracker
 {
     const int BankExchangeType = 5;
     const int CraftExchangeType = 3;
+    /// <summary>Boutique d'un joueur en mode marchand.</summary>
+    const int ShopExchangeType = 4;
     int _exchangeType = -1;
 
     public Snapshot State { get; private set; } = new();
@@ -74,6 +77,8 @@ public sealed class DofusTracker
     public event Action<string>? HdvAverage;
     /// <summary>Offre ajoutée/retirée pendant la consultation de l'HDV (message EHm sans le préfixe).</summary>
     public event Action<string>? HdvOfferMove;
+    /// <summary>Contenu de la boutique d'un marchand consultée (message EL sans le préfixe).</summary>
+    public event Action<string>? ShopList;
 
     /// <summary>Codes des messages de forgemagie (fichier lang : INFOS_117, INFOS_183, INFOS_194).</summary>
     public static readonly int[] FmInfoCodes = [117, 183, 194];
@@ -115,6 +120,7 @@ public sealed class DofusTracker
         else if (msg.StartsWith("ECK")) OnExchangeCreate(msg);
         else if (msg == "EV" || msg.StartsWith("EVa")) _exchangeType = -1;
         else if (msg.StartsWith("EL") && _exchangeType == BankExchangeType) OnBankList(msg[2..]);
+        else if (msg.StartsWith("EL") && _exchangeType == ShopExchangeType) ShopList?.Invoke(msg[2..]);
         else if (msg.StartsWith("EsK") && _exchangeType == BankExchangeType) OnBankMove(msg[3..]);
         else if (msg.StartsWith("OAKO")) OnInventoryAdd(msg[4..]);
         else if (msg.StartsWith("OCO")) OnInventoryAdd(msg[3..]);
