@@ -45,6 +45,10 @@ public partial class MainWindow
     {
         try
         {
+            // Le contrôle WebView2 ne s'initialise qu'une fois affiché : le conteneur doit être visible avant l'attente
+            // (sinon, au lancement avec l'interface HTML retenue, l'initialisation ne se terminait jamais)
+            WpfRoot.Visibility = Visibility.Collapsed;
+            WebHost.Visibility = Visibility.Visible;
             if (_web == null)
             {
                 var env = await CoreWebView2Environment.CreateAsync(null, System.IO.Path.Combine(GameData.AppDir, "WebView2"));
@@ -127,6 +131,8 @@ public partial class MainWindow
             }
             return (png, "image/png");
         }
+        // Carte : tuiles et icônes rendues depuis les fichiers du client installé (rien n'est livré avec l'application)
+        if (path.StartsWith("carte/")) return (CarteWebFile(path), "image/png");
         if (Regex.IsMatch(path, @"^fonts/PlusJakartaSans-\w+\.ttf$"))
         {
             using var font = Application.GetResourceStream(new Uri("pack://application:,,,/Fonts/" + path[6..]))?.Stream;
@@ -188,6 +194,12 @@ public partial class MainWindow
                 case "ui":
                     ShowWpfUi();
                     return;
+                case "theme":
+                    ThemeManager.Apply(m.GetProperty("value").GetString() ?? ThemeManager.Crepuscule);
+                    break;
+                case "style":
+                    ThemeManager.ApplyStyle(m.GetProperty("value").GetString() ?? ThemeManager.Classique);
+                    break;
                 case "set":
                     var value = m.GetProperty("value");
                     switch (el)
@@ -248,10 +260,22 @@ public partial class MainWindow
     {
         if (_web?.CoreWebView2 == null || WebHost.Visibility != Visibility.Visible) return;
         var changed = new StringBuilder();
-        foreach (var name in _webWatched.Append("_theme"))
+        // La carte (données lourdes) n'est envoyée que si la page affiche l'onglet Carte
+        var extra = MainTabs.SelectedItem == CarteTab ? new[] { "_theme", "_style", "_carte", "_cartePos" } : ["_theme", "_style"];
+        foreach (var name in _webWatched.Concat(extra))
         {
             string json;
-            try { json = name == "_theme" ? JsonSerializer.Serialize(ThemeManager.Current) : ElementJson(name); }
+            try
+            {
+                json = name switch
+                {
+                    "_theme" => JsonSerializer.Serialize(ThemeManager.Current),
+                    "_style" => JsonSerializer.Serialize(ThemeManager.Style),
+                    "_carte" => CarteWebJson(),
+                    "_cartePos" => CartePlayersJson(),
+                    _ => ElementJson(name),
+                };
+            }
             catch (Exception ex) { AddLog($"Interface HTML : {name} ignoré ({ex.Message})."); continue; }
             if (_webSent.TryGetValue(name, out var old) && old == json) continue;
             _webSent[name] = json;

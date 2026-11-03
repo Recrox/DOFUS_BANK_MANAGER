@@ -138,7 +138,11 @@ public partial class MainWindow
 
     void CarteSearch_Changed(object sender, TextChangedEventArgs e) => ApplyCarteFilters();
 
-    void CarteGrid_Changed(object sender, RoutedEventArgs e) => CarteMap.ShowGrid = CarteShowGrid.IsChecked == true;
+    void CarteGrid_Changed(object sender, RoutedEventArgs e)
+    {
+        // Appelé dès le chargement de la fenêtre (case cochée dans le XAML), avant la création de la carte
+        if (CarteMap != null) CarteMap.ShowGrid = CarteShowGrid.IsChecked == true;
+    }
 
     void ApplyCarteFilters()
     {
@@ -240,6 +244,94 @@ public partial class MainWindow
             ShowCarteCell(m.X, m.Y);
         }
         else CarteHover.Text = "Position inconnue : changez de map en jeu pour que l'application la voie.";
+    }
+
+    // --- Interface HTML : la page dessine la carte avec les tuiles et icônes servies par l'application ---
+
+    readonly Dictionary<int, List<MapTile>> _carteTiles = new();
+    readonly Dictionary<string, byte[]?> _carteWebFiles = new();
+    string? _carteWebJson;
+
+    List<MapTile> CarteTiles(int superArea)
+    {
+        if (!_carteTiles.TryGetValue(superArea, out var tiles))
+            _carteTiles[superArea] = tiles = WorldMap.LoadTiles(superArea);
+        return tiles;
+    }
+
+    /// <summary>
+    /// Données de la carte pour la page (calculées une fois) : tuiles présentes, catégories, points d'intérêt et zone
+    /// de chaque case, pour le continent (0) et Incarnam (3).
+    /// </summary>
+    string CarteWebJson()
+    {
+        if (_carteWebJson != null || _data == null) return _carteWebJson ?? "null";
+        int[] areas = [0, 3];
+        var cells = areas.ToDictionary(sa => sa.ToString(), sa => _data.Maps.Values.Where(m => m.SuperArea == sa)
+            .GroupBy(m => $"{m.X},{m.Y}")
+            .ToDictionary(g => g.Key, g =>
+            {
+                var m = g.GroupBy(x => x.SubArea).MaxBy(s => s.Count())!.First();
+                return m.Area + (m.SubArea.Length > 0 && m.SubArea != m.Area ? $" ({m.SubArea})" : "");
+            }));
+        var cats = new List<object> { new { k = ZaapFilter, n = "Zaaps", i = Icon(_data.Hints.FirstOrDefault(h => CarteFilterOf(h) == ZaapFilter)) } };
+        cats.AddRange(_data.HintCategories.OrderBy(c => c.Key)
+            .Select(c => new { k = c.Key, n = c.Value, i = Icon(_data.Hints.FirstOrDefault(h => CarteFilterOf(h) == c.Key)) }));
+        _carteWebJson = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            tiles = areas.ToDictionary(sa => sa.ToString(), sa => CarteTiles(sa)
+                .Select(t => new[] { (int)(t.Bounds.X / t.Bounds.Width), (int)(t.Bounds.Y / t.Bounds.Height) })),
+            cats,
+            shown = _carteShown,
+            hints = _data.Hints.Where(h => areas.Contains(h.Map.SuperArea)).Select(h => new
+            {
+                n = h.Name, k = CarteFilterOf(h), i = Icon(h), x = h.Map.X, y = h.Map.Y, sa = h.Map.SuperArea, l = h.Map.Label,
+            }),
+            cells,
+        });
+        return _carteWebJson;
+
+        static string? Icon(MapHint? h) => h == null ? null : h.Category == GameData.HouseCategory ? "carte/house.png" : $"carte/hint/{h.Gfx}.png";
+    }
+
+    /// <summary>Position de vos personnages pour la page : nom, super-zone, coordonnées, personnage affiché.</summary>
+    string CartePlayersJson()
+    {
+        if (_data == null || _hunt == null) return "[]";
+        var shown = _hunt.Shown;
+        return System.Text.Json.JsonSerializer.Serialize(_hunt.Characters
+            .Select(c => (c, ok: int.TryParse(c.MapId, out var id) && _data.Maps.ContainsKey(id), id))
+            .Where(x => x.ok)
+            .Select(x => (x.c, m: _data.Maps[x.id]))
+            .Select(x => new { n = x.c.Label, sa = x.m.SuperArea, x = x.m.X, y = x.m.Y, l = x.m.Label, me = x.c == shown }));
+    }
+
+    /// <summary>Fichiers de la carte : carte/tile/{super-zone}/{x}_{y}.png, carte/hint/{gfx}.png, carte/house.png.</summary>
+    byte[]? CarteWebFile(string path)
+    {
+        if (_carteWebFiles.TryGetValue(path, out var png)) return png;
+        var tile = System.Text.RegularExpressions.Regex.Match(path, @"^carte/tile/(\d+)/(-?\d+)_(-?\d+)\.png$");
+        var hint = System.Text.RegularExpressions.Regex.Match(path, @"^carte/hint/(\d+)\.png$");
+        if (tile.Success)
+        {
+            int sa = int.Parse(tile.Groups[1].Value), x = int.Parse(tile.Groups[2].Value), y = int.Parse(tile.Groups[3].Value);
+            var t = CarteTiles(sa).FirstOrDefault(t => (int)(t.Bounds.X / t.Bounds.Width) == x && (int)(t.Bounds.Y / t.Bounds.Height) == y);
+            if (t != null)
+            {
+                var visual = new DrawingVisual();
+                using (var dc = visual.RenderOpen()) dc.DrawDrawing(t.Drawing);
+                var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)t.Bounds.Width, (int)t.Bounds.Height, 96, 96, PixelFormats.Pbgra32);
+                bitmap.Render(visual);
+                var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+                using var ms = new System.IO.MemoryStream();
+                encoder.Save(ms);
+                png = ms.ToArray();
+            }
+        }
+        else if (hint.Success) png = Png(WorldMap.HintIcon(int.Parse(hint.Groups[1].Value)), 48);
+        else if (path == "carte/house.png") png = Png(HouseIcon, 48);
+        return _carteWebFiles[path] = png;
     }
 
     void CarteFit_Click(object sender, RoutedEventArgs e) => CarteMap.Fit();
