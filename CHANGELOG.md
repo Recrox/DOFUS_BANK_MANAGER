@@ -2,6 +2,11 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.27.0 — 3 novembre 2026
+
+- **Mises à jour** : un clic sur « Mettre à jour » suffit. L'application télécharge la nouvelle version, l'installe sans assistant (rien à accepter), puis se rouvre d'elle-même sur ses nouveautés. Valable à partir de la mise à jour suivante.
+- **Mises à jour** : si l'installation échoue, l'ancienne version se rouvre et explique pourquoi.
+
 ## 1.26.0 — 3 novembre 2026
 
 - **Nouveautés** : un bouton en haut de l'application affiche ce journal des changements, version par version (interface classique et HTML).

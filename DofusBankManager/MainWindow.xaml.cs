@@ -119,6 +119,12 @@ public partial class MainWindow : Window
                 UpdateText.Text = "L'installateur n'est pas joint à cette version : téléchargez-le depuis la page GitHub.";
                 UpdateActionButton.Content = "Ouvrir la page";
             }
+            else if (UpdateChecker.CanUpdateSilently)
+            {
+                UpdateText.Text = "L'application télécharge la mise à jour, se ferme le temps de l'installer, puis se rouvre d'elle-même. "
+                    + "Rien à accepter ; vos banques et vos prix sont conservés.";
+                UpdateActionButton.Content = "Mettre à jour";
+            }
             UpdateBanner.Visibility = Visibility.Visible;
             AddLog($"Mise à jour disponible : {_update.Latest} ({_update.PageUrl}).");
         }
@@ -137,18 +143,7 @@ public partial class MainWindow : Window
         if (_update == null) return;
         if (_update.InstallerUrl == null) { UpdateNotes_Click(sender, e); return; }
 
-        if (_installerPath != null)
-        {
-            // L'installateur remplace l'application : elle doit être fermée pendant l'installation
-            try
-            {
-                UpdateChecker.StartInstaller(_installerPath);
-                AddLog($"Installation de la version {_update.Latest} lancée.");
-                Application.Current.Shutdown();
-            }
-            catch (Exception ex) { UpdateText.Text = "Impossible de lancer l'installateur : " + ex.Message; }
-            return;
-        }
+        if (_installerPath != null) { InstallUpdate(); return; }
 
         _download = new CancellationTokenSource();
         UpdateActionButton.IsEnabled = false;
@@ -164,10 +159,12 @@ public partial class MainWindow : Window
         {
             _installerPath = await UpdateChecker.DownloadAsync(_update, progress, _download.Token);
             UpdateProgressFill.Width = UpdateProgress.ActualWidth;
+            AddLog($"Installateur {_update.Latest} téléchargé : {_installerPath}");
+            if (UpdateChecker.CanUpdateSilently) { InstallUpdate(); return; }
+            // Application lancée hors installation (ex. dossier de développement) : l'assistant demande où installer
             UpdateText.Text = "Téléchargement terminé et vérifié. L'application se fermera pendant l'installation ; "
                 + "à la fin, laissez cochée « Lancer Dofus Bank Manager » pour la rouvrir.";
             UpdateActionButton.Content = "Installer maintenant";
-            AddLog($"Installateur {_update.Latest} téléchargé : {_installerPath}");
         }
         catch (OperationCanceledException)
         {
@@ -192,6 +189,51 @@ public partial class MainWindow : Window
     {
         try { UpdateChecker.OpenInBrowser(_update?.PageUrl ?? UpdateChecker.ReleasesPage); }
         catch (Exception ex) { AddLog("Ouverture du navigateur impossible : " + ex.Message); }
+    }
+
+    /// <summary>
+    /// Installe l'installateur téléchargé. Application installée : sans assistant, puis relance automatique
+    /// (UpdateChecker.StartSilentUpdate) ; sinon, l'assistant habituel. Dans les deux cas l'application se ferme.
+    /// </summary>
+    void InstallUpdate()
+    {
+        try
+        {
+            if (UpdateChecker.CanUpdateSilently)
+            {
+                UpdateText.Text = "Installation de la mise à jour… L'application va se fermer puis se rouvrir d'elle-même.";
+                UpdateChecker.StartSilentUpdate(_installerPath!);
+            }
+            else UpdateChecker.StartInstaller(_installerPath!);
+            AddLog($"Installation de la version {_update!.Latest} lancée.");
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex) { UpdateText.Text = "Impossible de lancer l'installation : " + ex.Message; }
+    }
+
+    /// <summary>Relancée après une mise à jour automatique : nouveautés si elle a réussi, explication sinon.</summary>
+    void ShowUpdateResult()
+    {
+        var arg = Environment.GetCommandLineArgs().FirstOrDefault(a => a.StartsWith(UpdateChecker.UpdateResultArg));
+        if (arg == null) return;
+        int.TryParse(arg[UpdateChecker.UpdateResultArg.Length..], out var code);
+        if (arg.Length > UpdateChecker.UpdateResultArg.Length && code is 0 or 3010)
+        {
+            AddLog($"Mise à jour installée : version {UpdateChecker.CurrentText}.");
+            UpdateChecker.CleanDownloads();
+            ShowChangelog();
+            return;
+        }
+        var reason = code switch
+        {
+            1602 => "La mise à jour a été annulée.",
+            1618 => "Une autre installation Windows était en cours : la mise à jour n'a pas pu se faire.",
+            _ => $"La mise à jour a échoué (code {code}). Détails : {UpdateChecker.UpdateLogPath}",
+        };
+        AddLog(reason);
+        MessageBox.Show(this, reason + "\n\nVous gardez la version " + UpdateChecker.CurrentText
+            + ". Réessayez depuis le bandeau de mise à jour, ou installez-la depuis la page GitHub.",
+            "Mise à jour", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     void Changelog_Click(object sender, RoutedEventArgs e) => ShowChangelog();
@@ -373,6 +415,7 @@ public partial class MainWindow : Window
         // Interface HTML choisie au lancement précédent
         if (ThemeManager.HtmlUi) _ = ShowWebUiAsync();
         _ = CheckUpdatesAsync();
+        _ = Dispatcher.BeginInvoke(ShowUpdateResult, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         try
         {
             AddLog("Chargement des données du jeu…");

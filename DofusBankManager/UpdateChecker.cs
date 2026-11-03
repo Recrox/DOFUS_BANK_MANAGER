@@ -134,6 +134,50 @@ public static class UpdateChecker
     public static void StartInstaller(string msiPath) =>
         Process.Start(new ProcessStartInfo("msiexec.exe", $"/i \"{msiPath}\"") { UseShellExecute = false });
 
+    /// <summary>Application installée par l'installateur (il pose LISEZMOI.md à côté de l'exe) : la mise à jour peut se faire sans assistant.</summary>
+    public static bool CanUpdateSilently => File.Exists(Path.Combine(AppContext.BaseDirectory, "LISEZMOI.md"));
+
+    /// <summary>Journal de Windows Installer de la dernière mise à jour automatique (diagnostic, sur ce PC).</summary>
+    public static string UpdateLogPath => Path.Combine(Path.GetTempPath(), "DofusBankManager", "update.log");
+
+    /// <summary>Argument passé à l'application relancée après une mise à jour automatique : code de retour de msiexec.</summary>
+    public const string UpdateResultArg = "--update-result=";
+
+    /// <summary>
+    /// Mise à jour sans assistant : un petit script attend la fermeture de l'application, installe la nouvelle version
+    /// (msiexec /passive : barre de progression seule, rien à accepter) dans le dossier actuel, puis relance l'application
+    /// avec le code de retour. L'application doit se fermer juste après l'appel.
+    /// </summary>
+    public static void StartSilentUpdate(string msiPath)
+    {
+        static string Quote(string s) => "'" + s.Replace("'", "''") + "'"; // chaîne PowerShell littérale
+        var exe = Environment.ProcessPath!;
+        var msiArgs = $"/i \"{msiPath}\" /passive /norestart INSTALLFOLDER=\"{Path.GetDirectoryName(exe)}\" /l*v \"{UpdateLogPath}\"";
+        var script = $"""
+            # Mise à jour de Dofus Bank Manager : attendre sa fermeture, installer la nouvelle version, la relancer.
+            Wait-Process -Id {Environment.ProcessId} -Timeout 60 -ErrorAction SilentlyContinue
+            $p = Start-Process msiexec.exe -ArgumentList {Quote(msiArgs)} -Wait -PassThru
+            Start-Process {Quote(exe)} -ArgumentList ('{UpdateResultArg}' + $p.ExitCode)
+            """;
+        var scriptPath = Path.Combine(Path.GetDirectoryName(msiPath)!, "update.ps1");
+        // Avec BOM : Windows PowerShell lirait sinon les chemins accentués en ANSI
+        File.WriteAllText(scriptPath, script, new System.Text.UTF8Encoding(true));
+        // Sans shell, le script hérite des droits de l'application (administrateur) : pas de nouvelle demande
+        Process.Start(new ProcessStartInfo("powershell.exe",
+            $"-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{scriptPath}\"") { UseShellExecute = false, CreateNoWindow = true });
+    }
+
+    /// <summary>Supprime les installateurs téléchargés, une fois la mise à jour faite.</summary>
+    public static void CleanDownloads()
+    {
+        try
+        {
+            foreach (var f in Directory.EnumerateFiles(Path.Combine(Path.GetTempPath(), "DofusBankManager"), "DofusBankManager-Setup-*"))
+                File.Delete(f);
+        }
+        catch { }
+    }
+
     /// <summary>
     /// Ouvre une page dans le navigateur. L'application tourne en administrateur :
     /// passer par l'explorateur évite d'ouvrir le navigateur avec les droits élevés.
