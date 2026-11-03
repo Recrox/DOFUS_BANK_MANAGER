@@ -225,8 +225,15 @@ public partial class MainWindow : Window
     {
         if (_fm == null || _data == null) return;
         _fmUpdating = true;
+        // Plusieurs exemplaires du même objet : ses caractéristiques et la dernière rune les distinguent
         var options = _fm.Items.Values.OrderByDescending(i => i.LastUsed)
-            .Select(i => new FmItemOption(i.Uid, $"{_data.GetItem(i.TemplateId).Name}  ·  {i.History.Count} rune(s)"))
+            .Select(i =>
+            {
+                var stats = string.Join(", ", _fm.ParseStats(i.Effects).Where(kv => kv.Value != 0).Take(3)
+                    .Select(kv => _fm.Describe(kv.Key, kv.Value)));
+                return new FmItemOption(i.Uid, $"{_data.GetItem(i.TemplateId).Name}  ·  {i.History.Count} rune(s)"
+                    + (stats.Length > 0 ? $"  ·  {stats}" : "") + $"  ·  {i.LastUsed:dd/MM HH:mm}");
+            })
             .ToList();
         FmItemCombo.ItemsSource = options;
         FmItemCombo.SelectedItem = options.FirstOrDefault(o => o.Uid == _fm.CurrentUid);

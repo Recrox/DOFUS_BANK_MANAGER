@@ -95,8 +95,16 @@ public sealed class FmTracker
     /// <summary>Objet en cours de modification dans l'atelier : modèle, uid et caractéristiques connues.</summary>
     (int Template, long Uid, string Effects)? _work;
 
-    /// <summary>Résultat annoncé par le jeu (message 117 ou 194) en attente de la nouvelle version de l'objet.</summary>
+    /// <summary>
+    /// Résultat annoncé par le jeu (message 117, 183 ou 194) en attente de la nouvelle version de l'objet. Le jeu peut
+    /// envoyer plusieurs messages pour un même passage (ex. 183 puis 194 dans la même seconde) : ils sont réunis.
+    /// </summary>
     (string Outcome, DateTime Time)? _pendingOutcome;
+    /// <summary>Messages plus rapprochés que ce délai : un seul passage.</summary>
+    static readonly TimeSpan MergeWindow = TimeSpan.FromSeconds(1.5);
+
+    /// <summary>Résultat le plus précis quand plusieurs messages décrivent le même passage : 194 > 117 > 183.</summary>
+    static int Priority(string outcome) => outcome switch { SuccesNeutre => 3, Echec => 2, EchecSansEffet => 1, _ => 0 };
     /// <summary>Dernier passage classé d'après les stats seules : un message du jeu peut encore le corriger.</summary>
     FmEvent? _awaitingMessage;
 
@@ -124,6 +132,10 @@ public sealed class FmTracker
             return;
         }
         _work = (templateId, uid, effects);
+
+        // Résultat annoncé pour un passage précédent (plus ancien que le délai de regroupement) : il est enregistré d'abord
+        if (_pendingOutcome is { } old && DateTime.Now - old.Time > MergeWindow && DateTime.Now - old.Time < RuneWindow)
+            FlushPending();
 
         var changes = Diff(work.Effects, effects);
         if (changes.Count == 0)
@@ -157,9 +169,10 @@ public sealed class FmTracker
             RuneTemplateId = DequeueRune(),
         };
 
-        if (_pendingOutcome is { } p && DateTime.Now - p.Time < RuneWindow)
+        // Le jeu a déjà annoncé le résultat (un « échec sans effet » ne change pas les stats : elles priment alors)
+        if (_pendingOutcome is { } p && DateTime.Now - p.Time < RuneWindow && p.Outcome != EchecSansEffet)
         {
-            ev.Outcome = p.Outcome; // le jeu a déjà annoncé le résultat
+            ev.Outcome = p.Outcome;
             _pendingOutcome = null;
             _awaitingMessage = null;
         }
@@ -169,6 +182,7 @@ public sealed class FmTracker
             // sur la même stat peuvent s'annuler) ; un message 117/194 qui suit corrigera.
             bool hasLoss = changes.Any(c => c.Delta < 0), hasGain = changes.Any(c => c.Delta > 0);
             ev.Outcome = hasGain && !hasLoss ? SuccesCritique : hasGain ? SuccesNeutre : hasLoss ? Echec : SuccesNeutre;
+            _pendingOutcome = null; // un « échec sans effet » annoncé était le même passage
             _awaitingMessage = ev;
         }
         AddEvent(item, ev);
@@ -177,21 +191,15 @@ public sealed class FmTracker
     /// <summary>Message de résultat du jeu : 117 = échec avec perte, 183 = échec sans effet, 194 = succès neutre.</summary>
     public void OnCraftInfo(int code)
     {
-        if (code == 183)
-        {
-            // L'objet n'est pas recréé : le passage n'est connu que par ce message
-            if (WorkItem() is not { } item) return;
-            AddEvent(item, new FmEvent { Time = DateTime.Now, Outcome = EchecSansEffet, RuneTemplateId = DequeueRune() });
-            return;
-        }
-
-        string? outcome = code switch { 117 => Echec, 194 => SuccesNeutre, _ => null };
+        string? outcome = code switch { 117 => Echec, 183 => EchecSansEffet, 194 => SuccesNeutre, _ => null };
         if (outcome == null) return;
 
         // Message après la nouvelle version de l'objet : on corrige le passage déjà enregistré
+        // (un 183 n'apporte rien de plus : l'objet a changé, ce n'est pas un échec sans effet)
         if (_awaitingMessage is { } ev && DateTime.Now - ev.Time < RuneWindow
             && CurrentUid is { } uid && Items.TryGetValue(uid, out var current) && current.History.LastOrDefault() == ev)
         {
+            if (outcome == EchecSansEffet) return;
             _awaitingMessage = null;
             ev.Outcome = outcome;
             current.Reliquat = ev.ReliquatBefore;
@@ -201,7 +209,26 @@ public sealed class FmTracker
             Changed?.Invoke();
             return;
         }
-        _pendingOutcome = (outcome, DateTime.Now); // message avant la nouvelle version de l'objet
+
+        // Autre message du même passage : on garde le résultat le plus précis
+        if (_pendingOutcome is { } p && DateTime.Now - p.Time <= MergeWindow)
+        {
+            if (Priority(outcome) > Priority(p.Outcome)) _pendingOutcome = (outcome, p.Time);
+            return;
+        }
+        // Résultat d'un passage précédent jamais complété par l'objet : enregistré avant le nouveau
+        if (_pendingOutcome != null) FlushPending();
+        // Message avant la nouvelle version de l'objet (ou seul signe du passage pour un échec sans effet)
+        _pendingOutcome = (outcome, DateTime.Now);
+    }
+
+    /// <summary>Enregistre le résultat annoncé en attente comme un passage, avec la rune consommée à ce moment-là.</summary>
+    void FlushPending()
+    {
+        if (_pendingOutcome is not { } p) return;
+        _pendingOutcome = null;
+        if (WorkItem() is { } item)
+            AddEvent(item, new FmEvent { Time = p.Time, Outcome = p.Outcome, RuneTemplateId = DequeueRune(p.Time) });
     }
 
     /// <summary>Fiche de l'objet posé dans l'atelier, créée au besoin.</summary>
@@ -282,12 +309,9 @@ public sealed class FmTracker
     {
         // D'abord le résultat en attente : sa rune a été consommée au moment du message, il y a plus de
         // RuneWindow, et serait sinon oubliée juste avant
-        if (_pendingOutcome is { } p && DateTime.Now - p.Time > RuneWindow)
-        {
-            _pendingOutcome = null;
-            if (WorkItem() is { } item)
-                AddEvent(item, new FmEvent { Time = p.Time, Outcome = p.Outcome, RuneTemplateId = DequeueRune(p.Time) });
-        }
+        // Échec sans effet : l'objet ne change pas, rien d'autre n'est attendu une fois les messages du passage réunis
+        if (_pendingOutcome is { } p && DateTime.Now - p.Time > (p.Outcome == EchecSansEffet ? MergeWindow : RuneWindow))
+            FlushPending();
         DropStaleRunes(DateTime.Now);
     }
 
