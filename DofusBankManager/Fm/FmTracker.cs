@@ -383,7 +383,7 @@ public sealed class FmTracker
             ? _data.FormatEffect(malus, -value)
             : _data.FormatEffect(stat, value);
 
-    // --- Poids des caractéristiques (modifiables dans fm_poids.json) ---
+    // --- Poids des caractéristiques (modifiables dans l'onglet FM, « Poids des stats » ; enregistrés dans fm_poids.json) ---
 
     /// <summary>Poids par point, indexés par effet « bonus ». Valeurs communautaires, à ajuster si besoin.</summary>
     static readonly Dictionary<int, double> DefaultWeights = new()
@@ -412,20 +412,69 @@ public sealed class FmTracker
         [240] = 2, [241] = 2, [242] = 2, [243] = 2, [244] = 2, // résistances fixes
     };
 
-    static Dictionary<int, double> LoadWeights()
+    /// <summary>Rune de forgemagie de chaque stat (la plus petite), pour son icône dans l'écran « Poids des stats ».</summary>
+    static readonly Dictionary<int, string> RuneOfStat = new()
+    {
+        [111] = "Rune Ga Pa", [128] = "Rune Ga Pme", [117] = "Rune Po", [182] = "Rune Invo",
+        [118] = "Rune Fo", [119] = "Rune Age", [123] = "Rune Cha", [126] = "Rune Ine", [125] = "Rune Vi", [124] = "Rune Sa",
+        [174] = "Rune Ini", [176] = "Rune Prospe", [158] = "Rune Pod", [112] = "Rune Do", [138] = "Rune Do Per",
+        [178] = "Rune So", [115] = "Rune Cri", [225] = "Rune Pi", [226] = "Rune Pi Per", [220] = "Rune Do Ren",
+        [210] = "Rune Ré Per Terre", [211] = "Rune Ré Per Eau", [212] = "Rune Ré Per Air", [213] = "Rune Ré Per Feu", [214] = "Rune Ré Per Neutre",
+        [240] = "Rune Ré Terre", [241] = "Rune Ré Eau", [242] = "Rune Ré Air", [243] = "Rune Ré Feu", [244] = "Rune Ré Neutre",
+    };
+
+    /// <summary>Stat de l'écran « Poids des stats » : rune (0 si inconnue), poids actuel et par défaut (null : aucun).</summary>
+    public sealed record WeightInfo(int Stat, int RuneId, string Rune, double Weight, double? Default);
+
+    /// <summary>Stats pondérées, dans l'ordre des valeurs par défaut, puis celles ajoutées dans fm_poids.json.</summary>
+    public List<WeightInfo> WeightList() => DefaultWeights.Keys.Concat(_weights.Keys.Except(DefaultWeights.Keys))
+        .Select(stat =>
+        {
+            var rune = RuneOfStat.GetValueOrDefault(stat, "");
+            return new WeightInfo(stat, rune.Length > 0 ? RuneBreaking.RuneId(_data, rune) ?? 0 : 0, rune,
+                Weight(stat), DefaultWeights.TryGetValue(stat, out var d) ? d : null);
+        })
+        .ToList();
+
+    /// <summary>Nouveau poids par point d'une stat (null : valeur par défaut). Compte pour les runes suivantes.</summary>
+    public void SetWeight(int stat, double? weight)
+    {
+        if (weight is { } w) _weights[stat] = Math.Max(0, w);
+        else if (DefaultWeights.TryGetValue(stat, out var d)) _weights[stat] = d;
+        SaveWeights();
+        Changed?.Invoke();
+    }
+
+    public void ResetWeights()
+    {
+        _weights.Clear();
+        foreach (var (stat, w) in DefaultWeights) _weights[stat] = w;
+        SaveWeights();
+        Changed?.Invoke();
+    }
+
+    void SaveWeights()
     {
         try
         {
-            if (File.Exists(WeightsPath))
-                return JsonSerializer.Deserialize<Dictionary<string, double>>(File.ReadAllText(WeightsPath))!
-                    .Where(kv => int.TryParse(kv.Key, out _))
-                    .ToDictionary(kv => int.Parse(kv.Key), kv => kv.Value);
             Directory.CreateDirectory(GameData.AppDir);
             File.WriteAllText(WeightsPath, JsonSerializer.Serialize(
-                DefaultWeights.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value), new JsonSerializerOptions { WriteIndented = true }));
+                _weights.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value), new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (Exception ex) { Log?.Invoke("Sauvegarde des poids impossible : " + ex.Message); }
+    }
+
+    static Dictionary<int, double> LoadWeights()
+    {
+        var weights = new Dictionary<int, double>(DefaultWeights);
+        try
+        {
+            if (File.Exists(WeightsPath))
+                foreach (var (key, value) in JsonSerializer.Deserialize<Dictionary<string, double>>(File.ReadAllText(WeightsPath))!)
+                    if (int.TryParse(key, out var stat)) weights[stat] = value;
         }
         catch { }
-        return DefaultWeights;
+        return weights;
     }
 
     // --- Persistance ---

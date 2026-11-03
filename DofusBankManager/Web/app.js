@@ -33,7 +33,7 @@ const TABS = [
     'OverlayRotation', 'OverlayOpacity', 'OverlayOpacityText', 'OverlayMove', 'OrganizerSaveOrder', 'OrganizerResetOrder',
     'OrganizerOrderStatus'] },
   { key: 'fm', label: 'FM', icon: '✧', watch: ['FmItemCombo', 'FmItemName', 'FmReliquat', 'FmReliquatInput', 'FmStats',
-    'FmHistoryGrid', 'FmEmpty'] },
+    'FmHistoryGrid', 'FmEmpty', 'FmWeights', 'FmWeightsPanel', 'FmWeightsGrid'] },
   { key: 'arene', label: 'Arène', icon: '⏱', watch: ['ChronoTime', 'ChronoStart', 'ChronoReset', 'ChronoFights', 'ChronoGains',
     'ChronoRate', 'ChronoGrid', 'AreneChallenges', 'AreneOtherChallenges'] },
   { key: 'carte', label: 'Carte', icon: '◳', watch: [] },
@@ -63,6 +63,23 @@ const check = (name, label) => `<label class="check"><input type="checkbox" data
 const btn = (name, label, cls = '') => shown(name) || !S[name]
   ? `<button class="${cls}" data-act="click" data-name="${name}" ${S[name]?.e === false ? 'disabled' : ''}>${esc(S[name]?.t || label)}</button>` : '';
 const colored = name => `<span style="${S[name]?.c ? `color:${S[name].c}` : ''}">${esc(T(name))}</span>`;
+
+// Onglet FM : poids des stats, modifiables (Entrée ou sortie du champ), à la place de l'historique
+function fmWeights() {
+  return `<div class="fm-weights">
+    <div class="filters"><div><h3 class="acc">Poids des stats</h3>
+      <span class="muted">Poids d'un point de chaque stat, utilisé pour estimer le reliquat. Modifiez une valeur puis Entrée : elle compte pour les runes suivantes (l'historique garde les anciens calculs).</span></div>
+      ${btn('FmWeightsReset', 'Tout rétablir', 'small')}</div>
+    ${table('FmWeightsGrid', [
+      { h: '', f: r => itemImg(r.RuneId, 'sm') },
+      { h: 'Rune', k: 'Rune', f: r => `<span class="strong">${esc(r.Rune)}</span>` },
+      { h: 'Stat', k: 'Label' },
+      { h: 'Poids par point', f: r => `<input type="text" class="weight ${r.Modified ? 'modified' : ''}" data-fmweight="${r.Stat}"
+        data-fk="fmweight-${r.Stat}" value="${esc(r.Weight)}">` },
+      { h: 'Par défaut', f: r => `<span class="muted">${esc(r.Default)}</span>` },
+      { h: '', f: r => r.Modified ? `<button class="small" title="Revenir au poids par défaut" ${attrs({ act: 'row', grid: 'FmWeightsGrid', i: r._i, handler: 'FmWeightReset_Click' })}>Rétablir</button>` : '' },
+    ], { select: false })}</div>`;
+}
 
 // Tableau triable : cols = [{ h, k (clé de tri), f (rendu), num }] ; clic sur une ligne -> sélection côté WPF
 function table(name, cols, opts = {}) {
@@ -155,6 +172,16 @@ function changelog() {
             <span class="muted right">${esc(e.date)}</span></div>
           <ul>${e.items.map(i => `<li>${inline(i)}</li>`).join('')}</ul></div>`).join('')
         : '<div class="empty">Le journal des changements est introuvable.</div>'}</div>
+    </div></div>`;
+}
+
+// Confirmation dans la page (ex. « Oublier l'objet » de l'onglet FM), puis l'action est envoyée à l'application
+function confirmBox() {
+  if (!local.confirm) return '';
+  return `<div class="modal-back" data-act="confirm-close"><div class="modal glass confirm" data-act="none">
+      <h2>Confirmer</h2><p>${esc(local.confirm.text)}</p>
+      <div class="row"><span class="right"></span><button data-act="confirm-close">Annuler</button>
+        <button class="primary" data-act="confirm-ok">Confirmer</button></div>
     </div></div>`;
 }
 
@@ -409,12 +436,12 @@ Object.assign(views, {
           <h2 class="acc">${esc(T('FmItemName'))}</h2>
           <div class="card"><h3>Reliquat estimé</h3><div class="huge">${esc(T('FmReliquat'))}</div>
             <div class="filters">${input('FmReliquatInput', 'Valeur', '90px')}<button class="small" data-act="click" data-name="FmSetReliquat">Corriger</button></div></div>
-          <div class="filters"><button class="small" data-act="click" data-name="FmClear">Effacer l'historique</button>
-            <button class="small" data-act="click" data-name="FmForget">Oublier l'objet</button>
-            <button class="small" data-act="click" data-name="FmWeights">Poids des stats</button></div>
+          <div class="filters"><button class="small" data-act="confirm" data-name="FmClear" data-text="Effacer l'historique de cet objet et remettre son reliquat à 0 ?">Effacer l'historique</button>
+            <button class="small" data-act="confirm" data-name="FmForget" data-text="Retirer cet objet et tout son historique de la liste ?">Oublier l'objet</button>
+            ${btn('FmWeights', 'Poids des stats', 'small')}</div>
           <h3>Caractéristiques actuelles</h3><div class="stats">${rows('FmStats').map(s => `<span class="chip">${esc(s)}</span>`).join('') || '<span class="muted">—</span>'}</div>
         </aside>
-        ${table('FmHistoryGrid', [
+        ${shown('FmWeightsPanel') ? fmWeights() : table('FmHistoryGrid', [
           { h: '#', k: 'Index', num: true, f: r => `<span class="muted">${r.Index}</span>` },
           { h: 'Heure', k: 'Time' },
           { h: '', f: r => itemImg(r.RuneId, 'sm') },
@@ -737,7 +764,7 @@ function render() {
   const scroll = [...document.querySelectorAll('.table-wrap, .detail, .modal-body')].map(e => e.scrollTop);
 
   document.getElementById('app').innerHTML = header() + banner() + tabs(active)
-    + `<main class="glass">${views[tab.key]()}</main>` + changelog();
+    + `<main class="glass">${views[tab.key]()}</main>` + changelog() + confirmBox();
 
   if (tab.key === 'carte') carteMount();
   document.querySelectorAll('.table-wrap, .detail, .modal-body').forEach((e, i) => { if (scroll[i]) e.scrollTop = scroll[i]; });
@@ -772,6 +799,9 @@ document.addEventListener('click', e => {
     case 'ui': post({ type: 'ui' }); break;
     case 'changelog': local.changelog = true; schedule(); break;
     case 'changelog-close': local.changelog = false; schedule(); break;
+    case 'confirm': local.confirm = { name: d.name, text: d.text }; schedule(); break;
+    case 'confirm-close': local.confirm = null; schedule(); break;
+    case 'confirm-ok': post({ type: 'click', name: local.confirm.name, confirmed: true }); local.confirm = null; schedule(); break;
     case 'carte-cat': {
       const k = +d.k;
       if (carte.shown.has(k)) carte.shown.delete(k); else carte.shown.add(k);
@@ -843,6 +873,7 @@ document.addEventListener('dragend', () => {
 const KEYS = { ArrowRight: 'Right', ArrowLeft: 'Left', ArrowUp: 'Up', ArrowDown: 'Down', ' ': 'Space', Escape: 'Escape',
   PageUp: 'PageUp', PageDown: 'Next', Enter: 'Return' };
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && local.confirm) { local.confirm = null; schedule(); return; }
   if (e.key === 'Escape' && local.changelog) { local.changelog = false; schedule(); return; }
   const name = e.target.dataset?.hotkey;
   if (!name) return;
@@ -883,6 +914,7 @@ document.addEventListener('change', e => {
   const el = e.target;
   if (el.dataset?.carte === 'sa') { carte.sa = +el.value; carte.sel = null; schedule(); return; }
   if (el.dataset?.carte === 'grid') { carte.grid = el.checked; carteView(); return; }
+  if (el.dataset?.fmweight != null) { post({ type: 'fmweight', index: +el.dataset.fmweight, value: el.value }); return; }
   if (el.dataset?.stat != null && el.type === 'checkbox') { post({ type: 'stat', index: +el.dataset.stat, field: 'on', value: el.checked }); return; }
   if (!el.dataset?.set) return;
   if (el.type === 'checkbox') post({ type: 'set', name: el.dataset.set, value: el.checked });

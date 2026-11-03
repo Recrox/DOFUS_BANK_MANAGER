@@ -1813,7 +1813,7 @@
                                             ToolTip="Vide l'historique de cet objet et remet le reliquat à 0"/>
                                     <Button x:Name="FmForget" Content="Oublier l'objet" Click="FmForget_Click" Margin="0,0,8,6"/>
                                     <Button x:Name="FmWeights" Content="Poids des stats" Click="FmWeights_Click" Margin="0,0,0,6"
-                                            ToolTip="Ouvre fm_poids.json (poids par point, par effet). Redémarrez l'application après modification."/>
+                                            ToolTip="Affiche et modifie le poids de chaque stat, utilisé pour estimer le reliquat"/>
                                 </WrapPanel>
 
                                 <TextBlock Text="Caractéristiques actuelles" Foreground="{DynamicResource TextMuted}" FontWeight="SemiBold" Margin="0,10,0,6"/>
@@ -1883,6 +1883,67 @@
                         <TextBlock x:Name="FmEmpty" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="40"
                                    Foreground="{DynamicResource TextMuted}" FontSize="14"
                                    Text="Ouvrez un atelier de forgemagie en jeu, posez l'objet et passez une rune : chaque passage s'affichera ici."/>
+
+                        <!-- Poids des stats (bouton « Poids des stats ») : par point, modifiables, pris en compte pour les runes suivantes -->
+                        <DockPanel x:Name="FmWeightsPanel" Visibility="Collapsed" Background="{DynamicResource Surface}">
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                                <Button x:Name="FmWeightsReset" DockPanel.Dock="Right" Content="Tout rétablir" Click="FmWeightsReset_Click"
+                                        VerticalAlignment="Center" ToolTip="Remet toutes les stats à leur poids par défaut"/>
+                                <StackPanel>
+                                    <TextBlock Text="Poids des stats" FontWeight="Bold" FontSize="16" Foreground="{DynamicResource AccentSolid}"/>
+                                    <TextBlock Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,2,12,0"
+                                               Text="Poids d'un point de chaque stat, utilisé pour estimer le reliquat. Modifiez une valeur puis Entrée : elle compte pour les runes suivantes (l'historique garde les anciens calculs)."/>
+                                </StackPanel>
+                            </DockPanel>
+                            <DataGrid x:Name="FmWeightsGrid" IsReadOnly="False" CanUserAddRows="False" SelectionMode="Single">
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Width="44" CanUserSort="False" IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Image Source="{Binding RuneId, Converter={StaticResource Icon}}" Width="30" Height="30"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="Rune" Binding="{Binding Rune}" Width="150" IsReadOnly="True">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="Stat" Binding="{Binding Label}" Width="*" MinWidth="160" IsReadOnly="True"/>
+                                    <DataGridTemplateColumn Header="Poids par point" Width="130" SortMemberPath="Weight" IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding Weight, Mode=OneWay}" Width="90" HorizontalAlignment="Left"
+                                                         HorizontalContentAlignment="Center" FontWeight="Bold"
+                                                         LostFocus="FmWeightBox_LostFocus" KeyDown="FmWeightBox_KeyDown"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="Par défaut" Binding="{Binding Default}" Width="90" IsReadOnly="True">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTemplateColumn Width="110" CanUserSort="False" IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button x:Name="ResetOne" Content="Rétablir" Click="FmWeightReset_Click" Visibility="Hidden"
+                                                        ToolTip="Revenir au poids par défaut"/>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding Modified}" Value="True">
+                                                        <Setter TargetName="ResetOne" Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
                     </Grid>
                 </Grid>
             </TabItem>

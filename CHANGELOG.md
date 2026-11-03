@@ -2,6 +2,11 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.31.0 — 3 novembre 2026
+
+- **FM** : le bouton « Poids des stats » affiche les poids dans l'application, avec l'icône de chaque rune, à la place de l'historique. Modifiez une valeur puis Entrée : elle compte tout de suite pour les runes suivantes, sans redémarrer. « Rétablir » revient à la valeur par défaut.
+- Correction : dans l'interface HTML, « Oublier l'objet » et « Effacer l'historique » (onglet FM) demandent confirmation dans la page et fonctionnent.
+
 ## 1.30.0 — 3 novembre 2026
 
 - **Switcheur** : chaque personnage est affiché avec sa tête, selon sa classe et son sexe, et sa classe sous son nom (interface classique et HTML). La tête apparaît aussi dans la superposition en jeu. La première fois, lancez l'application avant de choisir vos personnages.

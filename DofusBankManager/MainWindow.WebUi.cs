@@ -37,7 +37,7 @@ public partial class MainWindow
     readonly Dictionary<string, byte[]?> _webIcons = new();
     /// <summary>Gestionnaires de clic sur une ligne que la page peut déclencher (le reste passe par les boutons nommés).</summary>
     static readonly HashSet<string> WebRowHandlers =
-        ["HuntDropsToggle_Click", "BankRecipes_Click", "OrganizerShow_Click", "OrganizerExclude_Click", "OrganizerMain_Click"];
+        ["HuntDropsToggle_Click", "BankRecipes_Click", "OrganizerShow_Click", "OrganizerExclude_Click", "OrganizerMain_Click", "FmWeightReset_Click"];
 
     void WebUiButton_Click(object sender, RoutedEventArgs e) => _ = ShowWebUiAsync();
 
@@ -187,6 +187,9 @@ public partial class MainWindow
 
     // --- Actions de la page ---
 
+    /// <summary>Action en cours confirmée par la page : les gestionnaires sautent leur propre confirmation (MessageBox).</summary>
+    bool _webConfirmed;
+
     void OnWebMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         try
@@ -223,7 +226,17 @@ public partial class MainWindow
                     }
                     break;
                 case "click":
-                    if (el is ButtonBase { IsEnabled: true } button) button.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+                    if (el is ButtonBase { IsEnabled: true } button)
+                    {
+                        // Déjà confirmé dans la page (ex. « Oublier l'objet » de l'onglet FM) : pas de seconde confirmation Windows
+                        _webConfirmed = m.TryGetProperty("confirmed", out var c) && c.GetBoolean();
+                        try { button.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); }
+                        finally { _webConfirmed = false; }
+                    }
+                    break;
+                case "fmweight":
+                    // Poids d'une stat saisi dans l'écran « Poids des stats » (onglet FM)
+                    SetFmWeight(index, m.GetProperty("value").GetString() ?? "");
                     break;
                 case "select":
                     if (el is Selector { ItemsSource: IList rows } grid && index >= 0 && index < rows.Count) grid.SelectedItem = rows[index];

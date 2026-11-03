@@ -63,6 +63,9 @@ public static class RuneBreaking
         return cache.Ids;
     }
 
+    /// <summary>Identifiant d'une rune de forgemagie d'après son nom (ex. « Rune Vi »), null si absente des données.</summary>
+    public static int? RuneId(GameData data, string name) => RuneIds(data).TryGetValue(name, out var id) ? id : null;
+
     /// <summary>Runes estimées pour un objet de ce niveau et ces caractéristiques (les malus ne donnent rien).</summary>
     public static List<RuneYield> Estimate(GameData data, int level, IReadOnlyDictionary<int, int> stats)
     {
