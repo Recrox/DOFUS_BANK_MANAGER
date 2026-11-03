@@ -239,6 +239,9 @@ label.check input:checked::after { content: "✓"; color: #fff; font-size: 12px;
   background: transparent; border: 1px solid transparent; color: var(--muted); font-weight: 700; white-space: nowrap;
 }
 .tab:hover { color: var(--text); background: var(--hover); border-color: transparent; }
+.tab-ico { width: 19px; height: 19px; flex: none; opacity: .85; transition: transform .15s; }
+.tab:hover .tab-ico { opacity: 1; transform: scale(1.1); }
+.tab.on .tab-ico { opacity: 1; }
 .tab.on { background: var(--accent); color: #fff; box-shadow: var(--accent-glow); }
 .tab .soon { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 99px; background: var(--hover); color: var(--muted); }
 .tab.on .soon { background: rgba(255, 255, 255, .2); color: #fff; }

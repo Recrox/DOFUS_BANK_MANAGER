@@ -10,34 +10,34 @@ const post = m => window.chrome.webview.postMessage(m);
 const COMMON = ['VersionText', 'CaptureDot', 'CaptureStatus', 'BankStatus', 'CaptureButton', 'AdminButton', 'UpdateBanner',
   'UpdateTitle', 'UpdateText', 'UpdateActionButton', 'UpdateLaterButton', 'UpdateNotesButton', 'MainTabs'];
 const TABS = [
-  { key: 'bank', label: 'Banque', icon: '▣', watch: ['BankOwner', 'BankSearch', 'BankTypeFilter', 'BankCount', 'BankValue', 'BankGrid'] },
-  { key: 'recipes', label: 'Recettes', icon: '✦', watch: ['RecipeSearch', 'JobFilter', 'ModeFilter', 'SellMinPanel', 'SellMin',
+  { key: 'bank', label: 'Banque', watch: ['BankOwner', 'BankSearch', 'BankTypeFilter', 'BankCount', 'BankValue', 'BankGrid'] },
+  { key: 'recipes', label: 'Recettes', watch: ['RecipeSearch', 'JobFilter', 'ModeFilter', 'SellMinPanel', 'SellMin',
     'LevelMin', 'LevelMax', 'SlotFilters', 'IncludeInventory', 'InventoryHint', 'RecipeCount', 'IngredientChip', 'IngredientChipText',
     'RecipeGrid', 'DetailTitle', 'DetailSub', 'DetailCostPanel', 'DetailCraftCount', 'DetailCraftMax', 'DetailCostTitle', 'DetailCost',
     'DetailCostNote', 'DetailProfit', 'DetailProfitOwned', 'DetailStatsPanel', 'DetailStats', 'DetailIngredients'] },
-  { key: 'brisage', label: 'Brisage', icon: '⚒', watch: ['BrisageSearch', 'BrisageSource', 'BrisageTypeFilter', 'BrisageLevelMin',
+  { key: 'brisage', label: 'Brisage', watch: ['BrisageSearch', 'BrisageSource', 'BrisageTypeFilter', 'BrisageLevelMin',
     'BrisageLevelMax', 'BrisageCount', 'BrisageStats', 'BrisageGrid', 'BrisageGainColumn', 'BrisageEmpty', 'BrisageDetailTitle',
     'BrisageDetailSub', 'BrisageBreakCount', 'BrisageBreakMax', 'BrisageDetailTotal', 'BrisageRunes'] },
-  { key: 'hdv', label: 'HDV', icon: '⚖', watch: ['HdvSearch', 'HdvTypeFilter', 'HdvShowAll', 'HdvCount', 'HdvGrid', 'HdvEmpty',
+  { key: 'hdv', label: 'HDV', watch: ['HdvSearch', 'HdvTypeFilter', 'HdvShowAll', 'HdvCount', 'HdvGrid', 'HdvEmpty',
     'HdvDetailTitle', 'HdvDetailSub', 'HdvChart', 'HdvHistory', 'HdvForget'] },
-  { key: 'ttg', label: 'TTG', icon: '❏', watch: ['TtgSearch', 'TtgRarity', 'TtgShow', 'TtgShowAll', 'TtgDaysBox', 'TtgCount',
+  { key: 'ttg', label: 'TTG', watch: ['TtgSearch', 'TtgRarity', 'TtgShow', 'TtgShowAll', 'TtgDaysBox', 'TtgCount',
     'TtgCollection', 'TtgGrid', 'TtgBestColumn', 'TtgEmpty', 'TtgDetailTitle', 'TtgDetailSub', 'TtgOffersMode', 'TtgOffersTitle',
     'TtgOffers', 'TtgMerchantChart', 'TtgHdvChart'] },
-  { key: 'pda', label: 'PDA', icon: '◆', watch: ['PdaSearch', 'PdaSource', 'PdaCategory', 'PdaShowAll', 'PdaCount', 'PdaValue',
+  { key: 'pda', label: 'PDA', watch: ['PdaSearch', 'PdaSource', 'PdaCategory', 'PdaShowAll', 'PdaCount', 'PdaValue',
     'PdaGrid', 'PdaEmpty', 'PdaDetailTitle', 'PdaDetailSub', 'PdaChart'] },
-  { key: 'combat', label: 'Combat', icon: '⌖', watch: ['HuntCharacterBox', 'HuntLevel', 'HuntGroupLevel', 'HuntWisdom', 'HuntProspection',
+  { key: 'combat', label: 'Combat', watch: ['HuntCharacterBox', 'HuntLevel', 'HuntGroupLevel', 'HuntWisdom', 'HuntProspection',
     'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
     'HuntSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid'] },
-  { key: 'windows', label: 'Switcheur', icon: '⧉', watch: ['OrganizerEnabled', 'HotkeyDebounce', 'NotifyAutoSwitchTurn', 'OrganizerLockOrder', 'HotkeyNext', 'HotkeyPrevious', 'HotkeyMain', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
+  { key: 'windows', label: 'Switcheur', watch: ['OrganizerEnabled', 'HotkeyDebounce', 'NotifyAutoSwitchTurn', 'OrganizerLockOrder', 'HotkeyNext', 'HotkeyPrevious', 'HotkeyMain', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
     'NotifyExchange', 'NotifyParty', 'NotifyToast', 'NotifyFlash', 'NotifySound', 'NotifyAutoSwitch', 'OrganizerCount', 'OrganizerGrid', 'OverlayEnabled', 'OverlayEconome', 'OverlayGroups',
     'OverlayRotation', 'OverlayOpacity', 'OverlayOpacityText', 'OverlayMove', 'OrganizerSaveOrder', 'OrganizerResetOrder',
     'OrganizerOrderStatus'] },
-  { key: 'fm', label: 'FM', icon: '✧', watch: ['FmItemCombo', 'FmItemName', 'FmReliquat', 'FmReliquatInput', 'FmStats',
+  { key: 'fm', label: 'FM', watch: ['FmItemCombo', 'FmItemName', 'FmReliquat', 'FmReliquatInput', 'FmStats',
     'FmHistoryGrid', 'FmEmpty', 'FmWeights', 'FmWeightsPanel', 'FmWeightsGrid'] },
-  { key: 'arene', label: 'Arène', icon: '⏱', watch: ['ChronoTime', 'ChronoStart', 'ChronoReset', 'ChronoFights', 'ChronoGains',
+  { key: 'arene', label: 'Arène', watch: ['ChronoTime', 'ChronoStart', 'ChronoReset', 'ChronoFights', 'ChronoGains',
     'ChronoRate', 'ChronoGrid', 'AreneChallenges', 'AreneOtherChallenges'] },
-  { key: 'carte', label: 'Carte', icon: '◳', watch: [] },
-  { key: 'journal', label: 'Journal', icon: '☰', watch: ['LogBox', 'LogPacketsBox'] },
+  { key: 'carte', label: 'Carte', watch: [] },
+  { key: 'journal', label: 'Journal', watch: ['LogBox', 'LogPacketsBox'] },
 ];
 post({ type: 'watch', names: COMMON.concat(...TABS.map(t => t.watch || [])) });
 
@@ -191,9 +191,34 @@ function banner() {
     ${btn('UpdateNotesButton', 'Nouveautés')}${btn('UpdateActionButton', 'Télécharger et installer', 'primary')}${btn('UpdateLaterButton', 'Plus tard')}</div>`;
 }
 
+// Icônes des onglets (SVG dessinés au trait, couleur du texte) et ce que fait chaque onglet (infobulle)
+const TAB_ICONS = {
+  bank: '<rect x="3" y="9" width="18" height="11" rx="2"/><path d="M3 9a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4"/><path d="M3 13h18"/><rect x="10.5" y="11.5" width="3" height="4" rx="1"/>',
+  recipes: '<path d="M12 6.5C10 5 7 4.5 4 5v14c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5z"/><path d="M12 6.5v14"/>',
+  brisage: '<path d="M6.5 3h11L22 9 12 21 2 9z"/><path d="M12.5 3 10 8.5l3.5 3.5-2.5 4 1 5"/>',
+  hdv: '<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/><path d="M11 14l3-3"/>',
+  ttg: '<path d="M14.5 6.5V5.4a2 2 0 0 1 2.4-1.9l2.9.6a2 2 0 0 1 1.6 2.3l-2.3 11.8a2 2 0 0 1-2.3 1.6l-2.3-.4"/><rect x="3.5" y="5.5" width="11" height="15" rx="2"/><path d="M9 10.5l1 2 2 .3-1.5 1.4.4 2.1L9 15.3l-1.9 1 .4-2.1L6 12.8l2-.3z"/>',
+  pda: '<path d="M12 2.5l7.5 6.5L12 21.5 4.5 9z"/><path d="M4.5 9h15"/><path d="M9 9l3 12.5L15 9"/><path d="M9 9l3-6.5L15 9"/>',
+  combat: '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/><path d="M11 19l-6-6"/><path d="M8 16l-4 4"/>',
+  windows: '<path d="M4 8h14"/><path d="M14 4l4 4-4 4"/><path d="M20 16H6"/><path d="M10 12l-4 4 4 4"/>',
+  fm: '<path d="M4 20 15 9"/><path d="M13.5 7.5l3 3"/><path d="M18 3v4M16 5h4"/><path d="M20.5 11.5v3M19 13h3"/><path d="M9.5 3v2.5M8.25 4.25h2.5"/>',
+  arene: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5.5A2.5 2.5 0 0 0 8 10"/><path d="M16 6h2.5A2.5 2.5 0 0 1 16 10"/><path d="M12 13v3"/><path d="M9 20h6"/><path d="M10 16h4v4h-4z"/>',
+  carte: '<path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20z"/><path d="M9 4v13.5"/><path d="M15 6.5V20"/>',
+  journal: '<rect x="4.5" y="3" width="15" height="18" rx="2"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/>',
+};
+const TAB_TIPS = {
+  bank: 'Contenu de votre banque et sa valeur estimée', recipes: 'Recettes faisables avec vos ressources, coût et bénéfice',
+  brisage: 'Objets à briser pour générer des runes', hdv: "Prix relevés à l'hôtel de vente", ttg: 'Cartes TTG : collection et prix des marchands',
+  pda: "Pierres d'âme : prix par monstre et vos pierres", combat: 'Groupes de la map, drops, XP et rentabilité',
+  windows: "Passer d'un personnage à l'autre (multi-compte)", fm: 'Forgemagie : runes passées et reliquat',
+  arene: 'Chronomètre de rentabilité et challenges', carte: "Carte du monde et points d'intérêt", journal: "Messages de l'application",
+};
+const tabIcon = key => `<svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+  stroke-linejoin="round" aria-hidden="true">${TAB_ICONS[key] || ''}</svg>`;
+
 function tabs(active) {
-  return `<nav class="tabs glass">${TABS.map((t, i) => `<button class="tab ${i === active ? 'on' : ''}" data-act="tab" data-i="${i}">
-    <span>${t.icon}</span>${esc(t.label)}</button>`).join('')}</nav>`;
+  return `<nav class="tabs glass">${TABS.map((t, i) => `<button class="tab ${i === active ? 'on' : ''}" data-act="tab" data-i="${i}"
+    title="${esc(TAB_TIPS[t.key] || '')}">${tabIcon(t.key)}${esc(t.label)}</button>`).join('')}</nav>`;
 }
 
 const views = {

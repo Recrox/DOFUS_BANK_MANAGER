@@ -2,6 +2,10 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.32.0 — 3 novembre 2026
+
+- **Interface HTML** : nouvelles icônes des onglets, plus lisibles (coffre pour la Banque, épées pour le Combat, baguette pour la FM…), et une infobulle qui explique chaque onglet.
+
 ## 1.31.0 — 3 novembre 2026
 
 - **Switcheur** : réglages réorganisés en cartes (Raccourcis, Notifications, Bascules automatiques, Superposition en jeu), avec des interrupteurs expliqués et des pastilles à cocher. « Masquer les réglages » laisse toute la place à la liste (interface HTML).
