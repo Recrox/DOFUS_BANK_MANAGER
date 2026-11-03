@@ -2,19 +2,25 @@ using System.IO;
 using System.IO.Compression;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace DofusBankManager.Data;
 
 /// <summary>
-/// Rendu minimal de SWF vectoriels (icônes d'objets de Dofus Retro) en dessin WPF.
-/// Gère les formes (DefineShape 1 à 4 : couleurs pleines, dégradés, traits),
-/// les sprites et le placement d'objets de la première image. Les bitmaps,
-/// textes, masques et animations sont ignorés : suffisant pour des icônes.
+/// Rendu minimal de SWF (icônes d'objets, carte du monde de Dofus Retro) en dessin WPF.
+/// Gère les formes (DefineShape 1 à 4 : couleurs pleines, dégradés, bitmaps, traits),
+/// les bitmaps (JPEG et sans perte), les sprites et le placement d'objets de la première image.
+/// Les textes, masques et animations sont ignorés.
 /// </summary>
 public sealed class SwfRenderer
 {
     readonly Dictionary<int, (int Code, byte[] Data)> _chars = new();
     readonly List<(int Code, byte[] Data)> _rootTags = new();
+    readonly Dictionary<int, ImageSource?> _bitmaps = new();
+    byte[]? _jpegTables;
+
+    /// <summary>Symboles exportés (ExportAssets) : nom -> identifiant, ex. « -1_2 » dans la carte du monde.</summary>
+    public Dictionary<string, int> Exports { get; } = new();
 
     SwfRenderer(byte[] swf)
     {
@@ -35,8 +41,18 @@ public sealed class SwfRenderer
         r.Pos += 4; // cadence + nombre d'images
         foreach (var tag in ReadTags(data, r.Pos, data.Length))
         {
-            if (tag.Code is 2 or 22 or 32 or 83 or 39)
+            if (tag.Code is 2 or 22 or 32 or 83 or 39 or 6 or 21 or 35 or 20 or 36)
                 _chars[BitConverter.ToUInt16(tag.Data, 0)] = tag;
+            else if (tag.Code == 8) _jpegTables = tag.Data;
+            else if (tag.Code == 56)
+            {
+                var er = new BitReader(tag.Data, 0);
+                for (int n = er.U16(); n > 0; n--)
+                {
+                    int id = er.U16();
+                    Exports.TryAdd(er.ReadString(), id);
+                }
+            }
             _rootTags.Add(tag);
         }
     }
@@ -50,6 +66,21 @@ public sealed class SwfRenderer
         var r = new SwfRenderer(swf) { _tints = tints };
         var group = r.RenderTimeline(r._rootTags, ColorTx.Identity, 0);
         return group.Children.Count > 0 ? group : null;
+    }
+
+    /// <summary>Lit un SWF pour en rendre ensuite les symboles exportés (<see cref="RenderSymbol"/>).</summary>
+    public static SwfRenderer Load(byte[] swf) => new(swf);
+
+    /// <summary>Rend la première image d'un symbole exporté, dans son propre repère ; null s'il est absent ou vide.</summary>
+    public Drawing? RenderSymbol(string name)
+    {
+        if (!Exports.TryGetValue(name, out var id) || !_chars.TryGetValue(id, out var def)) return null;
+        var group = def.Code == 39
+            ? RenderTimeline(ReadTags(def.Data, 4, def.Data.Length), ColorTx.Identity, 1)
+            : def.Code is 2 or 22 or 32 or 83 ? RenderShape(def.Code, def.Data, ColorTx.Identity) : new DrawingGroup();
+        if (group.Children.Count == 0) return null;
+        group.Freeze();
+        return group;
     }
 
     static List<(int Code, byte[] Data)> ReadTags(byte[] d, int p, int end)
@@ -90,7 +121,7 @@ public sealed class SwfRenderer
         if (depthLevel > 16) return group; // protection contre les sprites récursifs
         foreach (var (_, o) in display)
         {
-            if (o.IsMask || !_chars.TryGetValue(o.Char, out var def)) continue;
+            if (o.IsMask || !_chars.TryGetValue(o.Char, out var def) || def.Code is not (2 or 22 or 32 or 83 or 39)) continue;
             var child = def.Code == 39
                 ? RenderTimeline(ReadTags(def.Data, 4, def.Data.Length), o.Cx.Then(cx), depthLevel + 1)
                 : RenderShape(def.Code, def.Data, o.Cx.Then(cx));
@@ -130,7 +161,7 @@ public sealed class SwfRenderer
         public Edge Reverse() => new(To, Ctrl, From);
     }
 
-    static DrawingGroup RenderShape(int code, byte[] data, ColorTx cx)
+    DrawingGroup RenderShape(int code, byte[] data, ColorTx cx)
     {
         int version = code switch { 2 => 1, 22 => 2, 32 => 3, _ => 4 };
         var r = new BitReader(data, 2);
@@ -256,7 +287,7 @@ public sealed class SwfRenderer
         return geo;
     }
 
-    static List<FillStyle> ReadFillStyles(BitReader r, int version, ColorTx cx)
+    List<FillStyle> ReadFillStyles(BitReader r, int version, ColorTx cx)
     {
         r.Align();
         int count = r.U8();
@@ -266,7 +297,7 @@ public sealed class SwfRenderer
         return list;
     }
 
-    static Brush? ReadFill(BitReader r, int version, ColorTx cx)
+    Brush? ReadFill(BitReader r, int version, ColorTx cx)
     {
         int type = r.U8();
         switch (type)
@@ -294,14 +325,126 @@ public sealed class SwfRenderer
                 return Frozen(b);
             }
             case 0x40: case 0x41: case 0x42: case 0x43:
-                r.U16(); r.ReadMatrix();
-                return null; // remplissage bitmap : non géré
+            {
+                int id = r.U16();
+                var m = r.ReadMatrix();
+                if (Bitmap(id) is not { } img) return null;
+                // La matrice place les pixels du bitmap en twips : 20 twips par unité de dessin
+                var b = new ImageBrush(img)
+                {
+                    ViewportUnits = BrushMappingMode.Absolute,
+                    Viewport = new Rect(0, 0, img.Width, img.Height),
+                    Stretch = Stretch.Fill,
+                    TileMode = type is 0x40 or 0x42 ? TileMode.Tile : TileMode.None,
+                    Transform = new MatrixTransform(new Matrix(m.M11 / 20, m.M12 / 20, m.M21 / 20, m.M22 / 20, m.OffsetX, m.OffsetY)),
+                };
+                return Frozen(b);
+            }
             default:
                 return null;
         }
     }
 
-    static List<LineStyle> ReadLineStyles(BitReader r, int version, ColorTx cx)
+    // --- Bitmaps ---
+
+    /// <summary>Bitmap d'identifiant id (DefineBits, JPEG2, JPEG3 avec alpha, Lossless 1 et 2), en pixels de 1 unité.</summary>
+    ImageSource? Bitmap(int id)
+    {
+        if (_bitmaps.TryGetValue(id, out var img)) return img;
+        img = null;
+        try
+        {
+            if (_chars.TryGetValue(id, out var def))
+                img = def.Code switch
+                {
+                    6 => Jpeg(_jpegTables is { Length: > 2 } t ? [.. t.AsSpan(0, t.Length - 2), .. def.Data.AsSpan(4)] : def.Data[2..]),
+                    21 => Jpeg(def.Data[2..]),
+                    35 => Jpeg3(def.Data),
+                    20 or 36 => Lossless(def.Data, def.Code == 36),
+                    _ => null,
+                };
+        }
+        catch { } // bitmap illisible : la forme n'est simplement pas remplie
+        return _bitmaps[id] = img;
+    }
+
+    static BitmapSource Jpeg(byte[] data)
+    {
+        // Flash découpe souvent le JPEG en deux flux (tables puis image) séparés par FF D9 FF D8 : on les recolle
+        int cut = data.AsSpan().IndexOf([(byte)0xFF, (byte)0xD9, (byte)0xFF, (byte)0xD8]);
+        if (cut >= 0) data = [.. data.AsSpan(0, cut), .. data.AsSpan(cut + 4)];
+        var bmp = BitmapFrame.Create(new MemoryStream(data), BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+        var src = Dpi96(bmp);
+        src.Freeze();
+        return src;
+    }
+
+    /// <summary>JPEG + canal alpha compressé (zlib) à la suite.</summary>
+    static BitmapSource Jpeg3(byte[] data)
+    {
+        int jpegLen = BitConverter.ToInt32(data, 2);
+        var jpeg = Jpeg(data[6..(6 + jpegLen)]);
+        if (6 + jpegLen >= data.Length) return jpeg;
+        using var z = new ZLibStream(new MemoryStream(data, 6 + jpegLen, data.Length - 6 - jpegLen), CompressionMode.Decompress);
+        using var ms = new MemoryStream();
+        z.CopyTo(ms);
+        var alpha = ms.ToArray();
+
+        var bgra = new FormatConvertedBitmap(jpeg, PixelFormats.Bgra32, null, 0);
+        int w = bgra.PixelWidth, h = bgra.PixelHeight;
+        if (alpha.Length < w * h) return jpeg;
+        var px = new byte[w * h * 4];
+        bgra.CopyPixels(px, w * 4, 0);
+        for (int i = 0; i < w * h; i++) px[i * 4 + 3] = alpha[i];
+        var src = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, px, w * 4);
+        src.Freeze();
+        return src;
+    }
+
+    /// <summary>DefineBitsLossless : palette 8 bits ou couleurs 32 bits (ARGB, prémultipliées en version 2).</summary>
+    static BitmapSource? Lossless(byte[] data, bool alpha)
+    {
+        int format = data[2], w = BitConverter.ToUInt16(data, 3), h = BitConverter.ToUInt16(data, 5);
+        int colors = format == 3 ? data[7] + 1 : 0;
+        using var z = new ZLibStream(new MemoryStream(data, format == 3 ? 8 : 7, data.Length - (format == 3 ? 8 : 7)), CompressionMode.Decompress);
+        using var ms = new MemoryStream();
+        z.CopyTo(ms);
+        var raw = ms.ToArray();
+        var px = new byte[w * h * 4];
+        if (format == 5)
+            for (int i = 0; i < w * h; i++)
+            {
+                byte a = alpha ? raw[i * 4] : (byte)255;
+                px[i * 4] = raw[i * 4 + 3]; px[i * 4 + 1] = raw[i * 4 + 2]; px[i * 4 + 2] = raw[i * 4 + 1]; px[i * 4 + 3] = a;
+            }
+        else if (format == 3)
+        {
+            int cs = alpha ? 4 : 3, stride = (w + 3) & ~3;
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    int c = raw[colors * cs + y * stride + x], o = (y * w + x) * 4;
+                    px[o] = raw[c * cs + 2]; px[o + 1] = raw[c * cs + 1]; px[o + 2] = raw[c * cs];
+                    px[o + 3] = alpha ? raw[c * cs + 3] : (byte)255;
+                }
+        }
+        else return null;
+        var src = BitmapSource.Create(w, h, 96, 96, alpha ? PixelFormats.Pbgra32 : PixelFormats.Bgra32, null, px, w * 4);
+        src.Freeze();
+        return src;
+    }
+
+    /// <summary>Ramène à 96 ppp pour qu'un pixel du bitmap fasse une unité de dessin.</summary>
+    static BitmapSource Dpi96(BitmapSource b)
+    {
+        if (Math.Abs(b.DpiX - 96) < 0.01 && Math.Abs(b.DpiY - 96) < 0.01) return b;
+        var px = new byte[b.PixelHeight * ((b.PixelWidth * b.Format.BitsPerPixel + 7) / 8)];
+        int stride = (b.PixelWidth * b.Format.BitsPerPixel + 7) / 8;
+        b.CopyPixels(px, stride, 0);
+        return BitmapSource.Create(b.PixelWidth, b.PixelHeight, 96, 96, b.Format, b.Palette, px, stride);
+    }
+
+    List<LineStyle> ReadLineStyles(BitReader r, int version, ColorTx cx)
     {
         r.Align();
         int count = r.U8();

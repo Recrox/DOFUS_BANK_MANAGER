@@ -34,6 +34,7 @@ const TABS = [
     'OrganizerOrderStatus'] },
   { key: 'fm', label: 'FM', icon: '✧', watch: ['FmItemCombo', 'FmItemName', 'FmReliquat', 'FmReliquatInput', 'FmStats',
     'FmHistoryGrid', 'FmEmpty'] },
+  { key: 'carte', label: 'Carte', icon: '◳', watch: [] },
   { key: 'journal', label: 'Journal', icon: '☰', watch: ['LogBox', 'LogPacketsBox'] },
 ];
 post({ type: 'watch', names: COMMON.concat(...TABS.map(t => t.watch || [])) });
@@ -428,6 +429,11 @@ Object.assign(views, {
         { h: 'Exclure', k: 'Excluded', f: r => `<label class="check"><input type="checkbox" ${r.Excluded ? 'checked' : ''} ${attrs({ act: 'row', grid: 'OrganizerGrid', i: r._i, handler: 'OrganizerExclude_Click' })}></label>` },
         { h: '', f: r => `<button class="small primary" ${attrs({ act: 'row', grid: 'OrganizerGrid', i: r._i, handler: 'OrganizerShow_Click' })}>Afficher</button>` },
       ], { select: false, draggable: r => !r.Excluded && !r.Name.startsWith('('), empty: 'Aucune fenêtre Dofus Retro ouverte. Lancez le jeu : ses fenêtres apparaîtront ici.' })}`;
+  },
+
+  carte() {
+    return `<div class="empty">La carte du monde s'affiche dans l'interface classique.<br><br>
+      <button class="primary" data-act="ui">Interface classique</button></div>`;
   },
 
   journal() {

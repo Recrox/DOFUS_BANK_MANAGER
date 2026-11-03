@@ -10,3 +10,6 @@ server/.dev.vars
 
 # Données de monstres fournies par l'utilisateur (site tiers) : jamais committées
 monstres.json
+
+# Fichiers de travail locaux (ex. images extraites du jeu) : jamais committés ni livrés (règle 5)
+local/

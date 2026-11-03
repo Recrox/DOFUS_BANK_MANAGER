@@ -376,6 +376,7 @@ public partial class MainWindow : Window
         InitTtg(_data);
         InitPda(_data);
         InitHunt(_data);
+        InitCarte(_data);
         InitHdv(_data);
         _usage = _data.Recipes.SelectMany(r => r.Ingredients.Select(i => i.ItemId).Distinct())
             .GroupBy(id => id).ToDictionary(g => g.Key, g => g.Count());

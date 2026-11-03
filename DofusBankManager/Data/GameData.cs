@@ -41,14 +41,23 @@ public sealed record MonsterInfo(int Id, string Name, int RaceId, string Race, i
 public sealed record MonsterDrop(int ItemId, IReadOnlyList<double> Rates, int MinProspection, int MaxPerFight,
     int CardOdds, bool Conditional);
 
-/// <summary>Map (fichier de langue « maps ») : coordonnées et zone, ex. « [4,-18] Amakna (Village d'Amakna) ».</summary>
 /// <summary>Icône d'un sort, comme dans le jeu : fond (icons/back), symbole (icons/up) et leurs couleurs (champ « i » du fichier de langue).</summary>
 public sealed record SpellLook(int Back, int Up, int Background, int Frame, int Print);
 
-public sealed record MapInfo(int Id, int X, int Y, string Area, string SubArea)
+/// <summary>
+/// Map (fichier de langue « maps ») : coordonnées et zone, ex. « [4,-18] Amakna (Village d'Amakna) ».
+/// SuperArea : 0 = continent amaknien, 3 = Incarnam (zone de départ).
+/// </summary>
+public sealed record MapInfo(int Id, int X, int Y, string Area, string SubArea, int SuperArea = 0)
 {
     public string Label => $"[{X},{Y}] {Area}" + (SubArea.Length > 0 && SubArea != Area ? $" ({SubArea})" : "");
 }
+
+/// <summary>
+/// Point d'intérêt de la carte du monde (fichier de langue « hints ») : temple, HDV, atelier, zaap, donjon…
+/// Gfx : icône exportée par clips/maps/hints.swf du client.
+/// </summary>
+public sealed record MapHint(string Name, int Category, int Gfx, MapInfo Map);
 
 public sealed record Recipe(int ResultId, IReadOnlyList<Ingredient> Ingredients, IReadOnlyList<string> Jobs);
 
@@ -63,9 +72,9 @@ public sealed class GameData
 {
     const string DefaultDataUrl = "https://dofusretro.cdn.ankama.com/static-data/612/";
     const string Lang = "fr";
-    static readonly string[] Files = ["items", "crafts", "skills", "jobs", "effects", "monsters", "maps", "spells", "monsterdrops"];
+    static readonly string[] Files = ["items", "crafts", "skills", "jobs", "effects", "monsters", "maps", "spells", "monsterdrops", "hints", "dungeons"];
     /// <summary>Fichiers dont l'absence n'empêche pas de démarrer (ajoutés après coup, peut-être pas encore en cache).</summary>
-    static readonly string[] Optional = ["monsters", "maps", "spells", "monsterdrops"];
+    static readonly string[] Optional = ["monsters", "maps", "spells", "monsterdrops", "hints", "dungeons"];
     /// <summary>Type d'objet « Objet de Quête » : ne tombe que pendant la quête.</summary>
     const int QuestItemType = 24;
 
@@ -80,6 +89,9 @@ public sealed class GameData
     /// <summary>Drops officiels par monstre (fichier de langue « monsterdrops »).</summary>
     public Dictionary<int, List<MonsterDrop>> MonsterDrops { get; } = new();
     public Dictionary<int, MapInfo> Maps { get; } = new();
+    /// <summary>Points d'intérêt de la carte (fichier de langue « hints ») et leurs catégories (identifiant -> nom).</summary>
+    public List<MapHint> Hints { get; } = new();
+    public Dictionary<int, string> HintCategories { get; } = new();
     /// <summary>Noms des sorts (fichier de langue « spells »).</summary>
     public Dictionary<int, string> Spells { get; } = new();
     /// <summary>Icônes des sorts (fond, symbole, couleurs à l'état normal).</summary>
@@ -248,8 +260,30 @@ public sealed class GameData
                 var area = sa != null ? areas.GetValueOrDefault((int)Avm1.ToNum(sa.GetValueOrDefault("a"))) : null;
                 data.Maps[id] = new MapInfo(id, (int)Avm1.ToNum(m.GetValueOrDefault("x")), (int)Avm1.ToNum(m.GetValueOrDefault("y")),
                     area != null ? Avm1.ToStr(area.GetValueOrDefault("n")) : "",
-                    sa != null ? Avm1.ToStr(sa.GetValueOrDefault("n")) : "");
+                    sa != null ? Avm1.ToStr(sa.GetValueOrDefault("n")) : "",
+                    area != null ? (int)Avm1.ToNum(area.GetValueOrDefault("sua")) : 0);
             }
+        }
+
+        // Points d'intérêt : HIC[id] = { n: catégorie }, HI = [ { n: nom, c: catégorie, g: icône, m: map } ].
+        // Pour un donjon, n est l'identifiant du donjon : DU[id] = { n: nom, lvl: niveau } (fichier « dungeons »)
+        if (paths.TryGetValue("hints", out var hintsPath) && data.Maps.Count > 0)
+        {
+            var hints = Avm1.Run(await File.ReadAllBytesAsync(hintsPath));
+            var dungeons = paths.TryGetValue("dungeons", out var duPath)
+                ? Avm1.Run(await File.ReadAllBytesAsync(duPath)).GetValueOrDefault("DU") as AsObject : null;
+            if (hints.GetValueOrDefault("HIC") is AsObject HIC)
+                foreach (var (k, v) in HIC)
+                    if (v is AsObject o && int.TryParse(k, out var cid)) data.HintCategories[cid] = Avm1.ToStr(o.GetValueOrDefault("n"));
+            if (hints.GetValueOrDefault("HI") is List<object?> HI)
+                foreach (var h in HI.OfType<AsObject>())
+                {
+                    if (!data.Maps.TryGetValue((int)Avm1.ToNum(h.GetValueOrDefault("m")), out var map)) continue;
+                    var name = Avm1.ToStr(h.GetValueOrDefault("n")).Trim();
+                    if (dungeons?.GetValueOrDefault(name) is AsObject du)
+                        name = Avm1.ToStr(du.GetValueOrDefault("n")) + (du.GetValueOrDefault("lvl") is { } lvl ? $" (niv. {Avm1.ToNum(lvl)})" : "");
+                    data.Hints.Add(new MapHint(name, (int)Avm1.ToNum(h.GetValueOrDefault("c")), (int)Avm1.ToNum(h.GetValueOrDefault("g")), map));
+                }
         }
 
         // Sorts : S[id] = { n: nom, i: { b: fond, up: symbole, bc/fc/pc: couleurs du fond, du cadre et du symbole }, … }

@@ -1838,6 +1838,84 @@
                 </Grid>
             </TabItem>
 
+            <!-- Carte : carte du monde lue dans le client installé, points d'intérêt du fichier de langue « hints » -->
+            <TabItem x:Name="CarteTab" Header="Carte" Tag="{StaticResource TabCarte}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="0.3*" MinWidth="260" MaxWidth="340"/>
+                    </Grid.ColumnDefinitions>
+
+                    <WrapPanel Grid.ColumnSpan="2" Margin="0,0,0,6">
+                        <ComboBox x:Name="CarteSuperArea" Width="190" SelectedIndex="0" Margin="0,0,10,4"
+                                  SelectionChanged="CarteSuperArea_Changed">
+                            <ComboBoxItem Content="Continent amaknien"/>
+                            <ComboBoxItem Content="Incarnam"/>
+                        </ComboBox>
+                        <WrapPanel x:Name="CarteFilters"/>
+                        <CheckBox x:Name="CarteShowGrid" Content="Grille" IsChecked="True" VerticalAlignment="Center" Margin="10,0,10,4"
+                                  Checked="CarteGrid_Changed" Unchecked="CarteGrid_Changed"/>
+                        <Button Content="Ma position" Click="CarteMyPosition_Click" Margin="0,0,6,4"
+                                ToolTip="Centre la carte sur le personnage affiché dans l'onglet Combat"/>
+                        <Button Content="Vue d'ensemble" Click="CarteFit_Click" Margin="0,0,6,4"/>
+                        <Button Content="+" Width="32" Click="CarteZoomIn_Click" Margin="0,0,4,4" ToolTip="Zoomer (ou molette)"/>
+                        <Button Content="−" Width="32" Click="CarteZoomOut_Click" Margin="0,0,0,4" ToolTip="Dézoomer (ou molette)"/>
+                    </WrapPanel>
+
+                    <Border Grid.Row="1" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                            CornerRadius="{DynamicResource RadiusLg}" ClipToBounds="True">
+                        <Grid>
+                            <local:WorldMapView x:Name="CarteMap" Background="#8C8C8C"/>
+                            <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10" Padding="10,5"
+                                    Background="#C8000000" CornerRadius="{DynamicResource RadiusMd}" IsHitTestVisible="False">
+                                <TextBlock x:Name="CarteHover" Foreground="White" FontWeight="SemiBold"
+                                           Text="Survolez la carte pour voir les coordonnées."/>
+                            </Border>
+                            <TextBlock x:Name="CarteEmpty" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="40"
+                                       Foreground="White" FontSize="14" IsHitTestVisible="False" Visibility="Collapsed"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Points d'intérêt : recherche et liste -->
+                    <Border Grid.Row="1" Grid.Column="1" Margin="10,0,0,0" Background="{DynamicResource Surface2}"
+                            BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="{DynamicResource RadiusLg}" Padding="12">
+                        <DockPanel>
+                            <TextBox x:Name="CarteSearch" DockPanel.Dock="Top" TextChanged="CarteSearch_Changed"
+                                     ToolTip="Nom (Zaap, Temple Iop, Donjon Bouftou…), zone ou coordonnées [x,y]. Cherche dans toutes les catégories."/>
+                            <TextBlock x:Name="CarteCount" DockPanel.Dock="Top" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,8,0,8"/>
+                            <TextBlock DockPanel.Dock="Bottom" FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                       Text="Carte et icônes lues dans le client Dofus Retro installé. Glissez pour déplacer, molette pour zoomer."/>
+                            <DataGrid x:Name="CarteGrid" SelectionChanged="CarteRow_Selected" HeadersVisibility="None">
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Width="32">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Image Source="{Binding Icon}" Width="22" Height="22"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Width="*">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Margin="0,2">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/>
+                                                    <TextBlock Text="{Binding Position}" FontSize="11" Foreground="{DynamicResource TextMuted}"
+                                                               TextTrimming="CharacterEllipsis" ToolTip="{Binding Position}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
             <!-- Journal -->
             <TabItem Header="Journal" Tag="{StaticResource TabJournal}">
                 <TextBox x:Name="LogBox" IsReadOnly="True" FontFamily="Consolas" FontSize="12" Padding="10"
