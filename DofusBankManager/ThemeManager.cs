@@ -34,13 +34,15 @@ public static class ThemeManager
 
     public static void LoadSaved()
     {
-        var settings = new Settings();
+        // Premier lancement (aucun réglage enregistré) : interface HTML, style Moderne. Ensuite, le choix de l'utilisateur
+        // est retenu ; un settings.json d'une ancienne version sans ces champs garde l'interface classique.
+        var settings = new Settings { Style = Moderne, HtmlUi = true };
         try
         {
             if (File.Exists(SettingsPath))
-                settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText(SettingsPath)) ?? settings;
+                settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText(SettingsPath)) ?? new Settings();
         }
-        catch { }
+        catch { settings = new Settings(); }
         Style = settings.Style == Moderne ? Moderne : Classique;
         HtmlUi = settings.HtmlUi;
         Apply(settings.Theme, save: false);

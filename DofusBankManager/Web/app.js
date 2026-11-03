@@ -34,7 +34,8 @@ const TABS = [
     'OrganizerOrderStatus'] },
   { key: 'fm', label: 'FM', icon: '✧', watch: ['FmItemCombo', 'FmItemName', 'FmReliquat', 'FmReliquatInput', 'FmStats',
     'FmHistoryGrid', 'FmEmpty'] },
-  { key: 'arene', label: 'Arène', icon: '⏱', watch: [] },
+  { key: 'arene', label: 'Arène', icon: '⏱', watch: ['ChronoTime', 'ChronoStart', 'ChronoReset', 'ChronoFights', 'ChronoGains',
+    'ChronoRate', 'ChronoGrid', 'AreneChallenges', 'AreneOtherChallenges'] },
   { key: 'carte', label: 'Carte', icon: '◳', watch: [] },
   { key: 'journal', label: 'Journal', icon: '☰', watch: ['LogBox', 'LogPacketsBox'] },
 ];
@@ -440,8 +441,36 @@ Object.assign(views, {
   },
 
   arene() {
-    return `<div class="empty">Le chronomètre et les challenges s'affichent dans l'interface classique.<br><br>
-      <button class="primary" data-act="ui">Interface classique</button></div>`;
+    const challenges = rows('AreneChallenges');
+    const state = c => c.State === 1 ? 'ok' : c.State === -1 ? 'bad' : 'warn';
+    return `<div class="card chrono">
+        <div class="chrono-clock"><span class="lbl">Chronomètre</span><div class="time acc">${esc(T('ChronoTime'))}</div>
+          <div class="filters">${btn('ChronoStart', '▶ Démarrer', 'primary')}${btn('ChronoReset', 'Remettre à zéro')}</div></div>
+        <div class="chrono-stats"><div class="strong">${esc(T('ChronoFights'))}</div><div class="strong acc">${esc(T('ChronoGains'))}</div>
+          <div class="muted">${esc(T('ChronoRate'))}</div>
+          <div class="muted small">Compte les fins de combat de tous vos personnages pendant que le chronomètre tourne (un combat à plusieurs personnages compte une fois). Gains : kamas + drops au prix HDV (sinon prix marchand).</div></div>
+      </div>
+      <div class="split wide">
+        ${table('ChronoGrid', [
+          { h: 'Fin', k: 'TimeSort', f: r => esc(r.Time) },
+          { h: 'Personnage(s)', k: 'Characters' },
+          { h: 'Monstres', k: 'Monsters', f: r => `<span class="ellipsis" title="${esc(r.Monsters)}">${esc(r.Monsters)}</span>` },
+          { h: 'XP', k: 'Xp', num: true, f: r => fmt(r.Xp) },
+          { h: 'Kamas', k: 'Kamas', num: true, f: r => fmt(r.Kamas) },
+          { h: 'Drops', k: 'DropValue', num: true, f: r => fmt(r.DropValue) },
+          { h: 'Total', k: 'Total', num: true, f: r => `<span class="acc strong">${fmt(r.Total)}</span>` },
+        ], { select: false, empty: 'Aucun combat compté : démarrez le chronomètre, chaque fin de combat sera ajoutée ici.' })}
+        <aside class="glass detail">
+          <h2>Challenges Économe et Barbare</h2>
+          <div class="sub">Annoncés par le jeu au début du combat ; leur état est suivi d'après les sorts et attaques de vos personnages. Le jeu donne le résultat final.</div>
+          ${challenges.length ? challenges.map(c => `<div class="card challenge ${c.State === -1 ? 'failed' : ''}">
+              <div class="row"><b>${esc(c.Name)}</b>${c.Announced ? '<span class="chip">annoncé</span>' : ''}<span class="muted right">${esc(c.Character)}</span></div>
+              <div class="muted small">${esc(c.Rule)}</div>
+              <div class="strong ${state(c)}">${esc(c.Status)}</div></div>`).join('')
+            : `<div class="empty">Entrez en combat : les challenges de vos personnages s'afficheront ici.</div>`}
+          ${T('AreneOtherChallenges') ? `<div class="muted">${esc(T('AreneOtherChallenges'))}</div>` : ''}
+        </aside>
+      </div>`;
   },
 
   carte() {
