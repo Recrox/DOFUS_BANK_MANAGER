@@ -4,6 +4,7 @@ Les changements de chaque version, la plus récente en haut. Ce fichier est int�
 
 ## 1.31.0 — 3 novembre 2026
 
+- **Switcheur** : réglages réorganisés en cartes (Raccourcis, Notifications, Bascules automatiques, Superposition en jeu), avec des interrupteurs expliqués et des pastilles à cocher. « Masquer les réglages » laisse toute la place à la liste (interface HTML).
 - **FM** : le bouton « Poids des stats » affiche les poids dans l'application, avec l'icône de chaque rune, à la place de l'historique. Modifiez une valeur puis Entrée : elle compte tout de suite pour les runes suivantes, sans redémarrer. « Rétablir » revient à la valeur par défaut.
 - Correction : dans l'interface HTML, « Oublier l'objet » et « Effacer l'historique » (onglet FM) demandent confirmation dans la page et fonctionnent.
 
