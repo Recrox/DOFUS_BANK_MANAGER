@@ -17,7 +17,13 @@ public sealed record OverlayModel(string Title, string Stats, string Econome, IR
 
 public sealed record OverlayGroup(string Monsters, string Info, bool Archi);
 
-public sealed record OverlayTurn(int Order, string Name, string Initiative, bool Active);
+/// <summary>Ligne de l'ordre de jeu. Life : points de vie en pourcentage (null : inconnus).</summary>
+public sealed record OverlayTurn(int Order, string Name, string Initiative, bool Active, int? Life)
+{
+    public bool HasLife => Life != null;
+    public double LifeValue => Life ?? 0;
+    public string LifeText => Life is { } l ? $"{l} %" : "";
+}
 
 /// <summary>
 /// Superposition en jeu. Verrouillée, elle laisse passer la souris (les clics vont au jeu) et ne prend jamais le focus ;

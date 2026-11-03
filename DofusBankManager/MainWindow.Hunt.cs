@@ -62,10 +62,13 @@ public partial class MainWindow
         _tracker.FightJoined += _hunt.OnFightJoined;
         _tracker.TurnStarted += _hunt.OnTurnStarted;
         _tracker.GameAction += s => Safe(() => _hunt.OnGameAction(s));
+        _tracker.FightersUpdate += s => Safe(() => _hunt.OnFightersUpdate(s));
+        _tracker.Challenge += s => Safe(() => _hunt.OnChallenge(s));
         // Onglet Switcheur : notifications
         _tracker.ExchangeRequested += target => Safe(() => _hunt.OnExchangeRequested(target));
         _tracker.PartyInvited += invited => Safe(() => _hunt.OnPartyInvited(invited));
         _hunt.Notice += OnGameNotice;
+        _hunt.PartyJoined += c => Safe(() => OnPartyJoined(c));
         HuntSound.IsChecked = _hunt.SoundAlert;
         HuntVolume.Value = _hunt.SoundVolume;
     }

@@ -10,7 +10,7 @@ const post = m => window.chrome.webview.postMessage(m);
 const COMMON = ['VersionText', 'CaptureDot', 'CaptureStatus', 'BankStatus', 'CaptureButton', 'AdminButton', 'UpdateBanner',
   'UpdateTitle', 'UpdateText', 'UpdateActionButton', 'UpdateLaterButton', 'UpdateNotesButton', 'MainTabs'];
 const TABS = [
-  { key: 'bank', label: 'Banque', icon: '▣', watch: ['BankSearch', 'BankTypeFilter', 'BankCount', 'BankValue', 'BankGrid'] },
+  { key: 'bank', label: 'Banque', icon: '▣', watch: ['BankOwner', 'BankSearch', 'BankTypeFilter', 'BankCount', 'BankValue', 'BankGrid'] },
   { key: 'recipes', label: 'Recettes', icon: '✦', watch: ['RecipeSearch', 'JobFilter', 'ModeFilter', 'SellMinPanel', 'SellMin',
     'LevelMin', 'LevelMax', 'SlotFilters', 'IncludeInventory', 'InventoryHint', 'RecipeCount', 'IngredientChip', 'IngredientChipText',
     'RecipeGrid', 'DetailTitle', 'DetailSub', 'DetailCostPanel', 'DetailCraftCount', 'DetailCraftMax', 'DetailCostTitle', 'DetailCost',
@@ -28,12 +28,13 @@ const TABS = [
   { key: 'combat', label: 'Combat', icon: '⌖', watch: ['HuntCharacterBox', 'HuntLevel', 'HuntGroupLevel', 'HuntWisdom', 'HuntProspection',
     'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
     'HuntSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid'] },
-  { key: 'windows', label: 'Switcheur', icon: '⧉', watch: ['HotkeyNext', 'HotkeyPrevious', 'HotkeyMain', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
+  { key: 'windows', label: 'Switcheur', icon: '⧉', watch: ['OrganizerEnabled', 'HotkeyDebounce', 'NotifyAutoSwitchTurn', 'OrganizerLockOrder', 'HotkeyNext', 'HotkeyPrevious', 'HotkeyMain', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
     'NotifyExchange', 'NotifyParty', 'NotifyToast', 'NotifyFlash', 'NotifySound', 'NotifyAutoSwitch', 'OrganizerCount', 'OrganizerGrid', 'OverlayEnabled', 'OverlayEconome', 'OverlayGroups',
     'OverlayRotation', 'OverlayOpacity', 'OverlayOpacityText', 'OverlayMove', 'OrganizerSaveOrder', 'OrganizerResetOrder',
     'OrganizerOrderStatus'] },
   { key: 'fm', label: 'FM', icon: '✧', watch: ['FmItemCombo', 'FmItemName', 'FmReliquat', 'FmReliquatInput', 'FmStats',
     'FmHistoryGrid', 'FmEmpty'] },
+  { key: 'arene', label: 'Arène', icon: '⏱', watch: [] },
   { key: 'carte', label: 'Carte', icon: '◳', watch: [] },
   { key: 'journal', label: 'Journal', icon: '☰', watch: ['LogBox', 'LogPacketsBox'] },
 ];
@@ -143,7 +144,7 @@ function tabs(active) {
 
 const views = {
   bank() {
-    return `<div class="filters">${input('BankSearch', 'Rechercher un objet…', '260px')}${select('BankTypeFilter')}
+    return `<div class="filters"><span class="strong acc">${esc(T('BankOwner'))}</span>${input('BankSearch', 'Rechercher un objet…', '260px')}${select('BankTypeFilter')}
       <span class="chip">${esc(T('BankCount'))}</span>${T('BankValue') ? `<span class="chip accent">${esc(T('BankValue'))}</span>` : ''}</div>
       ${table('BankGrid', [
         { h: '', f: r => itemImg(r.ItemId) },
@@ -403,7 +404,9 @@ Object.assign(views, {
   windows() {
     const hotkey = (name, label) => `<span class="lbl">${label}</span><input type="text" class="hotkey" readonly data-hotkey="${name}"
       value="${esc(T(name))}" placeholder="aucun" title="Cliquez puis appuyez sur la combinaison voulue (Suppr : aucun raccourci)">`;
-    return `<div class="filters">${hotkey('HotkeyNext', 'Personnage suivant')}${hotkey('HotkeyPrevious', 'Précédent')}${hotkey('HotkeyMain', 'Principal ★')}
+    return `<div class="filters">${check('OrganizerEnabled', 'Switcheur activé')}</div>
+      <div class="filters">${hotkey('HotkeyNext', 'Personnage suivant')}${hotkey('HotkeyPrevious', 'Précédent')}${hotkey('HotkeyMain', 'Principal ★')}
+        <span class="lbl">Anti-rebond (ms)</span>${input('HotkeyDebounce', '', '70px')}
         <span class="muted">Les raccourcis marchent aussi en jeu ; ils ne font qu'afficher la fenêtre.</span>
         ${T('HotkeyStatus') ? `<span class="bad strong">${esc(T('HotkeyStatus'))}</span>` : ''}</div>
       <div class="filters card overlay-opts">${check('OverlayEnabled', 'Superposition en jeu')}${check('OverlayEconome', 'Économe')}
@@ -414,7 +417,8 @@ Object.assign(views, {
         ${btn('OverlayMove', 'Déplacer', 'small')}</div>
       <div class="filters"><span class="lbl">Notifier</span>${check('NotifyFight', 'Début de combat')}${check('NotifyTurn', 'Début de votre tour')}
         ${check('NotifyExchange', "Demande d'échange")}${check('NotifyParty', 'Invitation de groupe')}
-        <span class="lbl">par</span>${check('NotifyToast', 'Bulle')}${check('NotifyFlash', 'Clignotement')}${check('NotifySound', 'Son')}${check('NotifyAutoSwitch', 'Basculer sur la fenêtre invitée')}</div>
+        <span class="lbl">par</span>${check('NotifyToast', 'Bulle')}${check('NotifyFlash', 'Clignotement')}${check('NotifySound', 'Son')}${check('NotifyAutoSwitch', 'Basculer sur la fenêtre invitée')}
+        ${check('NotifyAutoSwitchTurn', 'Basculer au début du tour')}${check('OrganizerLockOrder', "Figer l'ordre à l'entrée en groupe")}</div>
       <div class="filters"><span class="muted">Ordre de jeu : par initiative, ou à votre goût en glissant-déposant les lignes.</span>
         <span class="strong" style="color:${S.OrganizerOrderStatus?.c || 'inherit'}">${esc(T('OrganizerOrderStatus'))}</span>
         ${btn('OrganizerSaveOrder', "Enregistrer l'ordre", 'small primary')}${btn('OrganizerResetOrder', 'Ordre par initiative', 'small')}
@@ -429,6 +433,11 @@ Object.assign(views, {
         { h: 'Exclure', k: 'Excluded', f: r => `<label class="check"><input type="checkbox" ${r.Excluded ? 'checked' : ''} ${attrs({ act: 'row', grid: 'OrganizerGrid', i: r._i, handler: 'OrganizerExclude_Click' })}></label>` },
         { h: '', f: r => `<button class="small primary" ${attrs({ act: 'row', grid: 'OrganizerGrid', i: r._i, handler: 'OrganizerShow_Click' })}>Afficher</button>` },
       ], { select: false, draggable: r => !r.Excluded && !r.Name.startsWith('('), empty: 'Aucune fenêtre Dofus Retro ouverte. Lancez le jeu : ses fenêtres apparaîtront ici.' })}`;
+  },
+
+  arene() {
+    return `<div class="empty">Le chronomètre et les challenges s'affichent dans l'interface classique.<br><br>
+      <button class="primary" data-act="ui">Interface classique</button></div>`;
   },
 
   carte() {

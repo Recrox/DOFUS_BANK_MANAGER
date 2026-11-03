@@ -42,8 +42,10 @@ public partial class MainWindow
 
         // Pierres possédées (banque et inventaire) et leurs monstres
         var s = _tracker.State;
-        var stones = s.Bank.Values.Select(i => (Item: i, Where: "Banque"))
-            .Concat(s.Inventory.Values.Select(i => (Item: i, Where: "Inventaire")))
+        // Banque et inventaire du personnage suivi (le dernier connecté ou dont la banque a été ouverte)
+        var of = s.Character.Length > 0 ? $" de {s.Character}" : "";
+        var stones = s.Bank.Values.Select(i => (Item: i, Where: "Banque" + of))
+            .Concat(s.Inventory.Values.Select(i => (Item: i, Where: "Inventaire" + of)))
             .Where(x => _pda.IsStone(x.Item.TemplateId))
             .Select(x => (x.Item, x.Where, Monsters: PdaTracker.MonstersOf(x.Item.Effects)))
             .ToList();

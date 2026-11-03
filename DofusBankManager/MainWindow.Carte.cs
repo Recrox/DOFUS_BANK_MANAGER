@@ -31,6 +31,24 @@ public partial class MainWindow
 
     static int CarteFilterOf(MapHint h) => h.Name == "Zaap" ? ZaapFilter : h.Category;
 
+    /// <summary>Icône d'une maison, dessinée par l'application (le jeu n'en a pas dans les icônes de la carte).</summary>
+    static readonly ImageSource HouseIcon = CreateHouseIcon();
+
+    static ImageSource CreateHouseIcon()
+    {
+        var geometry = Geometry.Parse("M2,11 L12,3 L22,11 Z M5,11 H19 V21 H5 Z");
+        var door = Geometry.Parse("M10,21 V15 H14 V21 Z");
+        var group = new DrawingGroup();
+        group.Children.Add(new GeometryDrawing(new SolidColorBrush(Color.FromRgb(0xD9, 0x8E, 0x3B)),
+            new Pen(new SolidColorBrush(Color.FromRgb(0x4A, 0x2A, 0x10)), 1.6) { LineJoin = PenLineJoin.Round }, geometry));
+        group.Children.Add(new GeometryDrawing(new SolidColorBrush(Color.FromRgb(0x4A, 0x2A, 0x10)), null, door));
+        var image = new DrawingImage(group);
+        image.Freeze();
+        return image;
+    }
+
+    static ImageSource? CarteIcon(MapHint h) => h.Category == GameData.HouseCategory ? HouseIcon : WorldMap.HintIcon(h.Gfx);
+
     static Point CarteCenter(MapInfo m) =>
         new((m.X + 0.5) * WorldMap.CellWidth, (m.Y + 0.5) * WorldMap.CellHeight);
 
@@ -42,7 +60,7 @@ public partial class MainWindow
         {
             var sample = data.Hints.FirstOrDefault(h => CarteFilterOf(h) == key);
             var content = new StackPanel { Orientation = Orientation.Horizontal };
-            if (sample != null && WorldMap.HintIcon(sample.Gfx) is { } icon)
+            if (sample != null && CarteIcon(sample) is { } icon)
                 content.Children.Add(new Image { Source = icon, Width = 18, Height = 18, Margin = new Thickness(0, 0, 6, 0) });
             content.Children.Add(new TextBlock { Text = name, VerticalAlignment = VerticalAlignment.Center });
             var toggle = new ToggleButton
@@ -139,7 +157,7 @@ public partial class MainWindow
 
         CarteMap.SetMarkers("hints", hints.Select(h =>
         {
-            FrameworkElement el = WorldMap.HintIcon(h.Gfx) is { } icon
+            FrameworkElement el = CarteIcon(h) is { } icon
                 ? new Image { Source = icon, Stretch = Stretch.Uniform }
                 : new Ellipse { Fill = (Brush)FindResource("AccentSolid"), Stroke = Brushes.White, StrokeThickness = 1.5 };
             el.Width = el.Height = el is Image ? MarkerSize : 10;
@@ -151,7 +169,7 @@ public partial class MainWindow
 
         var selected = (CarteGrid.SelectedItem as CarteRow)?.Hint;
         var rows = hints.OrderBy(CarteFilterOf).ThenBy(h => h.Name)
-            .Select(h => new CarteRow(h, h.Name, h.Map.Label, CategoryName(h), WorldMap.HintIcon(h.Gfx))).ToList();
+            .Select(h => new CarteRow(h, h.Name, h.Map.Label, CategoryName(h), CarteIcon(h))).ToList();
         CarteGrid.ItemsSource = rows;
         if (rows.FirstOrDefault(r => r.Hint == selected) is { } keep) CarteGrid.SelectedItem = keep;
 

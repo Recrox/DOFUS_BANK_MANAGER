@@ -227,6 +227,9 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock x:Name="BankOwner" VerticalAlignment="Center" Margin="0,0,16,0" FontWeight="Bold" FontSize="14"
+                                   Foreground="{DynamicResource AccentSolid}"
+                                   ToolTip="Personnage dont la banque est affichée (la banque est commune aux personnages d'un même compte)"/>
                         <TextBlock Text="Recherche" Style="{StaticResource Label}" Margin="0,0,8,0"/>
                         <TextBox x:Name="BankSearch" Width="240" TextChanged="BankFilter_Changed"/>
                         <TextBlock Text="Type" Style="{StaticResource Label}"/>
@@ -1181,7 +1184,14 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Où" Binding="{Binding Where}" Width="80"/>
+                                <DataGridTextColumn Header="Où" Binding="{Binding Where}" Width="170">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            <Setter Property="ToolTip" Value="{Binding Where}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                         <TextBlock x:Name="PdaEmpty" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="40"
@@ -1570,6 +1580,11 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
+                    <StackPanel>
+                    <CheckBox x:Name="OrganizerEnabled" Content="Switcheur activé" FontWeight="Bold" Margin="0,0,0,8"
+                              Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"
+                              ToolTip="Désactivé : plus de raccourcis, de notifications ni de bascule de fenêtre (la liste reste affichée)"/>
+                    <StackPanel x:Name="OrganizerOptions">
                     <WrapPanel Margin="0,0,0,8">
                         <TextBlock Text="Personnage suivant" Style="{StaticResource Label}" Margin="0,0,8,0"/>
                         <TextBox x:Name="HotkeyNext" Width="150" IsReadOnly="True" HorizontalContentAlignment="Center"
@@ -1583,12 +1598,16 @@
                         <TextBox x:Name="HotkeyMain" Width="150" IsReadOnly="True" HorizontalContentAlignment="Center"
                                  PreviewKeyDown="Hotkey_PreviewKeyDown" TextChanged="Hotkey_Changed"
                                  ToolTip="Affiche le personnage principal (étoile dans la liste). Cliquez ici puis appuyez sur la combinaison voulue (Suppr : aucun raccourci)"/>
+                        <TextBlock Text="Anti-rebond" Style="{StaticResource Label}"/>
+                        <TextBox x:Name="HotkeyDebounce" Width="60" HorizontalContentAlignment="Center" TextChanged="HotkeyDebounce_Changed"
+                                 ToolTip="Délai minimal entre deux raccourcis, en millisecondes (160 par défaut) : un double appui involontaire ne saute pas un personnage"/>
+                        <TextBlock Text="ms" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" Margin="4,0,0,0"/>
                         <TextBlock Text="Les raccourcis marchent aussi en jeu ; ils ne font qu'afficher la fenêtre." Foreground="{DynamicResource TextMuted}"
                                    VerticalAlignment="Center" Margin="14,0,0,0"/>
                         <TextBlock x:Name="HotkeyStatus" Foreground="{DynamicResource Missing}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="14,0,0,0"/>
                     </WrapPanel>
 
-                    <WrapPanel Grid.Row="1" Margin="0,0,0,8">
+                    <WrapPanel Margin="0,0,0,8">
                         <TextBlock Text="Notifier" Style="{StaticResource Label}" Margin="0,0,10,0"/>
                         <CheckBox x:Name="NotifyFight" Content="Début de combat" Margin="0,0,14,0" Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"/>
                         <CheckBox x:Name="NotifyTurn" Content="Début de votre tour" Margin="0,0,14,0" Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"/>
@@ -1604,7 +1623,15 @@
                         <CheckBox x:Name="NotifyAutoSwitch" Content="Basculer sur la fenêtre invitée" Margin="18,0,0,0" FontWeight="SemiBold"
                                   Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"
                                   ToolTip="Invitation de groupe ou demande d'échange : la fenêtre du personnage concerné passe au premier plan. Vous acceptez toujours vous-même."/>
+                        <CheckBox x:Name="NotifyAutoSwitchTurn" Content="Basculer au début du tour" Margin="14,0,0,0" FontWeight="SemiBold"
+                                  Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"
+                                  ToolTip="En combat, la fenêtre du personnage dont c'est le tour passe au premier plan. Vous jouez toujours vous-même."/>
+                        <CheckBox x:Name="OrganizerLockOrder" Content="Figer l'ordre à l'entrée en groupe" Margin="14,0,0,0"
+                                  Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"
+                                  ToolTip="Quand un personnage rejoint un groupe, l'ordre de jeu actuel est enregistré et ne suit plus l'initiative (qui change en combat)"/>
                     </WrapPanel>
+                    </StackPanel>
+                    </StackPanel>
 
                     <DockPanel Grid.Row="2" Margin="0,0,0,8">
                         <!-- Superposition en jeu : infos utiles affichées au-dessus du jeu -->
@@ -1835,6 +1862,121 @@
                                    Foreground="{DynamicResource TextMuted}" FontSize="14"
                                    Text="Ouvrez un atelier de forgemagie en jeu, posez l'objet et passez une rune : chaque passage s'affichera ici."/>
                     </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- Arène : challenges Économe et Barbare, chronomètre de rentabilité -->
+            <TabItem Header="Arène" Tag="{StaticResource TabArene}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="0.42*" MinWidth="320" MaxWidth="460"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Chronomètre -->
+                    <Border Grid.ColumnSpan="2" Margin="0,0,0,10" Padding="16,12" Background="{DynamicResource Surface2}"
+                            BorderBrush="{DynamicResource AccentBorder}" BorderThickness="1" CornerRadius="{DynamicResource RadiusLg}">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Left" Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Text="Chronomètre" Foreground="{DynamicResource TextMuted}" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="ChronoTime" Text="00h00min00s" FontSize="30" FontWeight="ExtraBold"
+                                           Foreground="{DynamicResource AccentSolid}"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                    <Button x:Name="ChronoStart" Content="▶ Démarrer" Click="ChronoStart_Click" Style="{StaticResource AccentButton}"
+                                            Padding="14,4" Margin="0,0,6,0"/>
+                                    <Button Content="Remettre à zéro" Click="ChronoReset_Click" Padding="12,4"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock x:Name="ChronoFights" FontSize="15" FontWeight="Bold" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="ChronoGains" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource AccentSolid}"
+                                           TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                <TextBlock x:Name="ChronoRate" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"
+                                           Text="Compte les fins de combat de tous vos personnages pendant que le chronomètre tourne (un combat à plusieurs personnages compte une fois). Gains : kamas + drops au prix HDV (sinon prix marchand)."/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <DataGrid x:Name="ChronoGrid" Grid.Row="1">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Fin" Binding="{Binding Time}" SortMemberPath="TimeSort" Width="80"/>
+                            <DataGridTextColumn Header="Personnage(s)" Binding="{Binding Characters}" Width="160"/>
+                            <DataGridTextColumn Header="Monstres" Binding="{Binding Monsters}" Width="*" MinWidth="160">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        <Setter Property="ToolTip" Value="{Binding Monsters}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="XP" Binding="{Binding Xp, StringFormat={}{0:N0}}" Width="90"/>
+                            <DataGridTextColumn Header="Kamas" Binding="{Binding Kamas, StringFormat={}{0:N0}}" Width="90"/>
+                            <DataGridTextColumn Header="Drops" Binding="{Binding DropValue, StringFormat={}{0:N0}}" Width="90"/>
+                            <DataGridTextColumn Header="Total" Binding="{Binding Total, StringFormat={}{0:N0}}" Width="100">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentSolid}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Challenges du combat -->
+                    <Border Grid.Row="1" Grid.Column="1" Margin="10,0,0,0" Background="{DynamicResource Surface2}"
+                            BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="{DynamicResource RadiusLg}" Padding="14">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="Challenges Économe et Barbare" FontSize="16" FontWeight="Bold"
+                                       Foreground="{DynamicResource AccentSolid}"/>
+                            <TextBlock DockPanel.Dock="Top" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,4,0,10"
+                                       Text="Annoncés par le jeu au début du combat ; leur état est suivi d'après les sorts et attaques de vos personnages. Le jeu donne le résultat final."/>
+                            <TextBlock x:Name="AreneOtherChallenges" DockPanel.Dock="Bottom" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                            <Grid>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl x:Name="AreneChallenges">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border x:Name="Box" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                                                        CornerRadius="{DynamicResource RadiusMd}" Padding="10,7" Margin="0,0,0,6">
+                                                    <StackPanel>
+                                                        <DockPanel>
+                                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Character}" Foreground="{DynamicResource TextMuted}"/>
+                                                            <TextBlock FontWeight="Bold" FontSize="14">
+                                                                <Run Text="{Binding Name, Mode=OneWay}"/><Run x:Name="Announced" Text="" Foreground="{DynamicResource TextMuted}" FontWeight="Normal" FontSize="11"/>
+                                                            </TextBlock>
+                                                        </DockPanel>
+                                                        <TextBlock Text="{Binding Rule}" FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
+                                                        <TextBlock x:Name="Status" Text="{Binding Status}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding Announced}" Value="True">
+                                                        <Setter TargetName="Announced" Property="Text" Value="  · annoncé"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding State}" Value="1">
+                                                        <Setter TargetName="Status" Property="Foreground" Value="{DynamicResource Ok}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding State}" Value="-1">
+                                                        <Setter TargetName="Status" Property="Foreground" Value="{DynamicResource Missing}"/>
+                                                        <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Missing}"/>
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                                <TextBlock x:Name="AreneChallengesEmpty" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextMuted}"
+                                           Text="Entrez en combat : les challenges de vos personnages s'afficheront ici."/>
+                            </Grid>
+                        </DockPanel>
+                    </Border>
                 </Grid>
             </TabItem>
 

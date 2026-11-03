@@ -11,6 +11,14 @@ namespace DofusBankManager.Multi;
 /// <summary>Réglages de l'onglet Switcheur (organizer.json).</summary>
 public sealed class OrganizerSettings
 {
+    /// <summary>Switcheur actif : raccourcis, notifications et bascules automatiques. Désactivé, l'onglet ne fait que lister.</summary>
+    public bool Enabled { get; set; } = true;
+    /// <summary>Anti-rebond des raccourcis : une nouvelle pression plus rapprochée que ce délai (ms) est ignorée.</summary>
+    public int HotkeyDebounceMs { get; set; } = 160;
+    /// <summary>Début du tour d'un de vos personnages : sa fenêtre passe au premier plan.</summary>
+    public bool AutoSwitchTurn { get; set; } = true;
+    /// <summary>Entrée en groupe : l'ordre de jeu actuel est enregistré (et complété pour les nouveaux personnages), puis ne bouge plus.</summary>
+    public bool LockOrderOnParty { get; set; } = true;
     /// <summary>Personnages exclus de la rotation (ex. compte métier), par nom.</summary>
     public List<string> Excluded { get; set; } = new();
     public string NextKey { get; set; } = "Ctrl+Alt+Right";

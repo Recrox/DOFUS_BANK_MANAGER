@@ -24,7 +24,7 @@ public partial class MainWindow
         OverlayRotation.IsChecked = _organizer.OverlayRotation;
         OverlayOpacity.Value = _organizer.OverlayOpacity * 100;
         _organizerLoading = false;
-        _overlayTimer.Tick += (_, _) => UpdateOverlayVisibility();
+        _overlayTimer.Tick += (_, _) => { TrackForeground(); UpdateOverlayVisibility(); };
         _overlayTimer.Start();
         Closed += (_, _) => _overlay?.Close();
     }
@@ -95,6 +95,23 @@ public partial class MainWindow
         else if (!want && _overlay is { IsVisible: true }) _overlay.Hide();
     }
 
+    IntPtr _lastForeground;
+
+    /// <summary>
+    /// Fenêtre de jeu mise au premier plan (raccourci, clic, Alt+Tab) : son personnage devient celui affiché
+    /// (onglet Combat en mode « Fenêtre active », superposition), sans attendre qu'il change de map.
+    /// </summary>
+    void TrackForeground()
+    {
+        var fg = GameWindows.Foreground;
+        if (fg == _lastForeground) return;
+        _lastForeground = fg;
+        if (_windows.FirstOrDefault(w => w.Handle == fg) is not { } window || CharacterOf(window) is not { } c) return;
+        c.LastMove = DateTime.Now;
+        RefreshHunt(); // met aussi la superposition à jour
+        UpdateOverlay();
+    }
+
     bool IsGameForeground()
     {
         var fg = GameWindows.Foreground;
@@ -105,20 +122,27 @@ public partial class MainWindow
     void UpdateOverlay()
     {
         if (_overlay == null && !_organizer.OverlayEnabled) return;
-        var me = _hunt?.Shown;
+        // Personnage de la fenêtre au premier plan, sinon celui de l'onglet Combat
+        var fgWindow = _windows.FirstOrDefault(w => w.Handle == GameWindows.Foreground);
+        var me = (fgWindow != null ? CharacterOf(fgWindow) : null) ?? _hunt?.Shown;
         var spells = (EconomeSpells.ItemsSource as IEnumerable<EconomeSpell>)?.ToList() ?? [];
         var allGroups = (HuntGroupGrid.ItemsSource as IEnumerable<HuntGroupRow>)?.ToList() ?? [];
         var groups = allGroups.Take(3).Select(g => new OverlayGroup(g.Monsters,
             $"Niv. {g.TotalLevel} · XP {g.XpText}" + (g.DropValue is { } v ? $" · drops ≈ {v:N0} k" : "")
             + (g.HasArchi ? $" · ARCHI : {g.Archi}" : ""), g.HasArchi)).ToList();
         var fg = GameWindows.Foreground;
-        var rotation = Rotation().Select((w, i) => new OverlayTurn(i + 1, (IsMain(w) ? "★ " : "") + (w.Name.Length > 0 ? w.Name : "(sélection du personnage)"),
-            CharacterOf(w)?.Initiative?.ToString("N0") ?? "?", w.Handle == fg)).ToList();
+        var rotation = Rotation().Select((w, i) =>
+        {
+            var c = CharacterOf(w);
+            return new OverlayTurn(i + 1, (IsMain(w) ? "★ " : "") + (w.Name.Length > 0 ? w.Name : "(sélection du personnage)"),
+                c?.Initiative?.ToString("N0") ?? "?", w.Handle == fg, c?.LifePercent);
+        }).ToList();
 
+        static string N(int? v) => v?.ToString("N0") ?? "?";
         EnsureOverlay().Show(new OverlayModel(
             me?.Label ?? "Aucun personnage suivi",
             me == null ? "Changez de map en jeu"
-                : $"Niv. {me.Level?.ToString() ?? "?"} · PP {me.GroupProspection?.ToString("N0") ?? "?"} · Sagesse {me.Wisdom?.ToString("N0") ?? "?"}",
+                : $"Niv. {N(me.Level)} · groupe {N(me.GroupLevel)}\nPP {N(me.Prospection)} · groupe {N(me.GroupProspection)} · Sagesse {N(me.Wisdom)}",
             "Économe · " + EconomeStatus.Text, spells,
             allGroups.Count == 0 ? "Map · aucun groupe" : $"Map · {allGroups.Count} groupe(s)" + (allGroups.Count > 3 ? " (3 plus forts)" : ""),
             groups, rotation,

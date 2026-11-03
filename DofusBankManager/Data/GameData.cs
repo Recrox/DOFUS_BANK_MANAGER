@@ -72,9 +72,9 @@ public sealed class GameData
 {
     const string DefaultDataUrl = "https://dofusretro.cdn.ankama.com/static-data/612/";
     const string Lang = "fr";
-    static readonly string[] Files = ["items", "crafts", "skills", "jobs", "effects", "monsters", "maps", "spells", "monsterdrops", "hints", "dungeons"];
+    static readonly string[] Files = ["items", "crafts", "skills", "jobs", "effects", "monsters", "maps", "spells", "monsterdrops", "hints", "dungeons", "fightChallenge", "houses"];
     /// <summary>Fichiers dont l'absence n'empêche pas de démarrer (ajoutés après coup, peut-être pas encore en cache).</summary>
-    static readonly string[] Optional = ["monsters", "maps", "spells", "monsterdrops", "hints", "dungeons"];
+    static readonly string[] Optional = ["monsters", "maps", "spells", "monsterdrops", "hints", "dungeons", "fightChallenge", "houses"];
     /// <summary>Type d'objet « Objet de Quête » : ne tombe que pendant la quête.</summary>
     const int QuestItemType = 24;
 
@@ -92,6 +92,10 @@ public sealed class GameData
     /// <summary>Points d'intérêt de la carte (fichier de langue « hints ») et leurs catégories (identifiant -> nom).</summary>
     public List<MapHint> Hints { get; } = new();
     public Dictionary<int, string> HintCategories { get; } = new();
+    /// <summary>Catégorie ajoutée aux points d'intérêt pour les maisons (fichier de langue « houses » : porte de chaque maison).</summary>
+    public const int HouseCategory = 100;
+    /// <summary>Noms des challenges de combat (fichier de langue « fightChallenge »), ex. 5 = Économe.</summary>
+    public Dictionary<int, string> FightChallenges { get; } = new();
     /// <summary>Noms des sorts (fichier de langue « spells »).</summary>
     public Dictionary<int, string> Spells { get; } = new();
     /// <summary>Icônes des sorts (fond, symbole, couleurs à l'état normal).</summary>
@@ -285,6 +289,25 @@ public sealed class GameData
                     data.Hints.Add(new MapHint(name, (int)Avm1.ToNum(h.GetValueOrDefault("c")), (int)Avm1.ToNum(h.GetValueOrDefault("g")), map));
                 }
         }
+
+        // Maisons : H.h[id] = { n: nom }, H.d[map] = { c{case}: maison } (map de la porte)
+        if (paths.TryGetValue("houses", out var housesPath) && data.Maps.Count > 0
+            && Avm1.Run(await File.ReadAllBytesAsync(housesPath)).GetValueOrDefault("H") is AsObject H
+            && H.GetValueOrDefault("h") is AsObject houses && H.GetValueOrDefault("d") is AsObject doors)
+        {
+            data.HintCategories[HouseCategory] = "Maisons";
+            foreach (var (mk, mv) in doors)
+                if (int.TryParse(mk, out var mapId) && data.Maps.TryGetValue(mapId, out var map) && mv is AsObject cells)
+                    foreach (var hid in cells.Values.Select(v => ((int)Avm1.ToNum(v)).ToString()).Distinct())
+                        if (houses.GetValueOrDefault(hid) is AsObject house)
+                            data.Hints.Add(new MapHint(Avm1.ToStr(house.GetValueOrDefault("n")).Trim(), HouseCategory, 0, map));
+        }
+
+        // Challenges : FC[id] = { n: nom, d: règle }
+        if (paths.TryGetValue("fightChallenge", out var fcPath)
+            && Avm1.Run(await File.ReadAllBytesAsync(fcPath)).GetValueOrDefault("FC") is AsObject FC)
+            foreach (var (k, v) in FC)
+                if (v is AsObject o && int.TryParse(k, out var cid)) data.FightChallenges[cid] = Avm1.ToStr(o.GetValueOrDefault("n"));
 
         // Sorts : S[id] = { n: nom, i: { b: fond, up: symbole, bc/fc/pc: couleurs du fond, du cadre et du symbole }, … }
         if (paths.TryGetValue("spells", out var spellsPath)

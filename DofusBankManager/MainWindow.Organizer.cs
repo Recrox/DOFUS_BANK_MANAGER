@@ -44,9 +44,14 @@ public partial class MainWindow
         NotifyFlash.IsChecked = _organizer.FlashTaskbar;
         NotifySound.IsChecked = _organizer.PlaySound;
         NotifyAutoSwitch.IsChecked = _organizer.AutoSwitch;
+        NotifyAutoSwitchTurn.IsChecked = _organizer.AutoSwitchTurn;
+        OrganizerEnabled.IsChecked = _organizer.Enabled;
+        OrganizerLockOrder.IsChecked = _organizer.LockOrderOnParty;
+        HotkeyDebounce.Text = _organizer.HotkeyDebounceMs.ToString();
         HotkeyNext.Text = _organizer.NextKey;
         HotkeyPrevious.Text = _organizer.PreviousKey;
         HotkeyMain.Text = _organizer.MainKey;
+        OrganizerOptions.IsEnabled = _organizer.Enabled;
         _organizerLoading = false;
 
         SourceInitialized += (_, _) =>
@@ -63,12 +68,58 @@ public partial class MainWindow
     {
         if (_hotkeys == null) return;
         _hotkeys.Clear();
+        // Switcheur désactivé : les touches sont rendues aux autres applications (et au jeu)
+        if (!_organizer.Enabled)
+        {
+            HotkeyStatus.Text = "";
+            return;
+        }
         var failed = new List<string>();
         foreach (var (gesture, step) in new[] { (_organizer.NextKey, 1), (_organizer.PreviousKey, -1) })
-            if (gesture.Length > 0 && !_hotkeys.Register(gesture, () => Cycle(step))) failed.Add(gesture);
-        if (_organizer.MainKey.Length > 0 && !_hotkeys.Register(_organizer.MainKey, FocusMain)) failed.Add(_organizer.MainKey);
+            if (gesture.Length > 0 && !_hotkeys.Register(gesture, () => Debounced(() => Cycle(step)))) failed.Add(gesture);
+        if (_organizer.MainKey.Length > 0 && !_hotkeys.Register(_organizer.MainKey, () => Debounced(FocusMain))) failed.Add(_organizer.MainKey);
         HotkeyStatus.Text = failed.Count == 0 ? ""
             : $"Raccourci indisponible (déjà pris par une autre application ?) : {string.Join(", ", failed)}";
+    }
+
+    DateTime _lastHotkey;
+
+    /// <summary>Anti-rebond : une pression trop proche de la précédente (touche qui rebondit, double appui) est ignorée.</summary>
+    void Debounced(Action action)
+    {
+        var now = DateTime.Now;
+        if ((now - _lastHotkey).TotalMilliseconds < _organizer.HotkeyDebounceMs) return;
+        _lastHotkey = now;
+        action();
+    }
+
+    void HotkeyDebounce_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (_organizerLoading) return;
+        if (int.TryParse(HotkeyDebounce.Text, out var ms) && ms is >= 0 and <= 5000)
+        {
+            _organizer.HotkeyDebounceMs = ms;
+            _organizer.Save();
+        }
+    }
+
+    /// <summary>
+    /// Entrée en groupe : l'ordre de jeu actuel est enregistré, les personnages qui n'y étaient pas encore sont ajoutés à la
+    /// suite, et il ne bouge plus (l'initiative change en combat, l'ordre ne doit pas la suivre).
+    /// </summary>
+    void OnPartyJoined(HuntCharacter c)
+    {
+        if (!_organizer.LockOrderOnParty) return;
+        _windows = GameWindows.Find();
+        var current = Rotation().Select(w => w.Name).Where(n => n.Length > 0).ToList();
+        var saved = _pendingOrder ?? _organizer.Order;
+        var missing = current.Where(n => !saved.Contains(n, StringComparer.OrdinalIgnoreCase)).ToList();
+        if (missing.Count == 0 && _pendingOrder == null && saved.Count > 0) return;
+        _organizer.Order = saved.Concat(missing).ToList();
+        _pendingOrder = null;
+        _organizer.Save();
+        AddLog($"Groupe formé : ordre de jeu enregistré ({string.Join(", ", _organizer.Order)}).");
+        RefreshWindows();
     }
 
     /// <summary>Personnage d'une fenêtre : celui suivi sur une connexion au jeu, retrouvé par son nom.</summary>
@@ -269,7 +320,13 @@ public partial class MainWindow
         _organizer.FlashTaskbar = NotifyFlash.IsChecked == true;
         _organizer.PlaySound = NotifySound.IsChecked == true;
         _organizer.AutoSwitch = NotifyAutoSwitch.IsChecked == true;
+        _organizer.AutoSwitchTurn = NotifyAutoSwitchTurn.IsChecked == true;
+        _organizer.LockOrderOnParty = OrganizerLockOrder.IsChecked == true;
+        bool enabledChanged = _organizer.Enabled != (OrganizerEnabled.IsChecked == true);
+        _organizer.Enabled = OrganizerEnabled.IsChecked == true;
         _organizer.Save();
+        if (enabledChanged) RegisterHotkeys();
+        OrganizerOptions.IsEnabled = _organizer.Enabled;
     }
 
     /// <summary>Saisie d'un raccourci : la combinaison pressée remplace le texte ; Suppr ou Retour arrière l'efface.</summary>
@@ -299,6 +356,7 @@ public partial class MainWindow
 
     void OnGameNotice(HuntCharacter c, GameNotice notice, string? target)
     {
+        if (!_organizer.Enabled) return;
         // Personnage concerné : celui que nomme le message (l'invité), sinon celui de la connexion
         var name = target ?? c.Name;
         var windows = _windows.Count > 0 ? _windows : GameWindows.Find();
@@ -309,9 +367,15 @@ public partial class MainWindow
             && DateTime.Now - _lastNotice.Time < TimeSpan.FromSeconds(3)) return;
         if (window != null) _lastNotice = (window.Handle, notice, DateTime.Now);
 
-        // Invitation de groupe ou d'échange : la fenêtre de l'invité passe au premier plan (il n'a plus qu'à accepter)
-        if (_organizer.AutoSwitch && notice is GameNotice.Party or GameNotice.Exchange && window != null
-            && window.Handle != GameWindows.Foreground)
+        // Invitation de groupe ou d'échange : la fenêtre de l'invité passe au premier plan (il n'a plus qu'à accepter) ;
+        // début de tour : la fenêtre du personnage qui doit jouer (il joue toujours lui-même)
+        bool autoSwitch = notice switch
+        {
+            GameNotice.Party or GameNotice.Exchange => _organizer.AutoSwitch,
+            GameNotice.Turn => _organizer.AutoSwitchTurn,
+            _ => false,
+        };
+        if (autoSwitch && window != null && !IsExcluded(window) && window.Handle != GameWindows.Foreground)
         {
             GameWindows.Focus(window.Handle);
             RefreshWindows();

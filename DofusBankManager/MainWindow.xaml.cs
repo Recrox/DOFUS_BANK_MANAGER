@@ -377,6 +377,7 @@ public partial class MainWindow : Window
         InitPda(_data);
         InitHunt(_data);
         InitCarte(_data);
+        InitArene();
         InitHdv(_data);
         _usage = _data.Recipes.SelectMany(r => r.Ingredients.Select(i => i.ItemId).Distinct())
             .GroupBy(id => id).ToDictionary(g => g.Key, g => g.Count());
@@ -638,6 +639,8 @@ public partial class MainWindow : Window
             .Select((r, i) => r with { Index = i + 1 })
             .ToList();
         SetRows(BankGrid, rows);
+        var owner = _tracker.State.Character;
+        BankOwner.Text = owner.Length > 0 ? $"Banque de {owner}" : "Banque";
         BankCount.Text = $"{rows.Count} objet(s) distinct(s)";
 
         int priced = rows.Count(r => r.Value != null);

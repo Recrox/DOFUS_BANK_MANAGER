@@ -19,6 +19,7 @@
     <Geometry x:Key="TabChasse">M12,4 A8,8 0 1 1 11.99,4 Z M12,1 V7 M12,17 V23 M1,12 H7 M17,12 H23</Geometry>
     <Geometry x:Key="TabFm">M3,21 L14,10 M18,2 V7 M15.5,4.5 H20.5 M20,11 V14 M18.5,12.5 H21.5 M9,4 V6 M8,5 H10</Geometry>
     <Geometry x:Key="TabFenetres">M3,8 H15 V20 H3 Z M3,11 H15 M8,4 H21 V16 H15 M8,4 V8 M8,7 H21</Geometry>
+    <Geometry x:Key="TabArene">M12,6 A7.5,7.5 0 1 1 11.99,6 Z M12,9.5 V13.5 L14.5,15.5 M10,2.5 H14 M12,2.5 V6</Geometry>
     <Geometry x:Key="TabCarte">M3,6 L9,3 L15,6 L21,3 V18 L15,21 L9,18 L3,21 Z M9,3 V18 M15,6 V21</Geometry>
     <Geometry x:Key="TabJournal">M9,6 H21 M9,12 H21 M9,18 H21 M4,6 H4.1 M4,12 H4.1 M4,18 H4.1</Geometry>
     <!-- Bouton de style : étincelles -->

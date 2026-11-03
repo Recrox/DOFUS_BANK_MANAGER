@@ -46,6 +46,8 @@ public sealed record OwnedItem(int TemplateId, int Quantity, string Effects = ""
 ///   SL… / GJK / GA;300;… / GA;303;…   sorts du personnage, entrée en combat, sorts lancés et attaques à l'arme (partie Économe)
 ///   GA300{sort};{case} / GA303{case}  envoyés par le client : action du personnage de cette fenêtre (son identifiant)
 ///   GTS{id}|…                     début du tour d'un combattant (multi-compte : affiche le personnage qui joue)
+///   GTM|id;0;pv;PA;PM;case;;pvmax|…   état des combattants : seuls les points de vie du personnage sont lus
+///   Gd{id};… / GdO{id} / GdK{id}  challenge du combat annoncé, réussi, raté (onglet Arène) : seul son identifiant est lu
 ///
 /// Onglet Switcheur (notifications ; lus, jamais journalisés ni conservés) :
 ///   ERK{de}|{à}|{type}            demande d'échange : seul l'identifiant du destinataire est lu
@@ -119,6 +121,10 @@ public sealed class DofusTracker
     public event Action? FightJoined;
     /// <summary>Début du tour d'un combattant (message GTS{id}|durée).</summary>
     public event Action<long>? TurnStarted;
+    /// <summary>État des combattants (message GTM| sans le préfixe) : points de vie du personnage.</summary>
+    public event Action<string>? FightersUpdate;
+    /// <summary>Challenge du combat (message Gd sans le préfixe) : annonce "{id};…", résultat "O{id}" ou "K{id}".</summary>
+    public event Action<string>? Challenge;
     /// <summary>Action de combat (message GA sans le préfixe) : "id;type;acteur;paramètres".</summary>
     public event Action<string>? GameAction;
     /// <summary>Demande d'échange (message ERK) : identifiant du personnage à qui elle est adressée.</summary>
@@ -193,6 +199,8 @@ public sealed class DofusTracker
         else if (msg.StartsWith("GJK")) FightJoined?.Invoke();
         else if (msg.StartsWith("GTS") && long.TryParse(msg[3..].Split('|')[0], out var fighter)) TurnStarted?.Invoke(fighter);
         else if (msg.StartsWith("GA") && (msg.Contains(';') || msg.StartsWith("GA303"))) GameAction?.Invoke(msg[2..]);
+        else if (msg.StartsWith("GTM|")) FightersUpdate?.Invoke(msg[4..]);
+        else if (msg.StartsWith("Gd") && msg.Length > 2 && (char.IsDigit(msg[2]) || msg[2] is 'O' or 'K')) Challenge?.Invoke(msg[2..]);
         // Switcheur : notifications d'échange et d'invitation de groupe
         else if (msg.StartsWith("ERK") && msg[3..].Split('|') is [_, var to, ..] && long.TryParse(to, out var target))
             ExchangeRequested?.Invoke(target);

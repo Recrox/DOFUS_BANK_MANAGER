@@ -98,7 +98,16 @@
                         <DataTemplate>
                             <DockPanel Margin="0,1">
                                 <TextBlock DockPanel.Dock="Left" Text="{Binding Order}" Width="18" Foreground="{DynamicResource TextMuted}" FontWeight="Bold"/>
-                                <TextBlock DockPanel.Dock="Right" Text="{Binding Initiative}" Foreground="{DynamicResource TextMuted}"/>
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding Initiative}" Foreground="{DynamicResource TextMuted}"
+                                           Width="50" TextAlignment="Right" ToolTip="Initiative"/>
+                                <!-- Points de vie en pourcentage -->
+                                <Grid DockPanel.Dock="Right" Width="64" Height="12" Margin="6,0,0,0" VerticalAlignment="Center"
+                                      Visibility="{Binding HasLife, Converter={StaticResource Visible}}">
+                                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding LifeValue, Mode=OneWay}" Height="12"
+                                                 Background="{DynamicResource Surface2}" BorderThickness="0" Foreground="#C0392B"/>
+                                    <TextBlock Text="{Binding LifeText}" FontSize="9.5" FontWeight="Bold" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Grid>
                                 <TextBlock x:Name="Name" Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
                             </DockPanel>
                             <DataTemplate.Triggers>

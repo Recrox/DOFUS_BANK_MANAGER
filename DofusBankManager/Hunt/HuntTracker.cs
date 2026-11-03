@@ -71,6 +71,14 @@ public sealed class HuntCharacter(string stream, int number)
     /// <summary>Sorts reçus sur cette connexion (la liste peut arriver avant le nom du personnage).</summary>
     public List<int>? KnownSpells { get; set; }
 
+    /// <summary>Points de vie du personnage (As, puis GTM en combat).</summary>
+    public int? Life { get; set; }
+    public int? MaxLife { get; set; }
+    public int? LifePercent => Life is { } l && MaxLife is { } m && m > 0 ? (int)Math.Round(100.0 * Math.Clamp(l, 0, m) / m) : null;
+
+    /// <summary>Challenges du combat en cours (message Gd) : identifiant -> réussi (true), raté (false) ou en cours (null).</summary>
+    public Dictionary<int, bool?> Challenges { get; } = new();
+
     /// <summary>Connexion qui a donné quelque chose d'utile (un personnage, des stats ou une map).</summary>
     public bool HasData => Name.Length > 0 || Wisdom != null || Prospection != null || MapId.Length > 0;
 
@@ -159,6 +167,8 @@ public sealed class HuntTracker
     /// message le donne (invitation de groupe : l'invité), pour retrouver sa fenêtre même si son nom n'est pas encore connu.
     /// </summary>
     public event Action<HuntCharacter, GameNotice, string?>? Notice;
+    /// <summary>Le personnage entre dans un groupe (il était seul) : l'onglet Switcheur peut figer l'ordre de jeu.</summary>
+    public event Action<HuntCharacter>? PartyJoined;
 
     public HuntTracker(GameData data, Func<long> savedCharacterId)
     {
@@ -314,12 +324,19 @@ public sealed class HuntTracker
         if (p.Length < 14) return;
         var c = Current;
         int? prospection = int.TryParse(p[8].Split(',')[0], out var pp) ? pp : null;
-        int? initiative = int.TryParse(p[7].Split(',')[0], out var ini) ? ini : null;
+        // En combat, l'initiative suit les points de vie et les effets : elle n'est retenue que hors combat,
+        // sinon l'ordre de jeu (onglet Switcheur) changerait en plein combat
+        int? initiative = !c.InFight && int.TryParse(p[7].Split(',')[0], out var ini) ? ini : c.Initiative;
         int? wisdom = Total(p[13]);
-        if (prospection == c.Prospection && wisdom == c.Wisdom && initiative == c.Initiative) return;
+        var life = p[5].Split(',');
+        int? hp = life.Length >= 2 && int.TryParse(life[0], out var l) ? l : c.Life;
+        int? hpMax = life.Length >= 2 && int.TryParse(life[1], out var lm) ? lm : c.MaxLife;
+        if (prospection == c.Prospection && wisdom == c.Wisdom && initiative == c.Initiative && hp == c.Life && hpMax == c.MaxLife) return;
         c.Prospection = prospection ?? c.Prospection;
         c.Initiative = initiative ?? c.Initiative;
         c.Wisdom = wisdom ?? c.Wisdom;
+        c.Life = hp;
+        c.MaxLife = hpMax;
         Changed?.Invoke();
 
         static int? Total(string stat)
@@ -337,6 +354,7 @@ public sealed class HuntTracker
     public void OnParty(string? body)
     {
         var c = Current;
+        bool wasAlone = c.Party.Count == 0;
         if (body == null) c.Party.Clear();
         else if (body[0] == '-')
         {
@@ -350,6 +368,48 @@ public sealed class HuntTracker
                     && int.TryParse(f[10], out var pp))
                     c.Party[id] = (level, pp);
             }
+        else return;
+        Changed?.Invoke();
+        if (wasAlone && c.Party.Count > 1) PartyJoined?.Invoke(c);
+    }
+
+    /// <summary>
+    /// Début de tour (GTM|id;0;pv;PA;PM;case;;pvmax|… ou id;1 pour un combattant mort) : seuls les points de vie
+    /// du personnage de cette fenêtre sont lus ; les lignes des autres combattants sont ignorées.
+    /// </summary>
+    public void OnFightersUpdate(string body)
+    {
+        var c = Current;
+        if (c.Id == 0) return;
+        foreach (var s in body.Split('|'))
+        {
+            var f = s.Split(';');
+            if (f.Length < 1 || !long.TryParse(f[0], out var id) || id != c.Id) continue;
+            int? hp = f.Length >= 2 && f[1] == "1" ? 0 : f.Length >= 3 && int.TryParse(f[2], out var l) ? l : c.Life;
+            int? hpMax = f.Length >= 8 && int.TryParse(f[7], out var m) ? m : c.MaxLife;
+            if (hp == c.Life && hpMax == c.MaxLife) return;
+            c.Life = hp;
+            c.MaxLife = hpMax;
+            Changed?.Invoke();
+            return;
+        }
+    }
+
+    /// <summary>Challenges de combat (fichier de langue « fightChallenge ») suivis par l'onglet Arène.</summary>
+    public const int Econome = 5, Barbare = 9;
+
+    /// <summary>
+    /// Challenge du combat : "Gd{id};{cible visible};{cible};{bonus XP};{bonus drop}" à l'annonce, puis "GdO{id}" (réussi)
+    /// ou "GdK{id}" (raté). Seuls l'identifiant du challenge et son résultat sont lus.
+    /// </summary>
+    public void OnChallenge(string body)
+    {
+        if (body.Length == 0) return;
+        var c = Current;
+        if (body[0] is 'O' or 'K' && int.TryParse(body.TrimStart('O', 'K').Split(';')[0], out var done))
+            c.Challenges[done] = body[0] == 'O';
+        else if (int.TryParse(body.Split(';')[0], out var id))
+            c.Challenges.TryAdd(id, null);
         else return;
         Changed?.Invoke();
     }
@@ -469,6 +529,7 @@ public sealed class HuntTracker
         var c = Current;
         c.InFight = true;
         c.UsedSpells.Clear();
+        c.Challenges.Clear(); // annoncés ensuite par le serveur (Gd)
         Changed?.Invoke();
         Notice?.Invoke(c, GameNotice.Fight, null);
     }
