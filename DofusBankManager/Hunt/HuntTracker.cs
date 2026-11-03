@@ -103,6 +103,8 @@ sealed class HuntData
     public int SoundVolume { get; set; } = 70;
     /// <summary>Sorts connus par personnage (nom -> sorts), pour l'Économe même si l'appli démarre en jeu.</summary>
     public Dictionary<string, List<int>> Spells { get; set; } = new();
+    /// <summary>Classe et sexe par personnage (nom -> apparence), pour son icône même si l'appli démarre en jeu.</summary>
+    public Dictionary<string, CharacterLook> Looks { get; set; } = new();
 }
 
 /// <summary>
@@ -225,12 +227,21 @@ public sealed class HuntTracker
         Changed?.Invoke();
     }
 
-    public void OnCharacterSelected(long id, string name, int level)
+    /// <summary>Classe et sexe d'un personnage du joueur, vus à sa sélection (lors de ce lancement ou d'un précédent).</summary>
+    public CharacterLook? LookOf(string name) => name.Length == 0 ? null
+        : _store.Looks.GetValueOrDefault(name) ?? _store.Looks.FirstOrDefault(kv => string.Equals(kv.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
+
+    public void OnCharacterSelected(long id, string name, int level, CharacterLook? look)
     {
         var c = Current;
         c.Id = id;
         c.Name = name;
         if (level > 0) c.Level = level;
+        if (look != null && !look.Equals(_store.Looks.GetValueOrDefault(name)))
+        {
+            _store.Looks[name] = look;
+            Save();
+        }
         c.Party.Clear();
         SaveSpells(c);
         // Reconnexion : le même personnage sur une ancienne connexion (fermeture non vue) est retiré

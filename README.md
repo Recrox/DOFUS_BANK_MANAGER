@@ -119,6 +119,7 @@ Le trafic capturé contient des informations sensibles : nom de compte, ticket d
   - le niveau et la prospection des membres du groupe, jamais leur nom ;
   - les sorts du personnage et ceux qu'il lance en combat (arme comprise) et son identifiant, jamais ceux des autres combattants ;
   - l'initiative du personnage (As, onglet Switcheur : ordre de jeu) ;
+  - la classe et le sexe de vos personnages (`ASK`, déjà lu pour l'inventaire ; onglet Switcheur : icône), gardés dans `chasse.json` ;
   - les points de vie du personnage (As, et en combat `GTM` : seule la ligne du personnage, celles des autres combattants sont ignorées) ;
   - l'identifiant des challenges du combat et leur résultat (`Gd`, onglet Arène), rien d'autre.
 - Pour les notifications de l'onglet Switcheur sont aussi lus la demande d'échange (ERK : seul l'identifiant du destinataire, pour savoir si elle vise le personnage de la fenêtre) et l'invitation de groupe (PIK : seul le nom de l'invité, comparé à celui du personnage ; celui de l'invitant n'est pas lu). Rien n'en est gardé, journalisé ni affiché d'autre que « Demande d'échange » ou « Invitation de groupe ».
@@ -232,7 +233,7 @@ Comme le reste, l'onglet ne fait qu'afficher : c'est toujours le joueur qui se d
 
 ### Onglet Switcheur (multi-compte)
 
-L'onglet liste les fenêtres Dofus Retro ouvertes (le personnage est lu dans le titre de la fenêtre) avec leur niveau, leur **initiative** et leur état (en combat ou non). Elles sont classées dans l'**ordre de jeu** : initiative décroissante, initiative inconnue en dernier. L'initiative est envoyée par le jeu à la connexion du personnage ou quand elle change (changer une pièce d'équipement suffit) ; en combat, elle varie avec les points de vie : elle n'est donc retenue que hors combat.
+L'onglet liste les fenêtres Dofus Retro ouvertes (le personnage est lu dans le titre de la fenêtre) avec la **tête du personnage** (sa classe et son sexe, comme dans le jeu), leur niveau, leur **initiative** et leur état (en combat ou non). Elles sont classées dans l'**ordre de jeu** : initiative décroissante, initiative inconnue en dernier. L'initiative est envoyée par le jeu à la connexion du personnage ou quand elle change (changer une pièce d'équipement suffit) ; en combat, elle varie avec les points de vie : elle n'est donc retenue que hors combat. La tête est lue, en lecture seule, dans les fichiers du client installé (`clips/artworks/mini`), aux couleurs par défaut de la classe : les couleurs choisies et l'équipement du personnage ne sont pas représentés. La classe et le sexe sont envoyés par le jeu au choix du personnage, puis retenus : lancez l'application avant de choisir vos personnages la première fois.
 
 - **Switcheur activé** (case en haut) : décochée, plus aucun raccourci, notification ni bascule de fenêtre ; la liste reste affichée.
 - **Figer l'ordre à l'entrée en groupe** (activé par défaut) : quand un de vos personnages rejoint un groupe, l'ordre de jeu actuel est enregistré (les personnages qui n'y étaient pas sont ajoutés à la suite) et ne bouge plus.

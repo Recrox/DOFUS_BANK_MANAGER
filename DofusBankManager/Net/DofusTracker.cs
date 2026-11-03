@@ -111,8 +111,8 @@ public sealed class DofusTracker
     public event Action<string>? FightEnded;
     /// <summary>Membres du groupe ajoutés/modifiés/retirés (message PM sans le préfixe) ; null : groupe quitté.</summary>
     public event Action<string?>? PartyChanged;
-    /// <summary>Personnage sélectionné sur cette connexion : (identifiant, nom, niveau).</summary>
-    public event Action<long, string, int>? CharacterSelected;
+    /// <summary>Personnage sélectionné sur cette connexion : (identifiant, nom, niveau, classe et sexe).</summary>
+    public event Action<long, string, int, Data.CharacterLook?>? CharacterSelected;
     /// <summary>Nouveau niveau du personnage (message AN).</summary>
     public event Action<int>? LevelUp;
     /// <summary>Sorts du personnage (message SL sans le préfixe) : "sort~niveau~position;…".</summary>
@@ -253,7 +253,11 @@ public sealed class DofusTracker
                 State.CharacterId = id;
                 SaveSnapshot();
             }
-            CharacterSelected?.Invoke(id, name, parts.Length > 3 && int.TryParse(parts[3], out var level) ? level : 0);
+            // "ASK|id|nom|niveau|classe|sexe|apparence|couleurs…|objets" : seules la classe et le sexe sont gardés (icône du Switcheur)
+            var look = parts.Length > 5 && int.TryParse(parts[4], out var breed) && int.TryParse(parts[5], out var sex)
+                ? new Data.CharacterLook(breed, sex) : null;
+            CharacterSelected?.Invoke(id, name, parts.Length > 3 && int.TryParse(parts[3], out var level) ? level : 0,
+                look is { IsKnown: true } ? look : null);
         }
         State.Inventory.Clear();
         var items = parts.LastOrDefault(p => p.Contains('~')) ?? "";

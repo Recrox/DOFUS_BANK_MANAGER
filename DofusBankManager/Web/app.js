@@ -453,7 +453,9 @@ Object.assign(views, {
       ${table('OrganizerGrid', [
         { h: 'Ordre', k: 'Order', num: true, f: r => `<span class="order ${r.Excluded ? 'muted' : ''}">${esc(r.OrderText)}</span>` },
         { h: '★', k: 'Main', f: r => `<button class="star ${r.Main ? 'on' : ''}" title="Personnage principal (raccourci « Principal »)" ${attrs({ act: 'row', grid: 'OrganizerGrid', i: r._i, handler: 'OrganizerMain_Click' })}>${r.Main ? '★' : '☆'}</button>` },
-        { h: 'Personnage', k: 'Name', f: r => `<span class="strong ${r.Active ? 'acc' : ''}">${esc(r.Name)}</span>${r.Active ? ' <span class="chip accent">au premier plan</span>' : ''}` },
+        { h: 'Personnage', k: 'Name', f: r => `<div class="char"><span class="head" title="${esc(r.Class)}">${r.Gfx ? `<img src="icon/head/${r.Gfx}.png" alt="">` : ''}</span>
+          <div><span class="strong ${r.Active ? 'acc' : ''}">${esc(r.Name)}</span>${r.Active ? ' <span class="chip accent">au premier plan</span>' : ''}
+          ${r.Class ? `<div class="muted small">${esc(r.Class)}</div>` : ''}</div></div>` },
         { h: 'Niveau', k: 'Level', num: true },
         { h: 'Initiative', k: 'Initiative', num: true, f: r => `<span class="acc strong">${esc(r.InitiativeText)}</span>` },
         { h: 'État', k: 'State', f: r => `<span class="muted">${esc(r.State)}</span>` },

@@ -120,14 +120,18 @@ public partial class MainWindow
 
     (byte[]? Bytes, string Type) WebFile(string path)
     {
-        var icon = Regex.Match(path, @"^icon/(item|spell)/(\d+)\.png$");
+        var icon = Regex.Match(path, @"^icon/(item|spell|head)/(\d+)\.png$");
         if (icon.Success)
         {
             if (!_webIcons.TryGetValue(path, out var png))
             {
                 int id = int.Parse(icon.Groups[2].Value);
-                _webIcons[path] = png = Png(icon.Groups[1].Value == "item" ? ItemIcons.Get(id)
-                    : SpellIcons.Get(id, _data?.SpellLooks.GetValueOrDefault(id)), 64);
+                _webIcons[path] = png = Png(icon.Groups[1].Value switch
+                {
+                    "item" => ItemIcons.Get(id),
+                    "head" => CharacterIcons.Get(id), // tête du personnage : classe × 10 + sexe
+                    _ => SpellIcons.Get(id, _data?.SpellLooks.GetValueOrDefault(id)),
+                }, 64);
             }
             return (png, "image/png");
         }

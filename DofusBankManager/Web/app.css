@@ -388,6 +388,11 @@ input.hotkey:focus { border-color: var(--accent-solid); box-shadow: var(--accent
 button.star { background: transparent; border: none; padding: 0 4px; font-size: 19px; line-height: 1; color: var(--muted); }
 button.star:hover { color: var(--warn); transform: scale(1.15); }
 button.star.on { color: var(--warn); text-shadow: 0 0 12px var(--warn); }
+/* Switcheur : tête du personnage (classe et sexe) devant son nom */
+.char { display: flex; align-items: center; gap: 10px; }
+.char .head { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--hover); border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; }
+.char .head img { width: 28px; height: 28px; object-fit: contain; }
+.char .small { font-size: 11.5px; }
 tr.draggable { cursor: grab; }
 tr.dragging { opacity: .45; }
 tr.drop-target td { box-shadow: inset 0 3px 0 var(--accent-solid); }

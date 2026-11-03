@@ -8,17 +8,17 @@ namespace DofusBankManager.Multi;
 /// <summary>Contenu de la superposition, recalculé avec l'onglet Combat et la liste des fenêtres.</summary>
 public sealed record OverlayModel(string Title, string Stats, string Econome, IReadOnlyList<EconomeSpell> Spells,
     string GroupsTitle, IReadOnlyList<OverlayGroup> Groups, IReadOnlyList<OverlayTurn> Rotation,
-    bool ShowEconome, bool ShowGroups, bool ShowRotation)
+    bool ShowEconome, bool ShowGroups, bool ShowRotation, System.Windows.Media.ImageSource? Icon = null)
 {
     /// <summary>Résumé comparable : la fenêtre n'est redessinée que si quelque chose a changé.</summary>
     public string Key => string.Join("|", Title, Stats, Econome, string.Join(",", Spells.Select(s => $"{s.Id}:{s.State}")),
-        GroupsTitle, string.Join(",", Groups), string.Join(",", Rotation), ShowEconome, ShowGroups, ShowRotation);
+        GroupsTitle, string.Join(",", Groups), string.Join(",", Rotation), ShowEconome, ShowGroups, ShowRotation, Icon);
 }
 
 public sealed record OverlayGroup(string Monsters, string Info, bool Archi);
 
-/// <summary>Ligne de l'ordre de jeu. Life : points de vie en pourcentage (null : inconnus).</summary>
-public sealed record OverlayTurn(int Order, string Name, string Initiative, bool Active, int? Life)
+/// <summary>Ligne de l'ordre de jeu. Life : points de vie en pourcentage (null : inconnus). Icon : tête du personnage (classe et sexe).</summary>
+public sealed record OverlayTurn(int Order, string Name, string Initiative, bool Active, int? Life, System.Windows.Media.ImageSource? Icon = null)
 {
     public bool HasLife => Life != null;
     public double LifeValue => Life ?? 0;

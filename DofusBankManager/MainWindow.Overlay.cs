@@ -135,7 +135,7 @@ public partial class MainWindow
         {
             var c = CharacterOf(w);
             return new OverlayTurn(i + 1, (IsMain(w) ? "★ " : "") + (w.Name.Length > 0 ? w.Name : "(sélection du personnage)"),
-                c?.Initiative?.ToString("N0") ?? "?", w.Handle == fg, c?.LifePercent);
+                c?.Initiative?.ToString("N0") ?? "?", w.Handle == fg, c?.LifePercent, Data.CharacterIcons.Get(LookOf(w)));
         }).ToList();
 
         static string N(int? v) => v?.ToString("N0") ?? "?";
@@ -146,6 +146,7 @@ public partial class MainWindow
             "Économe · " + EconomeStatus.Text, spells,
             allGroups.Count == 0 ? "Map · aucun groupe" : $"Map · {allGroups.Count} groupe(s)" + (allGroups.Count > 3 ? " (3 plus forts)" : ""),
             groups, rotation,
-            _organizer.OverlayEconome && spells.Count > 0, _organizer.OverlayGroups, _organizer.OverlayRotation && rotation.Count > 1));
+            _organizer.OverlayEconome && spells.Count > 0, _organizer.OverlayGroups, _organizer.OverlayRotation && rotation.Count > 1,
+            Data.CharacterIcons.Get(_hunt?.LookOf(me?.Name ?? ""))));
     }
 }

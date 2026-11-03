@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Threading;
+using DofusBankManager.Data;
 using DofusBankManager.Hunt;
 using DofusBankManager.Multi;
 
@@ -10,7 +11,7 @@ namespace DofusBankManager;
 
 /// <summary>Fenêtre de jeu listée dans l'onglet Switcheur. Order : place dans la rotation (0 = exclu).</summary>
 public sealed record OrganizerRow(long Handle, int Order, string Name, string Level, int? Initiative, string State,
-    bool Excluded, bool Active, bool Main)
+    bool Excluded, bool Active, bool Main, string Class = "", int Gfx = 0, System.Windows.Media.ImageSource? Icon = null)
 {
     public string OrderText => Excluded ? "—" : Order.ToString();
     public string InitiativeText => Initiative?.ToString("N0") ?? "?";
@@ -121,6 +122,9 @@ public partial class MainWindow
         AddLog($"Groupe formé : ordre de jeu enregistré ({string.Join(", ", _organizer.Order)}).");
         RefreshWindows();
     }
+
+    /// <summary>Classe et sexe du personnage d'une fenêtre (icône), vus à sa sélection, même lors d'un lancement précédent.</summary>
+    CharacterLook? LookOf(GameWindow w) => _hunt?.LookOf(w.Name);
 
     /// <summary>Personnage d'une fenêtre : celui suivi sur une connexion au jeu, retrouvé par son nom.</summary>
     HuntCharacter? CharacterOf(GameWindow w) => w.Name.Length == 0 ? null
@@ -266,11 +270,13 @@ public partial class MainWindow
         var rows = rotation.Concat(_windows.Where(IsExcluded)).Select(w =>
         {
             var c = CharacterOf(w);
+            var look = LookOf(w);
             string state = w.Name.Length == 0 ? "Pas connecté"
                 : c == null ? "Pas encore vu (lancez l'appli avant la connexion ou changez de map)"
                 : c.InFight ? "En combat" : "Hors combat";
             return new OrganizerRow(w.Handle.ToInt64(), rotation.IndexOf(w) + 1, w.Name.Length > 0 ? w.Name : "(sélection du personnage)",
-                c?.Level?.ToString() ?? "?", c?.Initiative, state, IsExcluded(w), w.Handle == foreground, IsMain(w));
+                c?.Level?.ToString() ?? "?", c?.Initiative, state, IsExcluded(w), w.Handle == foreground, IsMain(w),
+                look?.Text ?? "", look?.Gfx ?? 0, CharacterIcons.Get(look));
         }).ToList();
 
         UpdateOverlay(); // ordre de jeu et fenêtre au premier plan

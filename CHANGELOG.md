@@ -2,6 +2,10 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.30.0 — 3 novembre 2026
+
+- **Switcheur** : chaque personnage est affiché avec sa tête, selon sa classe et son sexe, et sa classe sous son nom (interface classique et HTML). La tête apparaît aussi dans la superposition en jeu. La première fois, lancez l'application avant de choisir vos personnages.
+
 ## 1.29.0 — 3 novembre 2026
 
 - **Mises à jour** : une nouvelle version publiée pendant que l'application est ouverte est signalée sans avoir à la relancer (vérification toutes les 30 secondes). « Plus tard » masque le bandeau jusqu'à la version suivante.

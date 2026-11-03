@@ -10,6 +10,14 @@
         FontFamily="{DynamicResource AppFont}" FontSize="12" Foreground="{DynamicResource Text}">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="Visible"/>
+        <!-- Tête du personnage : rien tant que sa classe n'est pas connue -->
+        <Style x:Key="HideWithoutSource" TargetType="Image">
+            <Style.Triggers>
+                <Trigger Property="Source" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
         <Style x:Key="Section" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10.5"/>
             <Setter Property="FontWeight" Value="Bold"/>
@@ -27,6 +35,8 @@
             <!-- Personnage affiché (celui de l'onglet Combat) -->
             <DockPanel>
                 <Border DockPanel.Dock="Left" Width="4" CornerRadius="2" Background="{DynamicResource AccentBrush}" Margin="0,1,8,1"/>
+                <Image DockPanel.Dock="Left" Source="{Binding Icon}" Width="30" Height="30" Margin="0,0,8,0" VerticalAlignment="Center"
+                       Style="{StaticResource HideWithoutSource}"/>
                 <StackPanel>
                     <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14" TextTrimming="CharacterEllipsis"/>
                     <TextBlock Text="{Binding Stats}" Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis"/>
@@ -98,6 +108,7 @@
                         <DataTemplate>
                             <DockPanel Margin="0,1">
                                 <TextBlock DockPanel.Dock="Left" Text="{Binding Order}" Width="18" Foreground="{DynamicResource TextMuted}" FontWeight="Bold"/>
+                                <Image DockPanel.Dock="Left" Source="{Binding Icon}" Width="16" Height="16" Margin="0,0,5,0" VerticalAlignment="Center"/>
                                 <TextBlock DockPanel.Dock="Right" Text="{Binding Initiative}" Foreground="{DynamicResource TextMuted}"
                                            Width="50" TextAlignment="Right" ToolTip="Initiative"/>
                                 <!-- Points de vie en pourcentage -->

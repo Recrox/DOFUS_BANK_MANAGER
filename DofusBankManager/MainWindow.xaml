@@ -1699,19 +1699,30 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Personnage" Binding="{Binding Name}" Width="*" MinWidth="180">
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="FontWeight" Value="SemiBold"/>
-                                            <Style.Triggers>
+                                <!-- Tête du personnage (classe et sexe, lus à sa sélection), nom et classe -->
+                                <DataGridTemplateColumn Header="Personnage" Width="*" MinWidth="200" SortMemberPath="Name">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <DockPanel Margin="0,2">
+                                                <Border DockPanel.Dock="Left" Width="30" Height="30" Margin="0,0,8,0" CornerRadius="15"
+                                                        Background="{DynamicResource Surface2}" ToolTip="{Binding Class}">
+                                                    <Image Source="{Binding Icon}" Margin="3" Stretch="Uniform"/>
+                                                </Border>
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock x:Name="CharName" Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{Binding Class}" FontSize="11" Foreground="{DynamicResource TextMuted}"
+                                                               Style="{StaticResource HideWhenEmpty}"/>
+                                                </StackPanel>
+                                            </DockPanel>
+                                            <DataTemplate.Triggers>
                                                 <DataTrigger Binding="{Binding Active}" Value="True">
-                                                    <Setter Property="Foreground" Value="{DynamicResource AccentSolid}"/>
-                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                    <Setter TargetName="CharName" Property="Foreground" Value="{DynamicResource AccentSolid}"/>
+                                                    <Setter TargetName="CharName" Property="FontWeight" Value="Bold"/>
                                                 </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="Niveau" Binding="{Binding Level}" Width="70"/>
                                 <DataGridTextColumn Header="Initiative" Binding="{Binding InitiativeText}" SortMemberPath="Initiative" Width="90">
                                     <DataGridTextColumn.ElementStyle>
