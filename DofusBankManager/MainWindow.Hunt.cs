@@ -27,7 +27,8 @@ public sealed record DropDetailRow(int ItemId, string Name, string Chance, strin
 sealed record GroupDrop(int ItemId, double Chance, int Count, double Value, double? Price, int MinProspection,
     int MaxPerFight, bool Blocked, bool Conditional);
 
-public sealed record ArchiRow(string Time, DateTime TimeSort, string Name, int Level, string Map, long? Price, string PriceSeen);
+public sealed record ArchiRow(string Time, DateTime TimeSort, string Name, int Level, string Map, long? Price, string PriceSeen,
+    CarteTarget? Goto) : IHasCarteTarget;
 
 public sealed record FightRow(string Time, DateTime TimeSort, string Duration, string Monsters, long Xp, long Kamas,
     string Drops, double DropValue);
@@ -340,7 +341,7 @@ public partial class MainWindow
         {
             var price = _pda?.Prices.GetValueOrDefault(PdaTracker.Key(a.MonsterId, PdaTracker.Archi));
             return new ArchiRow(Ago(a.Time), a.Time, _data.GetMonster(a.MonsterId).Name, a.Level, MapText(a.MapId),
-                price?.Price, price != null ? Ago(price.SeenAt) : "");
+                price?.Price, price != null ? Ago(price.SeenAt) : "", CarteTargetOf(a.MapId, _data.GetMonster(a.MonsterId).Name));
         }).ToList());
 
         // Combats et rentabilité de la session

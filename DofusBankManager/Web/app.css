@@ -449,3 +449,10 @@ tr.drop-target td { box-shadow: inset 0 3px 0 var(--accent-solid); }
 .changelog b { font-size: 15px; }
 .changelog.current { border-color: var(--accent-solid); }
 .changelog ul { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; line-height: 1.45; }
+
+/* Positions cliquables (TTG, Combat) et repère posé sur la carte */
+.pos-link { color: var(--accent-solid); cursor: pointer; text-decoration: none; }
+.pos-link:hover { text-decoration: underline; }
+.pos-link.ellipsis { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carte-marker.player.goto { z-index: 3; }
+.carte-marker.player.goto > i { background: #e53935; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); }

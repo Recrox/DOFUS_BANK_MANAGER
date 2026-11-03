@@ -10,6 +10,15 @@ namespace DofusBankManager;
 /// <summary>Ligne de la liste des points d'intérêt de l'onglet Carte.</summary>
 public sealed record CarteRow(MapHint Hint, string Name, string Position, string Category, ImageSource? Icon);
 
+/// <summary>Case à montrer sur la carte (position d'un marchand, d'un archi-monstre…) : super-zone, coordonnées et libellé du repère.</summary>
+public sealed record CarteTarget(int SuperArea, int X, int Y, string Label);
+
+/// <summary>Ligne dont la position est cliquable : un clic montre sa case sur la carte (null : position inconnue).</summary>
+public interface IHasCarteTarget
+{
+    CarteTarget? Goto { get; }
+}
+
 /// <summary>
 /// Onglet Carte : carte du monde et ses points d'intérêt (zaaps, temples, HDV, ateliers, donjons…), avec la position
 /// de vos personnages. La carte et les icônes sont lues dans le client installé, les points d'intérêt dans le fichier
@@ -110,6 +119,8 @@ public partial class MainWindow
             CarteEmpty.Visibility = tiles.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             ApplyCarteFilters();
             RefreshCartePlayers();
+            CarteMap.SetMarkers("goto", []);
+            ApplyCarteGotoLater();
         }
         catch (Exception ex)
         {
@@ -232,18 +243,76 @@ public partial class MainWindow
 
     void CarteMyPosition_Click(object sender, RoutedEventArgs e)
     {
-        if (_data != null && _hunt?.Shown is { } c && int.TryParse(c.MapId, out var id) && _data.Maps.TryGetValue(id, out var m))
-        {
-            if (m.SuperArea != _carteSuperArea)
-            {
-                CarteSuperArea.SelectedIndex = m.SuperArea == 3 ? 1 : 0; // la carte se recharge, puis on recentre
-                return;
-            }
-            CarteMap.Highlight = (m.X, m.Y);
-            CarteMap.CenterOn(CarteCenter(m), 1.5);
-            ShowCarteCell(m.X, m.Y);
-        }
+        if (_hunt?.Shown is { } c && CarteTargetOf(c.MapId, c.Label) is { } target) ShowOnCarte(target, marker: false);
         else CarteHover.Text = "Position inconnue : changez de map en jeu pour que l'application la voie.";
+    }
+
+    // --- Positions cliquables (TTG, Combat) : aller à la case sur la carte ---
+
+    /// <summary>Case à montrer, en attente du chargement de la carte.</summary>
+    (CarteTarget Target, bool Marker)? _carteGoto;
+
+    /// <summary>Case d'une map reçue du jeu, si la carte peut l'afficher (continent ou Incarnam).</summary>
+    CarteTarget? CarteTargetOf(int? mapId, string label) =>
+        mapId is { } id && _data != null && _data.Maps.TryGetValue(id, out var m) && m.SuperArea is 0 or 3
+            ? new CarteTarget(m.SuperArea, m.X, m.Y, label) : null;
+
+    CarteTarget? CarteTargetOf(string mapId, string label) => CarteTargetOf(int.TryParse(mapId, out var id) ? id : null, label);
+
+    /// <summary>Clic sur une position (TTG, Combat) : ouvre la carte sur sa case.</summary>
+    void PositionLink_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is IHasCarteTarget { Goto: { } target }) ShowOnCarte(target);
+    }
+
+    void HuntMap_Click(object sender, RoutedEventArgs e)
+    {
+        if (_hunt?.Shown is { } c && CarteTargetOf(c.MapId, c.Label) is { } target) ShowOnCarte(target, marker: false);
+    }
+
+    /// <summary>
+    /// Affiche l'onglet Carte centré sur la case, encadrée, avec un repère portant son libellé (pas pour vos personnages,
+    /// déjà marqués). Charge au besoin la bonne super-zone : la case est montrée une fois la carte prête.
+    /// </summary>
+    void ShowOnCarte(CarteTarget target, bool marker = true)
+    {
+        _carteGoto = (target, marker);
+        MainTabs.SelectedItem = CarteTab;
+        int index = target.SuperArea == 3 ? 1 : 0;
+        if (CarteSuperArea.SelectedIndex != index) CarteSuperArea.SelectedIndex = index;
+        else if (_carteSuperArea == target.SuperArea && !_carteLoading) ApplyCarteGotoLater();
+    }
+
+    /// <summary>Après la mise en page de l'onglet (la vue doit connaître sa taille pour centrer).</summary>
+    void ApplyCarteGotoLater() => _ = Dispatcher.BeginInvoke(ApplyCarteGoto, System.Windows.Threading.DispatcherPriority.Loaded);
+
+    void ApplyCarteGoto()
+    {
+        if (_carteGoto is not { } go || go.Target.SuperArea != _carteSuperArea) return;
+        var (t, marker) = go;
+        _carteGoto = null;
+        var at = new Point((t.X + 0.5) * WorldMap.CellWidth, (t.Y + 0.5) * WorldMap.CellHeight);
+        CarteMap.Highlight = (t.X, t.Y);
+        CarteMap.CenterOn(at, 1.5);
+        ShowCarteCell(t.X, t.Y);
+        if (!marker) { CarteMap.SetMarkers("goto", []); return; }
+        var pin = new System.Windows.Shapes.Path
+        {
+            Data = Geometry.Parse("M9,0 C4,0 0,4 0,9 C0,15 9,24 9,24 C9,24 18,15 18,9 C18,4 14,0 9,0 Z M9,5 A4,4 0 1 0 9,13 A4,4 0 1 0 9,5 Z"),
+            Fill = new SolidColorBrush(Color.FromRgb(0xE5, 0x39, 0x35)), Stroke = Brushes.White, StrokeThickness = 1.5,
+        };
+        Canvas.SetLeft(pin, -1);
+        Canvas.SetTop(pin, -16);
+        var label = new Border
+        {
+            Background = new SolidColorBrush(Color.FromArgb(215, 0, 0, 0)), CornerRadius = new CornerRadius(4), Padding = new Thickness(5, 1, 5, 1),
+            Child = new TextBlock { Text = t.Label, Foreground = Brushes.White, FontSize = 11, FontWeight = FontWeights.SemiBold },
+        };
+        Canvas.SetLeft(label, 20);
+        Canvas.SetTop(label, -10);
+        var element = new Canvas { Width = 16, Height = 16, Children = { pin, label }, ToolTip = t.Label };
+        Panel.SetZIndex(element, 20);
+        CarteMap.SetMarkers("goto", [(element, at)]);
     }
 
     // --- Interface HTML : la page dessine la carte avec les tuiles et icônes servies par l'application ---

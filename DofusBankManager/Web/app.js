@@ -92,6 +92,11 @@ function table(name, cols, opts = {}) {
   return `<div class="table-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>${empty}${more}</div>`;
 }
 
+// Position cliquable (TTG, Combat) : ouvre l'onglet Carte sur sa case ; grisée si la map est inconnue
+const posLink = (text, go, cls = '') => !text ? '' : go
+  ? `<a class="pos-link ${cls}" data-act="goto" data-g="${esc(JSON.stringify(go))}" title="Voir sur la carte : ${esc(text)}">${esc(text)}</a>`
+  : `<span class="muted ${cls}" title="${esc(text)}">${esc(text)}</span>`;
+
 // Courbe de prix en SVG (points [ms, prix])
 function chart(points) {
   if (!points?.length) return '<div class="empty">Aucun relevé pour l\'instant.</div>';
@@ -256,7 +261,7 @@ const views = {
         <div class="stack">
           <div class="glass econome"><div class="bar"><span class="t"><b class="acc">Économe</b> · ${esc(T('EconomeStatus'))}</span>
             <button class="small" data-act="click" data-name="EconomeReset">Remettre à zéro</button></div><div class="spells">${spells}</div></div>
-          <div class="muted strong">${esc(T('HuntMap'))}</div>
+          <div class="strong"><a class="pos-link" data-act="goto-me" title="Voir sur la carte">${esc(T('HuntMap'))}</a></div>
           ${table('HuntGroupGrid', [
             { h: 'Monstres (niveaux)', k: 'Monsters', f: r => `<span class="strong">${esc(r.Monsters)}</span>` },
             { h: 'Niv.', k: 'TotalLevel', num: true, f: r => `<span class="acc strong">${fmt(r.TotalLevel)}</span>` },
@@ -283,7 +288,7 @@ const views = {
             <button class="small" data-act="click" data-name="HuntClearArchis">Vider</button></div>
             ${table('HuntArchiGrid', [
               { h: 'Vu', k: 'TimeSort', f: r => `<span class="muted">${esc(r.Time)}</span>` },
-              { h: 'Archi-monstre', k: 'Name', f: r => `<span class="strong">${esc(r.Name)}</span><div class="muted">${esc(r.Map)}</div>` },
+              { h: 'Archi-monstre', k: 'Name', f: r => `<span class="strong">${esc(r.Name)}</span><div>${posLink(r.Map, r.Goto)}</div>` },
               { h: 'Niv.', k: 'Level', num: true },
               { h: 'Pierre', k: 'Price', num: true, f: r => fmt(r.Price) },
             ], { select: false, empty: 'Aucun archi-monstre vu.' })}</div>
@@ -357,14 +362,14 @@ Object.assign(views, {
           { h: 'Marchand', k: 'MerchantPrice', num: true, f: r => `<span class="acc strong">${fmt(r.MerchantPrice)}</span>` },
           { h: S.TtgBestColumn?.t || 'Meilleur', k: 'BestPrice', num: true, f: r => fmt(r.BestPrice) },
           { h: 'Chez', k: 'BestMerchant', f: r => `<span class="strong">${esc(r.BestMerchant)}</span>` },
-          { h: 'Position', k: 'BestWhere', f: r => `<span class="muted ellipsis" title="${esc(r.BestWhere)}">${esc(r.BestWhere)}</span>` },
+          { h: 'Position', k: 'BestWhere', f: r => posLink(r.BestWhere, r.Goto, 'ellipsis') },
           { h: 'Vu', k: 'SeenAt', f: r => `<span class="muted">${esc(r.Seen)}</span>` },
         ], { empty: T('TtgEmpty') || 'Aucune carte à afficher.' })}
         <aside class="detail glass">${detailHead(sel ? itemImg(sel.ItemId, 'lg') : '', 'TtgDetailTitle', 'TtgDetailSub')}
           ${sel ? `${select('TtgOffersMode')}<h3>${esc(T('TtgOffersTitle'))}</h3>
           ${rows('TtgOffers').map(o => `<div class="card"><div class="filters" style="justify-content:space-between"><b class="acc">${esc(o.Price)}<span class="muted"> · ${o.Quantity} en vente</span></b>
             <span class="muted" style="font-size:11px">${esc(o.Seen)}</span></div><div class="strong">${esc(o.Merchant)}</div>
-            ${o.Where ? `<div class="muted" style="font-size:11.5px">${esc(o.Where)}</div>` : ''}</div>`).join('') || '<div class="muted">Aucune offre.</div>'}
+            ${o.Where ? `<div style="font-size:11.5px">${posLink(o.Where, o.Goto)}</div>` : ''}</div>`).join('') || '<div class="muted">Aucune offre.</div>'}
           <h3>Prix chez les marchands</h3><div class="card">${chart(S.TtgMerchantChart?.pts)}</div>
           <h3>Prix unitaire à l'HDV</h3><div class="card">${chart(S.TtgHdvChart?.pts)}</div>
           <button class="ghost" data-act="click" data-name="TtgForget">Oublier les prix marchands</button>` : ''}</aside>
@@ -690,9 +695,30 @@ function carteMount() {
     layer.innerHTML = carte.list.map((h, i) => `<div class="carte-marker" data-i="${i}" data-x="${h.x}" data-y="${h.y}" title="${esc(h.n + '\n' + h.l)}">
         ${h.i ? `<img src="${h.i}" alt="" draggable="false">` : '<i></i>'}</div>`).join('')
       + players.map(p => `<div class="carte-marker player ${p.me ? 'me' : ''}" data-x="${p.x}" data-y="${p.y}" title="${esc(p.n + '\n' + p.l)}">
-        <i></i><span>${esc(p.n)}</span></div>`).join('');
+        <i></i><span>${esc(p.n)}</span></div>`).join('')
+      + (carte.target?.sa === carte.sa ? `<div class="carte-marker player goto" data-x="${carte.target.x}" data-y="${carte.target.y}" title="${esc(carte.target.l)}">
+        <i></i><span>${esc(carte.target.l)}</span></div>` : '');
   }
-  if (!carte.fitted) requestAnimationFrame(carteFit); else carteView();
+  if (carte.goto) carteGoto(); else if (!carte.fitted) requestAnimationFrame(carteFit); else carteView();
+}
+
+/** Centre la carte sur la case demandée (position cliquée), l'encadre et y pose un repère avec son libellé. */
+function carteGoto() {
+  let g = carte.goto;
+  if (g.me) {
+    if (!S._cartePos) return; // positions pas encore reçues
+    const me = S._cartePos.find(p => p.me) || S._cartePos[0];
+    carte.goto = null;
+    if (!me) { carteFit(); return; }
+    g = { sa: me.sa, x: me.x, y: me.y };
+    if (me.sa !== carte.sa) { carte.sa = me.sa; carte.goto = g; schedule(); return; }
+  }
+  carte.goto = null;
+  carte.target = g.l ? g : null;
+  carte.sel = { x: g.x, y: g.y };
+  carte.fitted = true; // pas de vue d'ensemble au rendu suivant : on centre sur la case
+  schedule(); // repère redessiné au rendu suivant
+  requestAnimationFrame(() => { carteCenter(g.x, g.y, 1.5); carteHover(g.x, g.y); });
 }
 
 let pending = false;
@@ -752,6 +778,15 @@ document.addEventListener('click', e => {
     }
     case 'carte-go': carteSelect(carte.list[+d.i]); break;
     case 'carte-fit': carteFit(); break;
+    case 'goto': case 'goto-me': {
+      // Repère à montrer une fois la carte chargée (carteMount) ; vos personnages sont déjà marqués
+      const g = d.act === 'goto' ? JSON.parse(d.g) : null;
+      carte.goto = g ? { sa: g.SuperArea, x: g.X, y: g.Y, l: g.Label } : { me: true };
+      if (g && g.SuperArea !== carte.sa) { carte.sa = g.SuperArea; carte.sel = null; }
+      const i = TABS.findIndex(t => t.key === 'carte');
+      post({ type: 'set', name: 'MainTabs', value: i }); S.MainTabs = { i }; schedule();
+      break;
+    }
     case 'carte-me': {
       const me = (S._cartePos || []).find(p => p.me) || (S._cartePos || [])[0];
       if (!me) break;

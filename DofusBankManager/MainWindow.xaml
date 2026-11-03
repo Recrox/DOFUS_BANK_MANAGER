@@ -37,6 +37,26 @@
             </Style.Triggers>
         </Style>
 
+        <!-- Position cliquable (TTG, Combat) : ouvre la carte sur sa case. Grisée si la map est inconnue. -->
+        <Style x:Key="PositionLink" TargetType="TextBlock" BasedOn="{StaticResource HideWhenEmpty}">
+            <EventSetter Event="MouseLeftButtonUp" Handler="PositionLink_Click"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentSolid}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="ToolTip" Value="Voir sur la carte"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="TextDecorations" Value="Underline"/>
+                </Trigger>
+                <DataTrigger Binding="{Binding Goto}" Value="{x:Null}">
+                    <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                    <Setter Property="Cursor" Value="{x:Null}"/>
+                    <Setter Property="TextDecorations" Value="{x:Null}"/>
+                    <Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Flèche pour déplier une sous-recette -->
         <Style x:Key="ExpandToggle" TargetType="ToggleButton">
             <Setter Property="Width" Value="22"/>
@@ -1010,15 +1030,8 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Header="Position" Binding="{Binding BestWhere}" Width="1.5*" MinWidth="120">
-                                <DataGridTextColumn.ElementStyle>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
-                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                                        <Setter Property="ToolTip" Value="{Binding BestWhere}"/>
-                                    </Style>
-                                </DataGridTextColumn.ElementStyle>
-                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Position" Binding="{Binding BestWhere}" Width="1.5*" MinWidth="120"
+                                                ElementStyle="{StaticResource PositionLink}"/>
                             <DataGridTextColumn Header="Vu" Binding="{Binding Seen}" Width="90" SortMemberPath="SeenAt">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
@@ -1071,8 +1084,8 @@
                                                             </TextBlock>
                                                         </DockPanel>
                                                         <TextBlock Text="{Binding Merchant}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                                        <TextBlock Text="{Binding Where}" FontSize="11" Foreground="{DynamicResource TextMuted}"
-                                                                   TextWrapping="Wrap" Style="{StaticResource HideWhenEmpty}"/>
+                                                        <TextBlock Text="{Binding Where}" FontSize="11" TextWrapping="Wrap"
+                                                                   Style="{StaticResource PositionLink}"/>
                                                     </StackPanel>
                                                 </Border>
                                             </DataTemplate>
@@ -1333,7 +1346,8 @@
                                     </ItemsControl>
                                 </StackPanel>
                             </Border>
-                            <TextBlock x:Name="HuntMap" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,6"/>
+                            <TextBlock x:Name="HuntMap" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,6"
+                                       Cursor="Hand" ToolTip="Voir sur la carte" MouseLeftButtonUp="HuntMap_Click"/>
                         </StackPanel>
                         <Grid Grid.Row="1">
                             <DataGrid x:Name="HuntGroupGrid" RowHeight="NaN" MinRowHeight="38">
@@ -1532,14 +1546,8 @@
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
                                 <DataGridTextColumn Header="Niv." Binding="{Binding Level}" Width="50"/>
-                                <DataGridTextColumn Header="Position" Binding="{Binding Map}" Width="170">
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                                            <Setter Property="ToolTip" Value="{Binding Map}"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Position" Binding="{Binding Map}" Width="170"
+                                                    ElementStyle="{StaticResource PositionLink}"/>
                                 <DataGridTextColumn Header="Prix pierre" Binding="{Binding Price, StringFormat={}{0:N0}}" Width="96">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">

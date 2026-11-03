@@ -6,13 +6,14 @@ using DofusBankManager.Data;
 namespace DofusBankManager;
 
 public sealed record TtgRow(int ItemId, int? Number, string Name, string Rarity, int Owned,
-    long? MerchantPrice, long? BestPrice, string Seen, DateTime SeenAt, double? HdvPrice, string BestMerchant, string BestWhere)
+    long? MerchantPrice, long? BestPrice, string Seen, DateTime SeenAt, double? HdvPrice, string BestMerchant, string BestWhere,
+    CarteTarget? Goto) : IHasCarteTarget
 {
     public int Index { get; init; }
 }
 
 /// <summary>Offre vue chez un marchand : prix, quantité, pseudo et position (« groupe » si elle vient du partage).</summary>
-public sealed record TtgOfferRow(string Price, int Quantity, string Merchant, string Where, string Seen);
+public sealed record TtgOfferRow(string Price, int Quantity, string Merchant, string Where, string Seen, CarteTarget? Goto) : IHasCarteTarget;
 
 /// <summary>
 /// Onglet TTG : cartes et paquets de cartes, avec leur prix chez les marchands (relevé quand le joueur
@@ -74,7 +75,7 @@ public partial class MainWindow
             var best = m?.Recent(days).OrderBy(sn => sn.Price).ThenByDescending(sn => sn.Time).FirstOrDefault();
             return new TtgRow(it.Id, CardNumber(it.Name), it.Name, it.TypeName, owned.GetValueOrDefault(it.Id),
                 last?.Price, best?.Price, last != null ? Ago(last.Time) + (last.Shared ? " · groupe" : "") : "", last?.Time ?? DateTime.MinValue,
-                UnitPrice(it.Id), best == null ? "" : OfferMerchant(best), best == null ? "" : OfferWhere(best));
+                UnitPrice(it.Id), best == null ? "" : OfferMerchant(best), best == null ? "" : OfferWhere(best), best == null ? null : OfferGoto(best));
         }).ToList();
 
         IEnumerable<TtgRow> q = all;
@@ -114,6 +115,10 @@ public partial class MainWindow
     string OfferWhere(Ttg.MerchantSnapshot s) =>
         s.MapId is { } map ? _data!.MapLabel(map) + (s.Cell is { } c ? $" · case {c}" : "") : "";
 
+    /// <summary>Case du marchand sur la carte (clic sur la position), avec son pseudo et sa case dans la map.</summary>
+    CarteTarget? OfferGoto(Ttg.MerchantSnapshot s) =>
+        CarteTargetOf(s.MapId, OfferMerchant(s) + (s.Cell is { } c ? $" · case {c}" : ""));
+
     void TtgGrid_SelectionChanged(object sender, SelectionChangedEventArgs e) => ShowTtgDetail();
 
     void ShowTtgDetail()
@@ -141,7 +146,7 @@ public partial class MainWindow
         var offers = snapshots.Select(s => new TtgOfferRow(
             Kamas(s.Price), s.Quantity,
             OfferMerchant(s), OfferWhere(s),
-            all ? s.Time.ToString("dd/MM HH:mm") : Ago(s.Time))).ToList();
+            all ? s.Time.ToString("dd/MM HH:mm") : Ago(s.Time), OfferGoto(s))).ToList();
         TtgOffersTitle.Text = all ? $"Historique ({offers.Count} relevé(s))" : $"Offres vues ces {days} jours ({offers.Count})";
         TtgOffers.ItemsSource = offers;
 
