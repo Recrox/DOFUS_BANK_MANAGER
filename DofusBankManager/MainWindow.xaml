@@ -145,6 +145,9 @@
                     <Button Content="Relancer" Click="RestartButton_Click"
                             ToolTip="Ferme puis rouvre l'application (ex. après une mise à jour ou une modification de fm_poids.json)"/>
 
+                    <!-- Journal des changements, version par version (CHANGELOG.md intégré à l'exe) -->
+                    <Button Content="Nouveautés" Click="Changelog_Click" Padding="12,8" Margin="10,0,0,0"
+                            ToolTip="Les changements de chaque version"/>
                     <!-- Bascule vers l'interface HTML/CSS (WebView2) -->
                     <Button x:Name="WebUiButton" Content="HTML" Click="WebUiButton_Click" Padding="12,8" Margin="10,0,0,0"
                             ToolTip="Passer à l'interface HTML/CSS (mêmes données, autre présentation ; retour par « Interface classique »)"/>

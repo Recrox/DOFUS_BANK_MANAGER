@@ -191,15 +191,15 @@ body {
   width: 46px; height: 46px; border-radius: 14px; flex: none; display: grid; place-items: center;
   background: var(--accent); box-shadow: var(--accent-glow); font-weight: 800; font-size: 18px; color: #fff;
 }
-.brand { min-width: 0; flex: 1; }
-.brand h1 { margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -.02em; }
+.brand { min-width: 250px; flex: 1; }
+.brand h1 { white-space: nowrap; margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -.02em; }
 .brand h1 .grad { background: var(--accent); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .brand h1 small { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 8px; letter-spacing: 0; }
 .status { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; min-width: 0; }
 .status b { color: var(--text); font-weight: 600; white-space: nowrap; }
 .status span.bank { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; box-shadow: 0 0 10px currentColor; }
-.actions { display: flex; gap: 8px; align-items: center; flex: none; }
+.actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; align-items: center; flex: 0 1 auto; }
 
 /* Boutons et champs */
 button, .btn {
@@ -436,3 +436,16 @@ tr.drop-target td { box-shadow: inset 0 3px 0 var(--accent-solid); }
 .challenge .row { display: flex; align-items: center; gap: 8px; }
 .challenge .row b { font-size: 14px; }
 .challenge .right { margin-left: auto; }
+
+/* Nouveautés : journal des changements */
+.modal-back { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: rgba(0, 0, 0, .45); }
+.modal { display: flex; flex-direction: column; gap: 6px; width: min(680px, 100%); max-height: 100%; padding: 16px 18px;
+  background: var(--bg); }
+.modal .row { display: flex; align-items: center; gap: 8px; }
+.modal .right { margin-left: auto; }
+.modal h2 { margin: 0; }
+.modal-body { min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px; margin-top: 8px; padding-right: 4px; }
+.changelog b { font-size: 15px; }
+.changelog.current { border-color: var(--accent-solid); }
+.changelog ul { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; line-height: 1.45; }

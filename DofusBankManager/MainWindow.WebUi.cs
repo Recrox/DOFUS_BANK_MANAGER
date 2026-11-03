@@ -138,6 +138,13 @@ public partial class MainWindow
             using var font = Application.GetResourceStream(new Uri("pack://application:,,,/Fonts/" + path[6..]))?.Stream;
             return (font == null ? null : ReadAll(font), "font/ttf");
         }
+        // Journal des changements (bouton « Nouveautés ») : un script, la page n'ayant pas le droit de faire de requêtes
+        if (path == "changelog.js")
+            return (Encoding.UTF8.GetBytes("window.CHANGELOG = " + JsonSerializer.Serialize(new
+            {
+                current = UpdateChecker.CurrentText,
+                entries = Changelog.Entries.Select(e => new { version = e.Version, date = e.Date, items = e.Items }),
+            }) + ";"), "text/javascript; charset=utf-8");
         // Page : Web/index.html, app.css, app.js intégrés à l'exe
         using var res = typeof(MainWindow).Assembly.GetManifestResourceStream("web/" + path);
         var mime = System.IO.Path.GetExtension(path) switch

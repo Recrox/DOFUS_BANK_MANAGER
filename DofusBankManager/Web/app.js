@@ -131,9 +131,26 @@ function header() {
         `<button class="${(S._theme || 'Crepuscule') === t ? 'on' : ''}" data-act="theme" data-v="${t}">${l}</button>`).join('')}</div>
       ${btn('AdminButton', 'Relancer en administrateur')}
       ${btn('CaptureButton', 'Démarrer la capture', 'primary')}
+      <button data-act="changelog" title="Les changements de chaque version">Nouveautés</button>
       <button data-act="ui">Interface classique</button>
     </div>
   </header>`;
+}
+
+// Journal des changements (CHANGELOG.md, servi par l'application sous changelog.js)
+function changelog() {
+  if (!local.changelog) return '';
+  const log = window.CHANGELOG || { current: '', entries: [] };
+  const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  return `<div class="modal-back" data-act="changelog-close"><div class="modal glass" data-act="none">
+      <div class="row"><h2>Nouveautés</h2><button class="small ghost right" data-act="changelog-close">✕</button></div>
+      <div class="sub">Vous utilisez la version ${esc(log.current)}.</div>
+      <div class="modal-body">${log.entries.length ? log.entries.map(e => `<div class="card changelog ${e.version === log.current ? 'current' : ''}">
+          <div class="row"><b class="acc">Version ${esc(e.version)}</b>${e.version === log.current ? '<span class="chip accent">installée</span>' : ''}
+            <span class="muted right">${esc(e.date)}</span></div>
+          <ul>${e.items.map(i => `<li>${inline(i)}</li>`).join('')}</ul></div>`).join('')
+        : '<div class="empty">Le journal des changements est introuvable.</div>'}</div>
+    </div></div>`;
 }
 
 function banner() {
@@ -689,13 +706,13 @@ function render() {
   // Garder la saisie en cours et le défilement des tableaux pendant le rendu
   const focus = document.activeElement?.dataset?.fk ? { key: document.activeElement.dataset.fk, value: document.activeElement.value,
     start: document.activeElement.selectionStart, end: document.activeElement.selectionEnd } : null;
-  const scroll = [...document.querySelectorAll('.table-wrap, .detail')].map(e => e.scrollTop);
+  const scroll = [...document.querySelectorAll('.table-wrap, .detail, .modal-body')].map(e => e.scrollTop);
 
   document.getElementById('app').innerHTML = header() + banner() + tabs(active)
-    + `<main class="glass">${views[tab.key]()}</main>`;
+    + `<main class="glass">${views[tab.key]()}</main>` + changelog();
 
   if (tab.key === 'carte') carteMount();
-  document.querySelectorAll('.table-wrap, .detail').forEach((e, i) => { if (scroll[i]) e.scrollTop = scroll[i]; });
+  document.querySelectorAll('.table-wrap, .detail, .modal-body').forEach((e, i) => { if (scroll[i]) e.scrollTop = scroll[i]; });
   // Journal : toujours sur les derniers messages
   const log = document.getElementById('log');
   if (log) log.scrollTop = log.scrollHeight;
@@ -725,6 +742,8 @@ document.addEventListener('click', e => {
     case 'click': post({ type: 'click', name: d.name }); break;
     case 'tab': post({ type: 'set', name: 'MainTabs', value: +d.i }); S.MainTabs = { i: +d.i }; schedule(); break;
     case 'ui': post({ type: 'ui' }); break;
+    case 'changelog': local.changelog = true; schedule(); break;
+    case 'changelog-close': local.changelog = false; schedule(); break;
     case 'carte-cat': {
       const k = +d.k;
       if (carte.shown.has(k)) carte.shown.delete(k); else carte.shown.add(k);
@@ -787,6 +806,7 @@ document.addEventListener('dragend', () => {
 const KEYS = { ArrowRight: 'Right', ArrowLeft: 'Left', ArrowUp: 'Up', ArrowDown: 'Down', ' ': 'Space', Escape: 'Escape',
   PageUp: 'PageUp', PageDown: 'Next', Enter: 'Return' };
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && local.changelog) { local.changelog = false; schedule(); return; }
   const name = e.target.dataset?.hotkey;
   if (!name) return;
   e.preventDefault();

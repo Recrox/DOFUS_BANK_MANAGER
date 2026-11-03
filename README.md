@@ -19,7 +19,9 @@ L'installateur n'est pas signé numériquement : Windows SmartScreen affichera �
 
 ### Mises à jour
 
-Au lancement, l'application vérifie si une version plus récente est publiée dans les Releases GitHub. Si c'est le cas, un bandeau s'affiche : **Télécharger et installer** récupère l'installateur dans l'application (avec sa progression), vérifie qu'il est intact (taille et empreinte SHA-256 publiées par GitHub), puis **Installer maintenant** ferme l'application et lance l'installation. Elle remplace l'ancienne version et conserve les banques sauvegardées, les prix et le thème ; à la fin, laissez cochée « Lancer Dofus Bank Manager » pour la rouvrir. Le bouton **Nouveautés** ouvre la page de la version sur GitHub.
+Au lancement, l'application vérifie si une version plus récente est publiée dans les Releases GitHub. Si c'est le cas, un bandeau s'affiche : **Télécharger et installer** récupère l'installateur dans l'application (avec sa progression), vérifie qu'il est intact (taille et empreinte SHA-256 publiées par GitHub), puis **Installer maintenant** ferme l'application et lance l'installation. Elle remplace l'ancienne version et conserve les banques sauvegardées, les prix et le thème ; à la fin, laissez cochée « Lancer Dofus Bank Manager » pour la rouvrir. Le bouton **Nouveautés** du bandeau ouvre la page de la nouvelle version sur GitHub.
+
+Le bouton **Nouveautés**, en haut de l'application (interface classique et HTML), affiche les changements de chaque version, la version installée mise en avant. Ils viennent de [CHANGELOG.md](CHANGELOG.md), intégré à l'application.
 
 ### Désinstallation
 
@@ -45,7 +47,9 @@ Chaque push sur `main` publie une Release, via le workflow [release.yml](.github
 - **Correctif** : rien à faire. Si `<Version>` dans [DofusBankManager.csproj](DofusBankManager/DofusBankManager.csproj) n'est pas plus récente que la dernière Release, le dernier chiffre est augmenté automatiquement (`1.6.0` publiée → `1.6.1`).
 - **Nouvelle fonctionnalité ou changement incompatible** : augmentez vous-même `<Version>` (`1.7.0`, `2.0.0`) avant de pousser ; c'est elle qui est publiée.
 
-Le workflow construit l'installateur, crée le tag (ex. `v1.6.1`), publie la Release avec le `.msi`, puis **écrit la version publiée dans le `.csproj`** par un commit « Version 1.6.1 [skip ci] » (qui ne relance pas le workflow). **Faites donc `git pull` après chaque publication**, avant de committer à nouveau : sinon votre version locale reste l'ancienne et votre prochain push sera refusé. Suivez l'avancement dans l'onglet **Actions** du dépôt (environ 3 minutes). On peut aussi le relancer à la main : Actions › Release › **Run workflow**.
+**Journal des changements** : avant de pousser, ajoutez vos changements à [CHANGELOG.md](CHANGELOG.md), dans la section `## <Version> — <date>` de la version du `.csproj` (une puce `- **Sujet** : ce qui change pour le joueur.` par changement). Ce texte est affiché par le bouton « Nouveautés » de l'application et devient les notes de la Release. Sans section pour la version publiée (correctif augmenté automatiquement), GitHub génère les notes à partir des commits.
+
+Le workflow construit l'installateur, crée le tag (ex. `v1.6.1`), publie la Release avec le `.msi` et ses notes, puis **écrit la version publiée dans le `.csproj`** par un commit « Version 1.6.1 [skip ci] » (qui ne relance pas le workflow). **Faites donc `git pull` après chaque publication**, avant de committer à nouveau : sinon votre version locale reste l'ancienne et votre prochain push sera refusé. Suivez l'avancement dans l'onglet **Actions** du dépôt (environ 3 minutes). On peut aussi le relancer à la main : Actions › Release › **Run workflow**.
 
 Changez au moins le 3e chiffre (`1.2.0` → `1.2.1`) : Windows Installer ignore le 4e.
 

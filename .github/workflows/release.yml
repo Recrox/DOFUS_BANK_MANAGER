@@ -61,11 +61,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "v${{ steps.version.outputs.version }}"
+          $version = "${{ steps.version.outputs.version }}"
+          $tag = "v$version"
+          # Notes : la section « ## <version> » de CHANGELOG.md ; sans elle (correctif publié automatiquement), celles de GitHub
+          $notes = @('--generate-notes')
+          $changelog = [IO.File]::ReadAllText("CHANGELOG.md")
+          $section = [regex]::Match($changelog, "(?ms)^## $([regex]::Escape($version))\b[^\n]*\n(.*?)(?=^## |\z)")
+          if ($section.Success -and $section.Groups[1].Value.Trim()) {
+            [IO.File]::WriteAllText("release-notes.md", $section.Groups[1].Value.Trim(), [Text.UTF8Encoding]::new($false))
+            $notes = @('--notes-file', 'release-notes.md')
+          }
           gh release create $tag dist/DofusBankManager-Setup.msi `
             --target "${{ github.sha }}" `
             --title $tag `
-            --generate-notes
+            @notes
 
       - name: Reporter la version dans le .csproj
         shell: pwsh

@@ -194,6 +194,15 @@ public partial class MainWindow : Window
         catch (Exception ex) { AddLog("Ouverture du navigateur impossible : " + ex.Message); }
     }
 
+    void Changelog_Click(object sender, RoutedEventArgs e) => ShowChangelog();
+
+    void ShowChangelog()
+    {
+        var open = OwnedWindows.OfType<ChangelogWindow>().FirstOrDefault();
+        if (open != null) { open.Activate(); return; }
+        new ChangelogWindow { Owner = this }.Show();
+    }
+
     void UpdateLater_Click(object sender, RoutedEventArgs e)
     {
         if (_download != null) { _download.Cancel(); return; } // « Annuler » pendant le téléchargement

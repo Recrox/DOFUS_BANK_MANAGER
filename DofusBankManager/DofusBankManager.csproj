@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <Version>1.25.0</Version>
+    <Version>1.26.0</Version>
     <Product>Dofus Bank Manager</Product>
     <!-- En Debug (dotnet run), pas d'élévation forcée : le bouton « Relancer en administrateur » suffit -->
     <ApplicationManifest Condition="'$(Configuration)' == 'Release'">app.manifest</ApplicationManifest>
@@ -19,6 +19,8 @@
     <Resource Include="Fonts\*.ttf;Fonts\OFL.txt" />
     <!-- XP des monstres (grade 1) -->
     <EmbeddedResource Include="Data\monstres-xp.json" LogicalName="DofusBankManager.Data.monstres-xp.json" />
+    <!-- Journal des changements (bouton « Nouveautés ») -->
+    <EmbeddedResource Include="..\CHANGELOG.md" LogicalName="CHANGELOG.md" />
     <!-- Interface HTML/CSS : servie depuis l'exe sous https://app.local/ -->
     <EmbeddedResource Include="Web\*" LogicalName="web/%(Filename)%(Extension)" />
   </ItemGroup>
