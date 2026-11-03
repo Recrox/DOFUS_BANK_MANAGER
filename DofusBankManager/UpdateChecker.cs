@@ -34,6 +34,24 @@ public static class UpdateChecker
         return http;
     }
 
+    /// <summary>
+    /// Vérification légère, faite toutes les 30 secondes : numéro de la dernière version publiée, lu dans la redirection
+    /// de la page « latest » (requête HEAD, sans contenu). Elle ne passe pas par l'API GitHub, limitée à 60 requêtes
+    /// par heure sans compte ; l'API (CheckAsync) n'est appelée que quand ce numéro dépasse la version installée.
+    /// null : aucune version publiée.
+    /// </summary>
+    public static async Task<Version?> LatestVersionAsync()
+    {
+        using var handler = new HttpClientHandler { AllowAutoRedirect = false };
+        using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(8) };
+        http.DefaultRequestHeaders.UserAgent.ParseAdd($"DofusBankManager/{CurrentText}");
+        using var resp = await http.SendAsync(new HttpRequestMessage(HttpMethod.Head, ReleasesPage));
+        if ((int)resp.StatusCode is < 300 or >= 400) resp.EnsureSuccessStatusCode();
+        // https://github.com/…/releases/tag/v1.28.0
+        var tag = System.Text.RegularExpressions.Regex.Match(resp.Headers.Location?.ToString() ?? "", @"/tag/v?(\d+\.\d+\.\d+)$");
+        return tag.Success ? Normalize(Version.Parse(tag.Groups[1].Value)) : null;
+    }
+
     /// <summary>Retourne la nouvelle version si elle est plus récente, sinon null. Lève une exception si GitHub est injoignable.</summary>
     public static async Task<UpdateInfo?> CheckAsync()
     {

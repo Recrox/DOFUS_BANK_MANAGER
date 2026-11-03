@@ -2,6 +2,10 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.29.0 — 3 novembre 2026
+
+- **Mises à jour** : une nouvelle version publiée pendant que l'application est ouverte est signalée sans avoir à la relancer (vérification toutes les 30 secondes). « Plus tard » masque le bandeau jusqu'à la version suivante.
+
 ## 1.28.0 — 3 novembre 2026
 
 - **Positions cliquables** : un clic sur la position d'un marchand (onglet TTG), d'un archi-monstre ou sur votre map actuelle (onglet Combat) ouvre la carte centrée sur la bonne case, avec un repère.
