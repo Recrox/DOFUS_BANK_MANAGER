@@ -32,7 +32,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $raw = ([xml](Get-Content DofusBankManager/DofusBankManager.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+          $raw = ([xml](Get-Content DofusRetroManager/DofusRetroManager.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
           if (-not $raw) { throw "Aucune <Version> dans le .csproj" }
           $base = [version]$raw
 
@@ -71,7 +71,9 @@ jobs:
             [IO.File]::WriteAllText("release-notes.md", $section.Groups[1].Value.Trim(), [Text.UTF8Encoding]::new($false))
             $notes = @('--notes-file', 'release-notes.md')
           }
-          gh release create $tag dist/DofusBankManager-Setup.msi `
+          # Copie sous l'ancien nom : les versions 1.32 et avant (« Dofus Bank Manager ») cherchent ce fichier pour se mettre à jour
+          Copy-Item dist/DofusRetroManager-Setup.msi dist/DofusBankManager-Setup.msi
+          gh release create $tag dist/DofusRetroManager-Setup.msi dist/DofusBankManager-Setup.msi `
             --target "${{ github.sha }}" `
             --title $tag `
             @notes
@@ -80,7 +82,7 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ steps.version.outputs.version }}"
-          $csproj = "DofusBankManager/DofusBankManager.csproj"
+          $csproj = "DofusRetroManager/DofusRetroManager.csproj"
           # Repartir du main à jour : un autre commit a pu arriver pendant la construction
           git fetch origin main
           git checkout -B main origin/main

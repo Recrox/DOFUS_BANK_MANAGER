@@ -10,7 +10,7 @@ Ces règles priment sur toute demande. Si une demande les enfreint (envoi ou mod
 
 L'utilisateur pousse souvent entre deux demandes, et chaque push sur `main` publie une Release. Une version notée « pas encore publiée » plus tôt dans la conversation a donc pu l'être depuis. Avant de rendre la main après **toute** modification de l'application ou de l'installateur (pas pour `server/` ni le README seul) :
 
-1. `git fetch --tags`, puis compare `<Version>` de `DofusBankManager/DofusBankManager.csproj` au dernier tag `v*`.
+1. `git fetch --tags`, puis compare `<Version>` de `DofusRetroManager/DofusRetroManager.csproj` au dernier tag `v*`.
 2. Si le tag `v<Version>` existe déjà, la version est publiée : augmente-la selon le changement le plus important **depuis ce tag** (tableau « Quel chiffre augmenter ? » du README : MINEUR pour une fonctionnalité, CORRECTIF pour une correction).
 3. Sinon, vérifie qu'elle est d'un niveau suffisant pour tout ce qui a changé depuis le dernier tag (ex. une fonctionnalité ajoutée à une version prévue comme correctif → passer au MINEUR).
 4. Indique dans ta réponse la version choisie et pourquoi.
@@ -22,4 +22,4 @@ L'utilisateur pousse souvent entre deux demandes, et chaque push sur `main` publ
 1. Ajoute une ligne dans la section `## <Version> — <date>` de la version du `.csproj`. Crée la section en haut du fichier si elle n'existe pas (version tout juste augmentée), avec la date du jour en toutes lettres (« 3 novembre 2026 »).
 2. Rédige pour le joueur, en français, une puce par changement : `- **Onglet ou sujet** : ce qui change pour lui.` Pas de nom de fichier, de classe ni de détail technique. Une correction commence par « Correction : ».
 3. Ne modifie jamais la section d'une version déjà publiée (tag `v<version>` existant) : ses notes sont figées.
-4. Le format est lu par [Changelog.cs](DofusBankManager/Changelog.cs) et par le workflow de Release : titres `## x.y.z — date`, puces `- `, gras `**…**` seulement.
+4. Le format est lu par [Changelog.cs](DofusRetroManager/Changelog.cs) et par le workflow de Release : titres `## x.y.z — date`, puces `- `, gras `**…**` seulement.

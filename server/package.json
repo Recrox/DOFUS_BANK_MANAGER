@@ -1,7 +1,7 @@
 {
   "name": "dofus-bank-manager-hdv",
   "private": true,
-  "description": "Base de prix HDV partagée de Dofus Bank Manager (Cloudflare Worker + D1)",
+  "description": "Base de prix HDV partagée de Dofus Retro Manager (Cloudflare Worker + D1)",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"

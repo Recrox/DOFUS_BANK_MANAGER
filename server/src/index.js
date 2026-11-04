@@ -1,4 +1,4 @@
-// Base de prix partagée de Dofus Bank Manager (Cloudflare Worker + D1).
+// Base de prix partagée de Dofus Retro Manager (Cloudflare Worker + D1).
 //
 // Ne contient que des prix : objets de l'HDV, cartes TTG vues chez les marchands, pierres d'âme par monstre.
 // Aucune donnée de joueur ni de marchand (README, règle 4). L'accès exige le code de groupe (secret GROUP_KEY).

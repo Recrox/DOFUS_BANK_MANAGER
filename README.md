@@ -1,4 +1,4 @@
-# Dofus Bank Manager
+# Dofus Retro Manager
 
 Lit votre banque Dofus Retro en écoutant passivement le trafic réseau, puis liste les recettes que vous pouvez fabriquer.
 
@@ -7,19 +7,21 @@ Lit votre banque Dofus Retro en écoutant passivement le trafic réseau, puis li
 
 ## Installation (pour un utilisateur)
 
-1. Téléchargez `DofusBankManager-Setup.msi` depuis les [Releases](https://github.com/Recrox/DOFUS_BANK_MANAGER/releases/latest), puis lancez-le.
+1. Téléchargez `DofusRetroManager-Setup.msi` depuis les [Releases](https://github.com/Recrox/DOFUS_RETRO_MANAGER/releases/latest), puis lancez-le.
 2. Acceptez les conditions d'utilisation, puis choisissez le dossier d'installation.
-3. À la fin, laissez cochée la case **« Lancer Dofus Bank Manager »** si vous voulez l'ouvrir tout de suite, puis acceptez la demande de droits administrateur.
+3. À la fin, laissez cochée la case **« Lancer Dofus Retro Manager »** si vous voulez l'ouvrir tout de suite, puis acceptez la demande de droits administrateur.
 
-Ensuite, l'application s'ouvre depuis le menu Démarrer (dossier « Dofus Bank Manager ») ou le Bureau.
+Ensuite, l'application s'ouvre depuis le menu Démarrer (dossier « Dofus Retro Manager ») ou le Bureau.
 
-Aucun prérequis : .NET est inclus. L'installateur ajoute la règle de pare-feu « Dofus Bank Manager ».
+Aucun prérequis : .NET est inclus. L'installateur ajoute la règle de pare-feu « Dofus Retro Manager ».
 
 L'installateur n'est pas signé numériquement : Windows SmartScreen affichera « Windows a protégé votre ordinateur ». Cliquez sur **Informations complémentaires**, puis **Exécuter quand même**.
 
 ### Mises à jour
 
-Au lancement, puis toutes les 30 secondes tant qu'elle reste ouverte, l'application vérifie si une version plus récente est publiée dans les Releases GitHub. Ces vérifications ne lisent que le numéro de la dernière version (une requête sans contenu sur la page « latest », hors de l'API GitHub, limitée à 60 requêtes par heure sans compte) ; l'API n'est interrogée que quand une nouvelle version apparaît. En cas d'échec, l'application patiente 15 minutes. « Plus tard » masque le bandeau jusqu'à la version suivante. Si c'est le cas, un bandeau s'affiche : **Mettre à jour** récupère l'installateur dans l'application (avec sa progression) et vérifie qu'il est intact (taille et empreinte SHA-256 publiées par GitHub). L'application se ferme alors, la nouvelle version s'installe sans assistant (une simple barre de progression de Windows, rien à accepter), dans le même dossier, puis l'application se rouvre d'elle-même et affiche ses nouveautés. Les banques sauvegardées, les prix et le thème sont conservés. Si l'installation échoue, l'ancienne version se rouvre et l'explique (journal de Windows Installer : `%TEMP%\DofusBankManager\update.log`). Lancée hors installation (ex. dossier de développement), l'application ouvre l'assistant habituel à la place. Le bouton **Nouveautés** du bandeau ouvre la page de la nouvelle version sur GitHub.
+Au lancement, puis toutes les 30 secondes tant qu'elle reste ouverte, l'application vérifie si une version plus récente est publiée dans les Releases GitHub. Ces vérifications ne lisent que le numéro de la dernière version (une requête sans contenu sur la page « latest », hors de l'API GitHub, limitée à 60 requêtes par heure sans compte) ; l'API n'est interrogée que quand une nouvelle version apparaît. En cas d'échec, l'application patiente 15 minutes. « Plus tard » masque le bandeau jusqu'à la version suivante. Si c'est le cas, un bandeau s'affiche : **Mettre à jour** récupère l'installateur dans l'application (avec sa progression) et vérifie qu'il est intact (taille et empreinte SHA-256 publiées par GitHub). L'application se ferme alors, la nouvelle version s'installe sans assistant (une simple barre de progression de Windows, rien à accepter), dans le même dossier, puis l'application se rouvre d'elle-même et affiche ses nouveautés. Les banques sauvegardées, les prix et le thème sont conservés. Si l'installation échoue, l'ancienne version se rouvre et l'explique (journal de Windows Installer : `%TEMP%\DofusRetroManager\update.log`). Lancée hors installation (ex. dossier de développement), l'application ouvre l'assistant habituel à la place. Le bouton **Nouveautés** du bandeau ouvre la page de la nouvelle version sur GitHub.
+
+**Ancien nom** : jusqu'à la 1.32, l'application s'appelait « Dofus Bank Manager ». Les versions installées se mettent à jour normalement (chaque Release joint aussi l'installateur sous son ancien nom, `DofusBankManager-Setup.msi`, que ces versions recherchent). Au premier lancement, le dossier `%LOCALAPPDATA%\DofusBankManager` est renommé en `DofusRetroManager` et l'ancienne règle de pare-feu « Dofus Bank Manager » est supprimée.
 
 Le bouton **Nouveautés**, en haut de l'application (interface classique et HTML), affiche les changements de chaque version, la version installée mise en avant. Ils viennent de [CHANGELOG.md](CHANGELOG.md), intégré à l'application.
 
@@ -27,10 +29,10 @@ Le bouton **Nouveautés**, en haut de l'application (interface classique et HTML
 
 Deux possibilités :
 
-- Menu Démarrer › Dofus Bank Manager › **Désinstaller Dofus Bank Manager** ;
-- Paramètres Windows › Applications › Dofus Bank Manager › **Désinstaller**.
+- Menu Démarrer › Dofus Retro Manager › **Désinstaller Dofus Retro Manager** ;
+- Paramètres Windows › Applications › Dofus Retro Manager › **Désinstaller**.
 
-La désinstallation supprime l'application, les raccourcis et la règle de pare-feu. Vos données personnelles (banques sauvegardées, thème, cache des données du jeu) restent dans `%LOCALAPPDATA%\DofusBankManager`, au cas où vous réinstalleriez. Supprimez ce dossier à la main pour tout effacer.
+La désinstallation supprime l'application, les raccourcis et la règle de pare-feu. Vos données personnelles (banques sauvegardées, thème, cache des données du jeu) restent dans `%LOCALAPPDATA%\DofusRetroManager`, au cas où vous réinstalleriez. Supprimez ce dossier à la main pour tout effacer.
 
 ### Construire l'installateur
 
@@ -38,13 +40,13 @@ La désinstallation supprime l'application, les raccourcis et la règle de pare-
 .\build-installer.ps1
 ```
 
-Le fichier est créé dans `dist\DofusBankManager-Setup.msi`. WiX Toolset est récupéré automatiquement via NuGet : rien à installer.
+Le fichier est créé dans `dist\DofusRetroManager-Setup.msi`. WiX Toolset est récupéré automatiquement via NuGet : rien à installer.
 
 ### Publier une nouvelle version
 
 Chaque push sur `main` publie une Release, via le workflow [release.yml](.github/workflows/release.yml) :
 
-- **Correctif** : rien à faire. Si `<Version>` dans [DofusBankManager.csproj](DofusBankManager/DofusBankManager.csproj) n'est pas plus récente que la dernière Release, le dernier chiffre est augmenté automatiquement (`1.6.0` publiée → `1.6.1`).
+- **Correctif** : rien à faire. Si `<Version>` dans [DofusRetroManager.csproj](DofusRetroManager/DofusRetroManager.csproj) n'est pas plus récente que la dernière Release, le dernier chiffre est augmenté automatiquement (`1.6.0` publiée → `1.6.1`).
 - **Nouvelle fonctionnalité ou changement incompatible** : augmentez vous-même `<Version>` (`1.7.0`, `2.0.0`) avant de pousser ; c'est elle qui est publiée.
 
 **Journal des changements** : avant de pousser, ajoutez vos changements à [CHANGELOG.md](CHANGELOG.md), dans la section `## <Version> — <date>` de la version du `.csproj` (une puce `- **Sujet** : ce qui change pour le joueur.` par changement). Ce texte est affiché par le bouton « Nouveautés » de l'application et devient les notes de la Release. Sans section pour la version publiée (correctif augmenté automatiquement), GitHub génère les notes à partir des commits.
@@ -70,14 +72,14 @@ Les applications déjà installées compareront leur version au tag de la derni�
 
 ## Lancement (développement)
 
-Double-cliquez sur `Lancer DofusBankManager.bat`. L'application a besoin des droits administrateur pour lire le trafic réseau.
+Double-cliquez sur `Lancer DofusRetroManager.bat`. L'application a besoin des droits administrateur pour lire le trafic réseau.
 
 Ensuite, en jeu, **ouvrez votre banque** : elle est capturée, puis sauvegardée. Elle reste disponible au lancement suivant.
 
 Pour recompiler (.NET 10 SDK requis) :
 
 ```
-dotnet publish DofusBankManager\DofusBankManager.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish
+dotnet publish DofusRetroManager\DofusRetroManager.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish
 ```
 
 ## Règles de développement
@@ -109,7 +111,7 @@ C'est ce qui sépare un outil d'aide d'un bot. Les sanctions d'Ankama visent sur
 
 Le trafic capturé contient des informations sensibles : nom de compte, ticket de connexion, messages privés.
 
-- **Ne lire que les messages utiles** à la banque et à l'inventaire (voir [DofusTracker.cs](DofusBankManager/Net/DofusTracker.cs)). Les autres sont ignorés.
+- **Ne lire que les messages utiles** à la banque et à l'inventaire (voir [DofusTracker.cs](DofusRetroManager/Net/DofusTracker.cs)). Les autres sont ignorés.
 - Exception, pour les onglets Combat et TTG : sont aussi lus la map (`GDM`, `GM`), les caractéristiques du personnage (`As`), les fins de combat (`GE`), le groupe (`PM`, `PV`), les sorts du personnage (`SL`), l'entrée en combat (`GJK`) et les sorts lancés et attaques à l'arme (`GA` de type 300, 302 et 303, y compris ceux envoyés par le client du joueur, pour savoir quelle fenêtre joue). Ces messages contiennent aussi des noms de joueurs. On n'en garde que :
   - les groupes de monstres de la map (modèles, niveaux, étoiles) ;
   - les joueurs en mode marchand (pseudo et case) : pour une boutique consultée, ils sont enregistrés avec ses prix de cartes TTG, sur ce PC seulement, **jamais partagés** ;
@@ -126,9 +128,9 @@ Le trafic capturé contient des informations sensibles : nom de compte, ticket d
 
   Ces messages ne sont **jamais journalisés**, ni dans `packets.log` ni dans le journal de l'application, et rien n'en sort de la machine.
 - **Aucune donnée du joueur ne sort de la machine** : pas de télémétrie, pas d'envoi de la banque ni de l'inventaire. Les seules requêtes réseau autorisées sont :
-  - le téléchargement des données du jeu depuis le CDN d'Ankama ([GameData.cs](DofusBankManager/Data/GameData.cs)) ;
-  - la lecture de la dernière Release GitHub du projet pour vérifier la version, et le téléchargement de son installateur quand l'utilisateur le demande ([UpdateChecker.cs](DofusBankManager/UpdateChecker.cs)) ;
-  - le serveur de partage des prix du groupe ([HdvSync.cs](DofusBankManager/Hdv/HdvSync.cs), [server/](server/README.md)), **uniquement si l'utilisateur l'active** (désactivé par défaut). Il n'envoie que des prix : pour l'HDV, l'identifiant de l'objet, ses prix ×1/×10/×100, le prix moyen et la date du relevé ; pour les cartes TTG, l'identifiant de la carte, son prix, la quantité en vente et la date (jamais le marchand) ; pour les pierres d'âme, l'identifiant du monstre, la catégorie de pierre, le prix, le nombre d'offres, le prix moyen et la date.
+  - le téléchargement des données du jeu depuis le CDN d'Ankama ([GameData.cs](DofusRetroManager/Data/GameData.cs)) ;
+  - la lecture de la dernière Release GitHub du projet pour vérifier la version, et le téléchargement de son installateur quand l'utilisateur le demande ([UpdateChecker.cs](DofusRetroManager/UpdateChecker.cs)) ;
+  - le serveur de partage des prix du groupe ([HdvSync.cs](DofusRetroManager/Hdv/HdvSync.cs), [server/](server/README.md)), **uniquement si l'utilisateur l'active** (désactivé par défaut). Il n'envoie que des prix : pour l'HDV, l'identifiant de l'objet, ses prix ×1/×10/×100, le prix moyen et la date du relevé ; pour les cartes TTG, l'identifiant de la carte, son prix, la quantité en vente et la date (jamais le marchand) ; pour les pierres d'âme, l'identifiant du monstre, la catégorie de pierre, le prix, le nombre d'offres, le prix moyen et la date.
 
   Ces requêtes ne contiennent aucune information sur le joueur. Toute nouvelle requête vers l'extérieur doit respecter la même règle.
 - `packets.log` est un outil de diagnostic. Il **ne doit contenir que les messages de banque, d'inventaire et d'atelier** (`ECK`, `EL`, `EsK`, `EV`, `OAKO`, `OCO`, `OR`, `OQ`, `Ec`, `EmK`, `EMK`, `EH` pour l'hôtel de vente, et les seuls messages `Im` de forgemagie `117`/`183`/`194`), filtrés par `DofusTracker.IsLoggable`. Les autres messages `Im` (ex. connexion d'un ami) contiennent des noms : ils ne sont jamais journalisés. Ces messages ne décrivent que des objets et leurs caractéristiques. **Ne jamais élargir ce filtre** à des messages de connexion, de chat ou d'identité (`ASK` compris). Ne committez jamais ce fichier.
@@ -137,8 +139,8 @@ Le trafic capturé contient des informations sensibles : nom de compte, ticket d
 ### 5. Données du jeu
 
 - Les fichiers de langue (objets, recettes, métiers) appartiennent à Ankama. Ils sont **téléchargés depuis leur CDN et mis en cache localement**. **Ne pas les committer ni les redistribuer.**
-- Données tierces : seules celles que le mainteneur est autorisé à utiliser peuvent être livrées avec l'application, comme l'XP des monstres ([Data/monstres-xp.json](DofusBankManager/Data/monstres-xp.json), réduite à l'identifiant, au niveau et à l'XP). Ne jamais récupérer de données en masse sur un site qui l'interdit (robots.txt, conditions d'utilisation).
-- Rester sobre : un fichier n'est téléchargé que si sa version a changé (voir [GameData.cs](DofusBankManager/Data/GameData.cs)). Pas de requêtes en boucle.
+- Données tierces : seules celles que le mainteneur est autorisé à utiliser peuvent être livrées avec l'application, comme l'XP des monstres ([Data/monstres-xp.json](DofusRetroManager/Data/monstres-xp.json), réduite à l'identifiant, au niveau et à l'XP). Ne jamais récupérer de données en masse sur un site qui l'interdit (robots.txt, conditions d'utilisation).
+- Rester sobre : un fichier n'est téléchargé que si sa version a changé (voir [GameData.cs](DofusRetroManager/Data/GameData.cs)). Pas de requêtes en boucle.
 
 ### 6. Rappel
 
@@ -148,15 +150,15 @@ Même passif, cet outil est un logiciel tiers. Les conditions d'utilisation d'An
 
 ## Fonctionnement
 
-- **Capture** ([Net/PacketSniffer.cs](DofusBankManager/Net/PacketSniffer.cs)) : socket brute Windows (`SIO_RCVALL`), sans Npcap. Les flux TCP sont réassemblés, puis découpés en messages sur `\0`.
-- **Pare-feu** ([Net/FirewallRule.cs](DofusBankManager/Net/FirewallRule.cs)) : sans autorisation, Windows bloque le trafic entrant vers une socket brute, et seuls les messages envoyés par le client sont visibles. Au démarrage de la capture, l'appli ajoute donc la règle entrante « Dofus Bank Manager », limitée à son exécutable. Pour la retirer : `netsh advfirewall firewall delete rule name="Dofus Bank Manager"`.
-- **Protocole** ([Net/DofusTracker.cs](DofusBankManager/Net/DofusTracker.cs)) : `ECK5` ouvre la banque, `EL…` donne son contenu, `EsK…` ses mouvements. `ASK` / `OAKO` / `OR` / `OQ` suivent l'inventaire.
-- **Données du jeu** ([Data/GameData.cs](DofusBankManager/Data/GameData.cs)) : les fichiers `items`, `crafts`, `skills`, `jobs`, `effects`, `monsters`, `monsterdrops` (taux de drop officiels), `maps` (coordonnées et zones), `hints` (points d'intérêt de la carte), `dungeons` (noms des donjons), `houses` (maisons) et `fightChallenge` (noms des challenges) sont décodés par un mini-interpréteur AS2 ([Data/Avm1.cs](DofusBankManager/Data/Avm1.cs)).
-- **Forgemagie** ([Fm/FmTracker.cs](DofusBankManager/Fm/FmTracker.cs)) : voir ci-dessous.
-- **Interface** : deux styles (Classique, Moderne) et trois thèmes ([Themes/](DofusBankManager/Themes)), avec la police [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans), intégrée à l'application sous licence SIL Open Font License ([Fonts/OFL.txt](DofusBankManager/Fonts/OFL.txt)).
-- **Interface HTML** (bouton « HTML » en haut, retour par « Interface classique ») : une page HTML/CSS ([Web/](DofusBankManager/Web)) affichée par Microsoft Edge WebView2 (fourni avec Windows 11). Elle ne recalcule rien : elle affiche l'état de l'interface classique et lui renvoie les actions ([MainWindow.WebUi.cs](DofusBankManager/MainWindow.WebUi.cs)), donc les chiffres sont les mêmes. Tous les onglets y sont ; seuls les réglages du partage entre amis (onglet HDV) restent dans l'interface classique. La carte y est dessinée par la page avec les tuiles et icônes que l'application rend depuis le client installé. Le style (Classique, Moderne) et le thème (Jour, Crépuscule, Nuit) se changent en haut de la page, comme dans l'interface classique. La page est servie depuis l'exe (`https://app.local/`) : elle ne charge ni n'envoie rien vers l'extérieur (politique de sécurité de la page, navigation bloquée hors de l'application). Au premier lancement, l'application s'ouvre en interface HTML, style Moderne (sans WebView2, elle revient à l'interface classique) ; ensuite, le choix est retenu dans `settings.json`.
+- **Capture** ([Net/PacketSniffer.cs](DofusRetroManager/Net/PacketSniffer.cs)) : socket brute Windows (`SIO_RCVALL`), sans Npcap. Les flux TCP sont réassemblés, puis découpés en messages sur `\0`.
+- **Pare-feu** ([Net/FirewallRule.cs](DofusRetroManager/Net/FirewallRule.cs)) : sans autorisation, Windows bloque le trafic entrant vers une socket brute, et seuls les messages envoyés par le client sont visibles. Au démarrage de la capture, l'appli ajoute donc la règle entrante « Dofus Retro Manager », limitée à son exécutable. Pour la retirer : `netsh advfirewall firewall delete rule name="Dofus Retro Manager"`.
+- **Protocole** ([Net/DofusTracker.cs](DofusRetroManager/Net/DofusTracker.cs)) : `ECK5` ouvre la banque, `EL…` donne son contenu, `EsK…` ses mouvements. `ASK` / `OAKO` / `OR` / `OQ` suivent l'inventaire.
+- **Données du jeu** ([Data/GameData.cs](DofusRetroManager/Data/GameData.cs)) : les fichiers `items`, `crafts`, `skills`, `jobs`, `effects`, `monsters`, `monsterdrops` (taux de drop officiels), `maps` (coordonnées et zones), `hints` (points d'intérêt de la carte), `dungeons` (noms des donjons), `houses` (maisons) et `fightChallenge` (noms des challenges) sont décodés par un mini-interpréteur AS2 ([Data/Avm1.cs](DofusRetroManager/Data/Avm1.cs)).
+- **Forgemagie** ([Fm/FmTracker.cs](DofusRetroManager/Fm/FmTracker.cs)) : voir ci-dessous.
+- **Interface** : deux styles (Classique, Moderne) et trois thèmes ([Themes/](DofusRetroManager/Themes)), avec la police [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans), intégrée à l'application sous licence SIL Open Font License ([Fonts/OFL.txt](DofusRetroManager/Fonts/OFL.txt)).
+- **Interface HTML** (bouton « HTML » en haut, retour par « Interface classique ») : une page HTML/CSS ([Web/](DofusRetroManager/Web)) affichée par Microsoft Edge WebView2 (fourni avec Windows 11). Elle ne recalcule rien : elle affiche l'état de l'interface classique et lui renvoie les actions ([MainWindow.WebUi.cs](DofusRetroManager/MainWindow.WebUi.cs)), donc les chiffres sont les mêmes. Tous les onglets y sont ; seuls les réglages du partage entre amis (onglet HDV) restent dans l'interface classique. La carte y est dessinée par la page avec les tuiles et icônes que l'application rend depuis le client installé. Le style (Classique, Moderne) et le thème (Jour, Crépuscule, Nuit) se changent en haut de la page, comme dans l'interface classique. La page est servie depuis l'exe (`https://app.local/`) : elle ne charge ni n'envoie rien vers l'extérieur (politique de sécurité de la page, navigation bloquée hors de l'application). Au premier lancement, l'application s'ouvre en interface HTML, style Moderne (sans WebView2, elle revient à l'interface classique) ; ensuite, le choix est retenu dans `settings.json`.
 
-Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusBankManager` : cache des langues, banques sauvegardées, `settings.json` (style Classique ou Moderne, choisi par le bouton en haut, et thème Jour, Crépuscule ou Nuit), `fm.json` (historique FM), `fm_poids.json` (poids des stats), `hdv.json` (prix relevés), `pda.json` (prix des pierres d'âme par monstre), `marchands.json` (prix des cartes TTG chez les marchands), `chasse.json` (archi-monstres aperçus et combats), `organizer.json` (onglet Switcheur : raccourcis, notifications, personnages exclus), `monstres.json` (XP des monstres, facultatif : complète celle livrée avec l'application, voir l'onglet Combat) et `packets.log`.
+Les fichiers sont stockés dans `%LOCALAPPDATA%\DofusRetroManager` : cache des langues, banques sauvegardées, `settings.json` (style Classique ou Moderne, choisi par le bouton en haut, et thème Jour, Crépuscule ou Nuit), `fm.json` (historique FM), `fm_poids.json` (poids des stats), `hdv.json` (prix relevés), `pda.json` (prix des pierres d'âme par monstre), `marchands.json` (prix des cartes TTG chez les marchands), `chasse.json` (archi-monstres aperçus et combats), `organizer.json` (onglet Switcheur : raccourcis, notifications, personnages exclus), `monstres.json` (XP des monstres, facultatif : complète celle livrée avec l'application, voir l'onglet Combat) et `packets.log`.
 
 ### Onglet HDV (hôtel de vente)
 
@@ -224,7 +226,7 @@ L'onglet affiche les **groupes de monstres de la map** où vous êtes (monstres,
 
 - **Archi-monstres** : quand un groupe contenant un archi-monstre apparaît sur la map, une alerte sonore retentit (case « Alerte sonore archi-monstre ») : un arpège cristallin généré par l'application, dont le volume se règle avec le curseur à côté (le son est rejoué au relâchement). L'historique liste les derniers archi-monstres vus, avec leur niveau, leur **position** (coordonnées et zone de la map ; un clic l'ouvre sur la carte, comme la map actuelle affichée en haut de l'onglet) et le dernier prix relevé de leur pierre (onglet PDA). Un même archi sur la même map n'est signalé qu'une fois toutes les 10 minutes.
 - **Drops (taux du jeu)** : les taux de drop officiels viennent du fichier de langue `monsterdrops` d'Ankama (CDN, mis en cache comme les autres). Pour chaque monstre du groupe, on prend le taux de son grade (retrouvé par son niveau ; un boss affiché sans niveau prend son grade 3), puis chance = min(100 %, taux × prospection du groupe / 100 × (1 + étoiles / 100)). Un paquet de cartes a une chance fixe (1 sur 100 à 1 sur 2 000 selon le monstre). Un objet est bloqué (🔒) si la prospection du groupe est sous son minimum. La flèche ▸ de la colonne déplie, sous le groupe, le tableau de tous ses drops : chance (la meilleure si plusieurs monstres le donnent), nombre de monstres qui le donnent, prospection minimale, maximum par combat, prix unitaire, valeur par combat et état. Les objets bloqués et les drops sous condition (trophées, jetons, événements, objets de quête) y sont grisés, sans être comptés. **Drops estimés** = Σ, pour chaque objet débloqué, min(maximum par combat, somme des chances) × prix unitaire (HDV, sinon prix marchand TTG de la période, sinon le dernier relevé). Ce sont des espérances par combat, pas une garantie.
-- **XP et drops observés** : les données du jeu ne contiennent pas l'XP des monstres. L'application est livrée avec l'XP de base de 1 063 monstres ([Data/monstres-xp.json](DofusBankManager/Data/monstres-xp.json)) : celle du grade 1, proportionnelle au niveau pour les autres grades (estimation). Un fichier `monstres.json` au même format (`{ "monsters": [ { "id", "previewGrade": { "level", "xp" } } ] }`) placé dans `%LOCALAPPDATA%\DofusBankManager` la complète ou la remplace. Pour un monstre absent de ces données, l'application les **apprend de vos fins de combat** : l'XP gagnée est ramenée sans sagesse, puis répartie entre les monstres selon leur niveau ; les objets obtenus sont attribués aux monstres du combat, d'où une fréquence observée. Pour un groupe de la map, l'XP estimée applique votre sagesse actuelle et les étoiles du groupe. Un monstre encore jamais combattu prend l'XP par niveau moyenne des monstres déjà appris (valeur précédée de « ≈ ») ; avant tout combat, les colonnes affichent « à apprendre ». Ce sont des **estimations** : elles se précisent au fil des combats, et ne tiennent compte ni de la taille du groupe ni de l'écart de niveau.
+- **XP et drops observés** : les données du jeu ne contiennent pas l'XP des monstres. L'application est livrée avec l'XP de base de 1 063 monstres ([Data/monstres-xp.json](DofusRetroManager/Data/monstres-xp.json)) : celle du grade 1, proportionnelle au niveau pour les autres grades (estimation). Un fichier `monstres.json` au même format (`{ "monsters": [ { "id", "previewGrade": { "level", "xp" } } ] }`) placé dans `%LOCALAPPDATA%\DofusRetroManager` la complète ou la remplace. Pour un monstre absent de ces données, l'application les **apprend de vos fins de combat** : l'XP gagnée est ramenée sans sagesse, puis répartie entre les monstres selon leur niveau ; les objets obtenus sont attribués aux monstres du combat, d'où une fréquence observée. Pour un groupe de la map, l'XP estimée applique votre sagesse actuelle et les étoiles du groupe. Un monstre encore jamais combattu prend l'XP par niveau moyenne des monstres déjà appris (valeur précédée de « ≈ ») ; avant tout combat, les colonnes affichent « à apprendre ». Ce sont des **estimations** : elles se précisent au fil des combats, et ne tiennent compte ni de la taille du groupe ni de l'écart de niveau.
 - **Rentabilité** : la session additionne l'XP, les kamas et les drops (au prix unitaire HDV) de vos combats, puis projette ce rythme sur 30, 60 et 120 minutes. « Nouvelle session » repart de zéro ; après plus d'une heure sans combat, une nouvelle session s'ouvre d'elle-même.
 
 - **Économe** (challenge : chaque sort une seule fois par combat) : l'onglet affiche les sorts du personnage, et son arme (corps-à-corps, qui compte comme un sort), avec leurs icônes du jeu (fond, cadre et symbole lus dans le client installé, couleurs du fichier de langue des sorts) : normales tant qu'ils sont disponibles, grisées une fois lancés (comme un sort qu'on ne peut pas lancer), grisées et encadrées de rouge s'ils sont lancés deux fois (challenge raté). La liste repart de zéro à chaque entrée en combat (ou avec « Remettre à zéro »). Un échec critique compte comme un sort lancé. Les sorts du personnage sont envoyés par le jeu à la connexion, puis gardés d'une fois sur l'autre.
@@ -292,4 +294,4 @@ Si la banque n'apparaît pas :
 
 1. Cochez « Journaliser les paquets ».
 2. Ouvrez la banque en jeu.
-3. Lisez `%LOCALAPPDATA%\DofusBankManager\packets.log`. Il ne contient que les messages de banque et d'inventaire (règle 4).
+3. Lisez `%LOCALAPPDATA%\DofusRetroManager\packets.log`. Il ne contient que les messages de banque et d'inventaire (règle 4).

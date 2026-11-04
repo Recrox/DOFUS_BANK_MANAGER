@@ -2,6 +2,10 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.33.0 — 4 novembre 2026
+
+- **Nouveau nom** : Dofus Bank Manager devient **Dofus Retro Manager**, avec une nouvelle icône « DRM ». Vos banques, prix, réglages et historiques sont repris automatiquement ; les raccourcis du menu Démarrer et du Bureau sont remplacés.
+
 ## 1.32.0 — 3 novembre 2026
 
 - **Interface HTML** : nouvelles icônes des onglets, plus lisibles (coffre pour la Banque, épées pour le Combat, baguette pour la FM…), et une infobulle qui explique chaque onglet.
