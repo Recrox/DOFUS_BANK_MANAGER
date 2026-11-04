@@ -1775,6 +1775,12 @@
                         <CheckBox x:Name="NotifyAutoSwitchTurn" Content="Basculer au début du tour" Margin="14,0,0,0" FontWeight="SemiBold"
                                   Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"
                                   ToolTip="En combat, la fenêtre du personnage dont c'est le tour passe au premier plan. Vous jouez toujours vous-même."/>
+                        <CheckBox x:Name="OrganizerSplitMode" Content="Mode split" Margin="14,0,0,0" FontWeight="SemiBold"
+                                  Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"
+                                  ToolTip="Fenêtres côte à côte : au début du tour, pas de bascule. Dans la superposition, la ligne du personnage qui joue clignote, avec le temps du tour (ex. 12 / 30 s)."/>
+                        <CheckBox x:Name="OrganizerMaximize" Content="Agrandir la fenêtre au démarrage de Dofus" Margin="14,0,0,0"
+                                  Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"
+                                  ToolTip="Chaque nouvelle fenêtre du jeu est agrandie dès qu'elle apparaît (comme le bouton Agrandir de Windows)."/>
                         <CheckBox x:Name="OrganizerLockOrder" Content="Figer l'ordre à l'entrée en groupe" Margin="14,0,0,0"
                                   Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"
                                   ToolTip="Quand un personnage rejoint un groupe, l'ordre de jeu actuel est enregistré et ne suit plus l'initiative (qui change en combat)"/>

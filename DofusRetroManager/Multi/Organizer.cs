@@ -17,6 +17,10 @@ public sealed class OrganizerSettings
     public int HotkeyDebounceMs { get; set; } = 160;
     /// <summary>Début du tour d'un de vos personnages : sa fenêtre passe au premier plan.</summary>
     public bool AutoSwitchTurn { get; set; } = true;
+    /// <summary>Mode split (fenêtres côte à côte) : au début du tour, pas de bascule ; la ligne du personnage clignote dans la superposition, avec le temps du tour.</summary>
+    public bool SplitMode { get; set; }
+    /// <summary>Une nouvelle fenêtre du jeu est agrandie (plein écran fenêtré) dès qu'elle apparaît.</summary>
+    public bool MaximizeOnStart { get; set; }
     /// <summary>Entrée en groupe : l'ordre de jeu actuel est enregistré (et complété pour les nouveaux personnages), puis ne bouge plus.</summary>
     public bool LockOrderOnParty { get; set; } = true;
     /// <summary>Personnages exclus de la rotation (ex. compte métier), par nom.</summary>

@@ -2,6 +2,14 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.39.0 — 4 novembre 2026
+
+- **Switcheur** : option « Agrandir la fenêtre au démarrage de Dofus » : chaque nouvelle fenêtre du jeu est agrandie dès qu’elle s’ouvre.
+- **Switcheur** : nouveau « Mode split » pour jouer avec les fenêtres côte à côte : plus de bascule au début du tour ; dans la superposition, la ligne du personnage qui joue clignote avec le temps de son tour (« 12 / 30 s »).
+- **Superposition** : un clic sur un personnage de l’ordre de jeu affiche sa fenêtre.
+- **Superposition** : hors combat, la vie des personnages remonte d’elle-même, sans attendre de manger du pain (estimation).
+- **Switcheur** : Correction : avec des fenêtres à la sélection du personnage, les raccourcis passent bien de l’une à l’autre au lieu de rester bloqués sur les deux premières.
+
 ## 1.38.0 — 4 novembre 2026
 
 - **Recettes** : un clic sur un ingrédient (son nom ou son icône) dans le détail d’une recette ouvre l’onglet HDV sur cet objet.

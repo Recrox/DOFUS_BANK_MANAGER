@@ -62,6 +62,7 @@ public partial class MainWindow
         _tracker.SpellList += s => Safe(() => _hunt.OnSpellList(s));
         _tracker.FightJoined += _hunt.OnFightJoined;
         _tracker.TurnStarted += _hunt.OnTurnStarted;
+        _tracker.LifeRegen += _hunt.OnLifeRegen;
         _tracker.GameAction += s => Safe(() => _hunt.OnGameAction(s));
         _tracker.FightersUpdate += s => Safe(() => _hunt.OnFightersUpdate(s));
         _tracker.Challenge += s => Safe(() => _hunt.OnChallenge(s));

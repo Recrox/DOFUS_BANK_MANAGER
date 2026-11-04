@@ -74,7 +74,19 @@ public sealed class HuntCharacter(string stream, int number)
     /// <summary>Points de vie du personnage (As, puis GTM en combat).</summary>
     public int? Life { get; set; }
     public int? MaxLife { get; set; }
-    public int? LifePercent => Life is { } l && MaxLife is { } m && m > 0 ? (int)Math.Round(100.0 * Math.Clamp(l, 0, m) / m) : null;
+    /// <summary>Heure du dernier relevé des points de vie : hors combat, ils remontent ensuite d'un point par intervalle de RegenMs.</summary>
+    public DateTime LifeAt { get; set; } = DateTime.Now;
+    /// <summary>Régénération hors combat : un point de vie toutes les RegenMs millisecondes (ILS du jeu, sinon 1 s).</summary>
+    public double RegenMs { get; set; } = 1000;
+    /// <summary>Points de vie estimés maintenant : ceux relevés, plus la régénération hors combat depuis (jamais au-delà du maximum).</summary>
+    public int? CurrentLife => Life is not { } l ? null
+        : InFight || MaxLife is not { } m ? l
+        : (int)Math.Min(m, l + Math.Max(0, (DateTime.Now - LifeAt).TotalMilliseconds) / Math.Max(100, RegenMs));
+    public int? LifePercent => CurrentLife is { } l && MaxLife is { } m && m > 0 ? (int)Math.Round(100.0 * Math.Clamp(l, 0, m) / m) : null;
+
+    /// <summary>Début et durée (ms) du tour de jeu du personnage en cours (null : ce n'est pas son tour).</summary>
+    public DateTime? TurnStart { get; set; }
+    public int TurnMs { get; set; }
 
     /// <summary>Challenges du combat en cours (message Gd) : identifiant -> réussi (true), raté (false) ou en cours (null).</summary>
     public Dictionary<int, bool?> Challenges { get; } = new();
@@ -342,6 +354,7 @@ public sealed class HuntTracker
         var life = p[5].Split(',');
         int? hp = life.Length >= 2 && int.TryParse(life[0], out var l) ? l : c.Life;
         int? hpMax = life.Length >= 2 && int.TryParse(life[1], out var lm) ? lm : c.MaxLife;
+        if (life.Length >= 2) c.LifeAt = DateTime.Now; // vie exacte du jeu : la régénération estimée repart d'ici
         if (prospection == c.Prospection && wisdom == c.Wisdom && initiative == c.Initiative && hp == c.Life && hpMax == c.MaxLife) return;
         c.Prospection = prospection ?? c.Prospection;
         c.Initiative = initiative ?? c.Initiative;
@@ -442,6 +455,8 @@ public sealed class HuntTracker
         }
         var c = Current;
         c.InFight = false; // l'Économe garde les sorts du combat affichés jusqu'au suivant
+        c.LifeAt = DateTime.Now; // la vie remonte à partir de la fin du combat
+        c.TurnStart = null;
         var monsters = new List<GroupMonster>();
         var players = new List<string[]>();
 
@@ -605,10 +620,31 @@ public sealed class HuntTracker
     /// Début de tour : si c'est le personnage de cette fenêtre qui joue, il devient le personnage affiché
     /// (multi-compte : l'onglet Combat suit le personnage dont c'est le tour, même s'il était choisi à la main).
     /// </summary>
-    public void OnTurnStarted(long fighter)
+    /// <summary>
+    /// Régénération hors combat (ILS) : un point de vie toutes les N millisecondes (plus rapide assis). La vie estimée
+    /// repart de maintenant avec ce rythme.
+    /// </summary>
+    public void OnLifeRegen(int intervalMs)
+    {
+        if (intervalMs is < 100 or > 60_000) return;
+        var c = Current;
+        if (c.CurrentLife is { } now) c.Life = now;
+        c.LifeAt = DateTime.Now;
+        c.RegenMs = intervalMs;
+    }
+
+    /// <summary>Début d'un tour de jeu (GTS) : combattant et durée du tour en millisecondes (0 si absente).</summary>
+    public void OnTurnStarted(long fighter, int durationMs)
     {
         var c = Current;
-        if (c.Id == 0 || c.Id != fighter) return;
+        // Tour d'un autre combattant : celui du personnage est fini
+        if (c.Id == 0 || c.Id != fighter)
+        {
+            if (c.TurnStart != null) { c.TurnStart = null; Changed?.Invoke(); }
+            return;
+        }
+        c.TurnStart = DateTime.Now;
+        c.TurnMs = durationMs;
         c.InFight = true;
         c.LastMove = DateTime.Now;
         if (Pinned != null) Pinned = c.Stream;

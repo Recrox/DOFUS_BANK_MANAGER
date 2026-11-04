@@ -30,7 +30,7 @@ const TABS = [
   { key: 'combat', label: 'Combat', watch: ['HuntCharacterBox', 'HuntLevel', 'HuntGroupLevel', 'HuntWisdom', 'HuntProspection',
     'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
     'HuntSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid'] },
-  { key: 'windows', label: 'Switcheur', watch: ['OrganizerEnabled', 'HotkeyDebounce', 'NotifyAutoSwitchTurn', 'OrganizerLockOrder', 'HotkeyNext', 'HotkeyPrevious', 'HotkeyMain', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
+  { key: 'windows', label: 'Switcheur', watch: ['OrganizerEnabled', 'HotkeyDebounce', 'NotifyAutoSwitchTurn', 'OrganizerSplitMode', 'OrganizerMaximize', 'OrganizerLockOrder', 'HotkeyNext', 'HotkeyPrevious', 'HotkeyMain', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
     'NotifyExchange', 'NotifyParty', 'NotifyToast', 'NotifyFlash', 'NotifySound', 'NotifyAutoSwitch', 'OrganizerCount', 'OrganizerGrid', 'OverlayEnabled', 'OverlayEconome', 'OverlayGroups', 'OverlayHarvest',
     'OverlayRotation', 'OverlayOpacity', 'OverlayOpacityText', 'OverlayMove', 'OrganizerSaveOrder', 'OrganizerResetOrder',
     'OrganizerOrderStatus'] },
@@ -539,9 +539,11 @@ Object.assign(views, {
         <section class="card org-card"><h3><span class="ico">⇄</span>Bascules automatiques</h3>
           ${sw('NotifyAutoSwitch', 'Sur la fenêtre invitée', "Invitation de groupe ou demande d'échange : vous n'avez plus qu'à accepter.")}
           ${sw('NotifyAutoSwitchTurn', 'Au début du tour', 'En combat, la fenêtre du personnage qui doit jouer.')}
+          ${sw('OrganizerSplitMode', 'Mode split', 'Fenêtres côte à côte : pas de bascule au début du tour, la ligne du personnage clignote dans la superposition avec le temps du tour.')}
+          ${sw('OrganizerMaximize', 'Agrandir au démarrage', 'Chaque nouvelle fenêtre du jeu est agrandie dès qu’elle apparaît.')}
           ${sw('OrganizerLockOrder', "Figer l'ordre en groupe", "L'ordre de jeu est enregistré à l'entrée en groupe.")}</section>
         <section class="card org-card"><h3><span class="ico">▣</span>Superposition en jeu</h3>
-          ${sw('OverlayEnabled', 'Afficher au-dessus du jeu', 'Laisse passer les clics vers le jeu.')}
+          ${sw('OverlayEnabled', 'Afficher au-dessus du jeu', 'Laisse passer les clics vers le jeu, sauf sur l’ordre de jeu : un clic sur un personnage affiche sa fenêtre.')}
           <div class="sub">Blocs</div><div class="togs">${pill('OverlayEconome', 'Économe')}${pill('OverlayGroups', 'Groupes de la map')}${pill('OverlayHarvest', 'Récolte')}${pill('OverlayRotation', 'Ordre de jeu')}</div>
           <label class="volume">Opacité<input type="range" data-set="OverlayOpacity" data-fk="OverlayOpacity" min="${S.OverlayOpacity?.min ?? 40}"
             max="${S.OverlayOpacity?.max ?? 100}" step="1" value="${opacity}" style="--p:${((opacity - 40) / 60 * 100).toFixed(0)}%">

@@ -25,7 +25,7 @@ public partial class MainWindow
         OverlayRotation.IsChecked = _organizer.OverlayRotation;
         OverlayOpacity.Value = _organizer.OverlayOpacity * 100;
         _organizerLoading = false;
-        _overlayTimer.Tick += (_, _) => { TrackForeground(); UpdateOverlayVisibility(); };
+        _overlayTimer.Tick += (_, _) => { TrackForeground(); UpdateOverlayVisibility(); _overlay?.UpdateHitTest(); };
         _overlayTimer.Start();
         Closed += (_, _) => _overlay?.Close();
     }
@@ -75,6 +75,13 @@ public partial class MainWindow
         if (_overlay != null) return _overlay;
         var area = SystemParameters.WorkArea;
         _overlay = new OverlayWindow { Opacity = _organizer.OverlayOpacity };
+        // Clic sur un personnage de l'ordre de jeu : sa fenêtre passe au premier plan (à la demande du joueur, règle 3)
+        _overlay.TurnClicked += handle =>
+        {
+            if (!_organizer.Enabled) return;
+            GameWindows.Focus(new IntPtr(handle));
+            RefreshWindows();
+        };
         // Position retenue, si elle est encore sur un écran ; sinon en haut à droite
         bool onScreen = _organizer.OverlayLeft is { } l && _organizer.OverlayTop is { } t
             && l >= SystemParameters.VirtualScreenLeft - 50 && l < SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth - 50
@@ -136,8 +143,17 @@ public partial class MainWindow
         var rotation = Rotation().Select((w, i) =>
         {
             var c = CharacterOf(w);
+            // Son tour : temps écoulé sur la durée annoncée par le jeu (« 12 / 30 s ») ; en mode split, la ligne clignote
+            string timer = "";
+            bool turn = c?.TurnStart is { } start && (c.TurnMs <= 0 || DateTime.Now - start < TimeSpan.FromMilliseconds(c.TurnMs + 2000));
+            if (turn)
+            {
+                int elapsed = (int)Math.Min(999, (DateTime.Now - c!.TurnStart!.Value).TotalSeconds);
+                timer = c.TurnMs > 0 ? $"{Math.Min(elapsed, c.TurnMs / 1000)} / {c.TurnMs / 1000} s" : $"{elapsed} s";
+            }
             return new OverlayTurn(i + 1, (IsMain(w) ? "★ " : "") + (w.Name.Length > 0 ? w.Name : "(sélection du personnage)"),
-                c?.Initiative?.ToString("N0") ?? "?", w.Handle == fg, c?.LifePercent, Data.CharacterIcons.Get(LookOf(w)));
+                c?.Initiative?.ToString("N0") ?? "?", w.Handle == fg, c?.LifePercent, Data.CharacterIcons.Get(LookOf(w)),
+                w.Handle.ToInt64(), timer, turn && _organizer.SplitMode);
         }).ToList();
 
         var harvest = HarvestLinesOf(me);

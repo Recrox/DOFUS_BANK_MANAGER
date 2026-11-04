@@ -63,6 +63,15 @@ public static partial class GameWindows
         if (GetForegroundWindow() != h) SwitchToThisWindow(h, true);
     }
 
+    /// <summary>
+    /// Agrandit la fenêtre (comme son bouton Agrandir ou Windows+↑), si le joueur a activé l'option. Ce n'est que de la
+    /// gestion de fenêtre : aucune touche ni aucun clic n'est envoyé au jeu.
+    /// </summary>
+    public static void Maximize(IntPtr h)
+    {
+        if (!IsZoomed(h)) ShowWindow(h, SW_MAXIMIZE);
+    }
+
     /// <summary>Fait clignoter la fenêtre dans la barre des tâches jusqu'à ce qu'elle soit affichée.</summary>
     public static void Flash(IntPtr h)
     {
@@ -73,7 +82,7 @@ public static partial class GameWindows
         FlashWindowEx(ref info);
     }
 
-    const int SW_RESTORE = 9;
+    const int SW_RESTORE = 9, SW_MAXIMIZE = 3;
     const uint FLASHW_TRAY = 2, FLASHW_TIMERNOFG = 12;
 
     [StructLayout(LayoutKind.Sequential)]
@@ -90,6 +99,7 @@ public static partial class GameWindows
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] static extern bool BringWindowToTop(IntPtr h);
     [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
+    [DllImport("user32.dll")] static extern bool IsZoomed(IntPtr h);
     [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int cmd);
     [DllImport("user32.dll")] static extern bool AttachThreadInput(uint from, uint to, bool attach);
     [DllImport("user32.dll")] static extern bool FlashWindowEx(ref FLASHWINFO info);

@@ -127,7 +127,10 @@ public sealed class DofusTracker
     /// <summary>Entrée en combat (message GJK).</summary>
     public event Action? FightJoined;
     /// <summary>Début du tour d'un combattant (message GTS{id}|durée).</summary>
-    public event Action<long>? TurnStarted;
+    /// <summary>Début d'un tour (GTS) : combattant et durée du tour en millisecondes.</summary>
+    public event Action<long, int>? TurnStarted;
+    /// <summary>Régénération des points de vie hors combat (ILS) : un point toutes les N millisecondes.</summary>
+    public event Action<int>? LifeRegen;
     /// <summary>État des combattants (message GTM| sans le préfixe) : points de vie du personnage.</summary>
     public event Action<string>? FightersUpdate;
     /// <summary>Challenge du combat (message Gd sans le préfixe) : annonce "{id};…", résultat "O{id}" ou "K{id}".</summary>
@@ -210,7 +213,9 @@ public sealed class DofusTracker
         // Économe : sorts du personnage, entrée en combat, sorts lancés
         else if (msg.StartsWith("SL") && msg.Length > 2 && char.IsDigit(msg[2])) SpellList?.Invoke(msg[2..]);
         else if (msg.StartsWith("GJK")) FightJoined?.Invoke();
-        else if (msg.StartsWith("GTS") && long.TryParse(msg[3..].Split('|')[0], out var fighter)) TurnStarted?.Invoke(fighter);
+        else if (msg.StartsWith("GTS") && msg[3..].Split('|') is var turn && long.TryParse(turn[0], out var fighter))
+            TurnStarted?.Invoke(fighter, turn.Length > 1 && int.TryParse(turn[1], out var turnMs) ? turnMs : 0);
+        else if (msg.StartsWith("ILS") && int.TryParse(msg.AsSpan(3), out var regen)) LifeRegen?.Invoke(regen);
         else if (msg.StartsWith("GA") && (msg.Contains(';') || msg.StartsWith("GA303"))) GameAction?.Invoke(msg[2..]);
         else if (msg.StartsWith("GTM|")) FightersUpdate?.Invoke(msg[4..]);
         else if (msg.StartsWith("Gd") && msg.Length > 2 && (char.IsDigit(msg[2]) || msg[2] is 'O' or 'K')) Challenge?.Invoke(msg[2..]);

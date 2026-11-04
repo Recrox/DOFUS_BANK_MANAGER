@@ -46,6 +46,8 @@ public partial class MainWindow
         NotifySound.IsChecked = _organizer.PlaySound;
         NotifyAutoSwitch.IsChecked = _organizer.AutoSwitch;
         NotifyAutoSwitchTurn.IsChecked = _organizer.AutoSwitchTurn;
+        OrganizerSplitMode.IsChecked = _organizer.SplitMode;
+        OrganizerMaximize.IsChecked = _organizer.MaximizeOnStart;
         OrganizerEnabled.IsChecked = _organizer.Enabled;
         OrganizerLockOrder.IsChecked = _organizer.LockOrderOnParty;
         HotkeyDebounce.Text = _organizer.HotkeyDebounceMs.ToString();
@@ -158,7 +160,9 @@ public partial class MainWindow
     List<GameWindow> Rotation()
     {
         var byInitiative = _windows.Where(w => !IsExcluded(w))
-            .OrderByDescending(w => CharacterOf(w)?.Initiative ?? int.MinValue).ThenBy(w => w.Name);
+            .OrderByDescending(w => CharacterOf(w)?.Initiative ?? int.MinValue).ThenBy(w => w.Name)
+            // Départage stable : sans nom (sélection du personnage), l'ordre de Windows change à chaque bascule
+            .ThenBy(w => w.Handle.ToInt64());
         var order = _pendingOrder ?? (_organizer.Order.Count > 0 ? _organizer.Order : null);
         if (order == null) return byInitiative.ToList();
         return byInitiative.OrderBy(w =>
@@ -260,10 +264,18 @@ public partial class MainWindow
         RefreshWindows();
     }
 
+    /// <summary>Fenêtres du jeu déjà vues (null avant le premier passage : celles déjà ouvertes ne sont pas agrandies).</summary>
+    HashSet<IntPtr>? _seenWindows;
+
     void RefreshWindows()
     {
         if (_dragging) return;
         _windows = GameWindows.Find();
+        // « Agrandir au démarrage » : une fenêtre du jeu qui vient d'apparaître est agrandie, une seule fois
+        var handles = _windows.Select(w => w.Handle).ToHashSet();
+        if (_seenWindows != null && _organizer.MaximizeOnStart)
+            foreach (var h in handles.Where(h => !_seenWindows.Contains(h))) GameWindows.Maximize(h);
+        _seenWindows = handles;
         UpdateOrderUi();
         var rotation = Rotation();
         var foreground = GameWindows.Foreground;
@@ -327,6 +339,8 @@ public partial class MainWindow
         _organizer.PlaySound = NotifySound.IsChecked == true;
         _organizer.AutoSwitch = NotifyAutoSwitch.IsChecked == true;
         _organizer.AutoSwitchTurn = NotifyAutoSwitchTurn.IsChecked == true;
+        _organizer.SplitMode = OrganizerSplitMode.IsChecked == true;
+        _organizer.MaximizeOnStart = OrganizerMaximize.IsChecked == true;
         _organizer.LockOrderOnParty = OrganizerLockOrder.IsChecked == true;
         bool enabledChanged = _organizer.Enabled != (OrganizerEnabled.IsChecked == true);
         _organizer.Enabled = OrganizerEnabled.IsChecked == true;
@@ -378,7 +392,7 @@ public partial class MainWindow
         bool autoSwitch = notice switch
         {
             GameNotice.Party or GameNotice.Exchange => _organizer.AutoSwitch,
-            GameNotice.Turn => _organizer.AutoSwitchTurn,
+            GameNotice.Turn => _organizer.AutoSwitchTurn && !_organizer.SplitMode, // mode split : la ligne clignote à la place
             _ => false,
         };
         if (autoSwitch && window != null && !IsExcluded(window) && window.Handle != GameWindows.Foreground)
