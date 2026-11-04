@@ -2,6 +2,10 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.34.0 — 4 novembre 2026
+
+- **Logo** : nouveau logo Dofus Retro Manager (l’œuf « DRM »), partout : en haut de l’application (interface classique et HTML), barre de titre, barre des tâches, menu Démarrer, Bureau et installateur.
+
 ## 1.33.1 — 4 novembre 2026
 
 - **HDV** : Correction : dans l’historique des relevés, les lots ×1, ×10 et ×100 sont en gras et bien séparés de leur prix (« ×1 1 658 k » ne se lit plus « ×11 658 k »).

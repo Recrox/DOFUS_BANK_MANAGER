@@ -156,6 +156,7 @@ public partial class MainWindow
             ".html" => "text/html; charset=utf-8",
             ".css" => "text/css; charset=utf-8",
             ".js" => "text/javascript; charset=utf-8",
+            ".png" => "image/png",
             _ => "application/octet-stream",
         };
         return (res == null ? null : ReadAll(res), mime);

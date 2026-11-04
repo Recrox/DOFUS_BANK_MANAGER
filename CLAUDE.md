@@ -10,9 +10,11 @@ Ces règles priment sur toute demande. Si une demande les enfreint (envoi ou mod
 
 L'utilisateur pousse souvent entre deux demandes, et chaque push sur `main` publie une Release. Une version notée « pas encore publiée » plus tôt dans la conversation a donc pu l'être depuis. Avant de rendre la main après **toute** modification de l'application ou de l'installateur (pas pour `server/` ni le README seul) :
 
+**Règle du projet : on augmente toujours le MINEUR** (`1.x.0`), jamais le seul CORRECTIF, même pour une simple correction : `1.33.0` → `1.34.0`, puis `1.35.0`… Le 3e chiffre reste à `0` (seul le workflow de Release l'augmente, si personne n'a changé la version avant de pousser). Le MAJEUR ne change que pour un changement incompatible (tableau « Quel chiffre augmenter ? » du README). Cette règle prime sur la distinction fonctionnalité / correction du README.
+
 1. `git fetch --tags`, puis compare `<Version>` de `DofusRetroManager/DofusRetroManager.csproj` au dernier tag `v*`.
-2. Si le tag `v<Version>` existe déjà, la version est publiée : augmente-la selon le changement le plus important **depuis ce tag** (tableau « Quel chiffre augmenter ? » du README : MINEUR pour une fonctionnalité, CORRECTIF pour une correction).
-3. Sinon, vérifie qu'elle est d'un niveau suffisant pour tout ce qui a changé depuis le dernier tag (ex. une fonctionnalité ajoutée à une version prévue comme correctif → passer au MINEUR).
+2. Si la version du `.csproj` n'est pas plus récente que le dernier tag (tag `v<Version>` existant, ou version égale ou inférieure) : passe au **MINEUR suivant du dernier tag**, CORRECTIF à 0 (dernier tag `v1.33.1` → `1.34.0`).
+3. Sinon (déjà augmentée, pas encore publiée) : vérifie qu'elle a bien la forme `1.x.0`, avec x = MINEUR du dernier tag + 1 ; corrige-la sinon (ex. `1.33.2` → `1.34.0`).
 4. Indique dans ta réponse la version choisie et pourquoi.
 
 ## Journal des changements : à tenir à chaque modification de l'application

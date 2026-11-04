@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <Version>1.33.1</Version>
+    <Version>1.34.0</Version>
     <Product>Dofus Retro Manager</Product>
     <!-- En Debug (dotnet run), pas d'élévation forcée : le bouton « Relancer en administrateur » suffit -->
     <ApplicationManifest Condition="'$(Configuration)' == 'Release'">app.manifest</ApplicationManifest>
@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <Resource Include="app.ico" />
+    <Resource Include="logo.png" />
     <!-- Police Plus Jakarta Sans (SIL Open Font License, voir Fonts/OFL.txt) -->
     <Resource Include="Fonts\*.ttf;Fonts\OFL.txt" />
     <!-- XP des monstres (grade 1) -->

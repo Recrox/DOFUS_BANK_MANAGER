@@ -140,7 +140,7 @@ function chart(points) {
 // --- Rendu ---
 function header() {
   return `<header class="top glass">
-    <div class="logo">DRM</div>
+    <img class="logo" src="logo.png" alt="DRM">
     <div class="brand">
       <h1><span class="grad">Dofus Retro Manager</span><small>${esc(T('VersionText'))}</small></h1>
       <div class="status"><i class="dot" style="background:${S.CaptureDot?.c || 'gray'};color:${S.CaptureDot?.c || 'gray'}"></i>
