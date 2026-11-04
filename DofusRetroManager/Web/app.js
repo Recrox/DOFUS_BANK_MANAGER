@@ -20,11 +20,13 @@ const TABS = [
     'BrisageDetailSub', 'BrisageBreakCount', 'BrisageBreakMax', 'BrisageDetailTotal', 'BrisageRunes'] },
   { key: 'hdv', label: 'HDV', watch: ['HdvSearch', 'HdvTypeFilter', 'HdvShowAll', 'HdvCount', 'HdvGrid', 'HdvEmpty',
     'HdvDetailTitle', 'HdvDetailSub', 'HdvChart', 'HdvHistory', 'HdvForget'] },
-  { key: 'ttg', label: 'TTG', watch: ['TtgSearch', 'TtgRarity', 'TtgShow', 'TtgShowAll', 'TtgDaysBox', 'TtgCount',
+  { key: 'ttg', label: 'TTG', watch: ['TtgSearch', 'TtgRarity', 'TtgCharacter', 'TtgMissing', 'TtgShow', 'TtgShowAll', 'TtgDaysBox', 'TtgCount',
     'TtgCollection', 'TtgGrid', 'TtgBestColumn', 'TtgEmpty', 'TtgDetailTitle', 'TtgDetailSub', 'TtgOffersMode', 'TtgOffersTitle',
     'TtgOffers', 'TtgMerchantChart', 'TtgHdvChart'] },
   { key: 'pda', label: 'PDA', watch: ['PdaSearch', 'PdaSource', 'PdaCharacter', 'PdaCategory', 'PdaShowAll', 'PdaCount', 'PdaValue',
     'PdaGrid', 'PdaEmpty', 'PdaDetailTitle', 'PdaDetailSub', 'PdaChart'] },
+  { key: 'ocre', label: 'Ocre', watch: ['OcreCharacter', 'OcreStep', 'OcreKindFilter', 'OcreSummary', 'OcreGrid', 'OcreDetailTitle',
+    'OcreDetailSub', 'OcreSouls'] },
   { key: 'combat', label: 'Combat', watch: ['HuntCharacterBox', 'HuntLevel', 'HuntGroupLevel', 'HuntWisdom', 'HuntProspection',
     'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
     'HuntSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid'] },
@@ -199,6 +201,7 @@ const TAB_ICONS = {
   hdv: '<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/><path d="M11 14l3-3"/>',
   ttg: '<path d="M14.5 6.5V5.4a2 2 0 0 1 2.4-1.9l2.9.6a2 2 0 0 1 1.6 2.3l-2.3 11.8a2 2 0 0 1-2.3 1.6l-2.3-.4"/><rect x="3.5" y="5.5" width="11" height="15" rx="2"/><path d="M9 10.5l1 2 2 .3-1.5 1.4.4 2.1L9 15.3l-1.9 1 .4-2.1L6 12.8l2-.3z"/>',
   pda: '<path d="M12 2.5l7.5 6.5L12 21.5 4.5 9z"/><path d="M4.5 9h15"/><path d="M9 9l3 12.5L15 9"/><path d="M9 9l3-6.5L15 9"/>',
+  ocre: '<path d="M12 2.5C8 2.5 4.5 9 4.5 14a7.5 7.5 0 0 0 15 0C19.5 9 16 2.5 12 2.5z"/><path d="M8 13l3-3 2 3 3-3"/>',
   combat: '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/><path d="M11 19l-6-6"/><path d="M8 16l-4 4"/>',
   windows: '<path d="M4 8h14"/><path d="M14 4l4 4-4 4"/><path d="M20 16H6"/><path d="M10 12l-4 4 4 4"/>',
   fm: '<path d="M4 20 15 9"/><path d="M13.5 7.5l3 3"/><path d="M18 3v4M16 5h4"/><path d="M20.5 11.5v3M19 13h3"/><path d="M9.5 3v2.5M8.25 4.25h2.5"/>',
@@ -209,7 +212,7 @@ const TAB_ICONS = {
 const TAB_TIPS = {
   bank: 'Contenu de votre banque et sa valeur estimée', recipes: 'Recettes faisables avec vos ressources, coût et bénéfice',
   brisage: 'Objets à briser pour générer des runes', hdv: "Prix relevés à l'hôtel de vente", ttg: 'Cartes TTG : collection et prix des marchands',
-  pda: "Pierres d'âme : prix par monstre et vos pierres", combat: 'Groupes de la map, drops, XP et rentabilité',
+  pda: "Pierres d'âme : prix par monstre et vos pierres", ocre: 'Quête du Dofus Ocre : étapes, âmes possédées et à acheter', combat: 'Groupes de la map, drops, XP et rentabilité',
   windows: "Passer d'un personnage à l'autre (multi-compte)", fm: 'Forgemagie : runes passées et reliquat',
   arene: 'Chronomètre de rentabilité et challenges', carte: "Carte du monde et points d'intérêt", journal: "Messages de l'application",
 };
@@ -400,10 +403,10 @@ Object.assign(views, {
 
   ttg() {
     const sel = rows('TtgGrid')[S.TtgGrid?.sel ?? -1];
-    return `<div class="filters">${input('TtgSearch', 'Rechercher une carte…', '220px')}<span class="lbl">Rareté</span>${select('TtgRarity')}
+    return `<div class="filters">${input('TtgSearch', 'Rechercher une carte…', '220px')}<span class="lbl">Rareté</span>${select('TtgRarity')}<span class="lbl">Personnage</span>${select('TtgCharacter')}
         <span class="lbl">Afficher</span>${select('TtgShow')}${check('TtgShowAll', 'Toutes les cartes du jeu')}
         <span class="lbl">Période</span>${input('TtgDaysBox', '', '56px')}<span class="lbl">jours</span>
-        <span class="chip">${esc(T('TtgCount'))}</span>${T('TtgCollection') ? `<span class="chip accent">${esc(T('TtgCollection'))}</span>` : ''}</div>
+        <span class="chip">${esc(T('TtgCount'))}</span>${T('TtgCollection') ? `<span class="chip accent">${esc(T('TtgCollection'))}</span>` : ''}${T('TtgMissing') ? `<span class="chip accent">${esc(T('TtgMissing'))}</span>` : ''}</div>
       <div class="split">
         ${table('TtgGrid', [
           { h: 'No.', k: 'Number', num: true, f: r => `<span class="muted">${r.Number == null ? '' : String(r.Number).padStart(3, '0')}</span>` },
@@ -411,6 +414,7 @@ Object.assign(views, {
           { h: 'Carte', k: 'Name', f: r => `<span class="strong">${esc(r.Name)}</span>` },
           { h: 'Rareté', k: 'Rarity' },
           { h: 'Poss.', k: 'Owned', num: true, f: r => `<span class="strong ${r.Owned > 0 ? 'ok' : 'muted'}">${r.Owned}</span>` },
+          { h: 'Classeur', k: 'InBinder', f: r => r.InBinder ? '<span class="ok strong" title="Carte rangée dans le classeur">✓</span>' : '' },
           { h: 'Marchand', k: 'MerchantPrice', num: true, f: r => `<span class="acc strong">${fmt(r.MerchantPrice)}</span>` },
           { h: S.TtgBestColumn?.t || 'Meilleur', k: 'BestPrice', num: true, f: r => fmt(r.BestPrice) },
           { h: 'Chez', k: 'BestMerchant', f: r => `<span class="strong">${esc(r.BestMerchant)}</span>` },
@@ -450,6 +454,32 @@ Object.assign(views, {
         <aside class="detail glass">${sel ? `${detailHead(itemImg(sel.StoneTemplate, 'lg'), 'PdaDetailTitle', 'PdaDetailSub')}
           <h3>Évolution du prix</h3><div class="card">${chart(S.PdaChart?.pts)}</div>
           <button class="ghost" data-act="click" data-name="PdaForget">Oublier ce prix</button>` : '<div class="empty">Sélectionnez un monstre.</div>'}</aside>
+      </div>`;
+  },
+
+  ocre() {
+    const sel = rows('OcreGrid')[S.OcreGrid?.sel ?? -1];
+    return `<div class="filters"><span class="lbl">Personnage</span>${select('OcreCharacter')}
+        <span class="lbl">Étape atteinte</span>${select('OcreStep')}<span class="lbl">Coût de</span>${select('OcreKindFilter')}</div>
+      <div class="strong acc" style="margin-bottom:10px">${esc(T('OcreSummary'))}</div>
+      <div class="split">
+        ${table('OcreGrid', [
+          { h: 'Étape', k: 'Step', num: true, f: r => `<span class="strong">${r.Step}</span>` },
+          { h: 'Âmes', k: 'Kind' },
+          { h: 'Total', k: 'Total', num: true },
+          { h: 'Possédées', k: 'Owned', num: true },
+          { h: 'Manquantes', k: 'Missing', num: true },
+          { h: 'dont boss', k: 'MissingBoss', num: true },
+          { h: 'dont archi', k: 'MissingArchi', num: true },
+          { h: 'Coût', k: 'Cost', num: true, f: r => `<span class="acc strong">${esc(r.CostText)}</span>` },
+          { h: 'État', k: 'State', f: r => `<span class="${r.Validable ? 'ok strong' : r.Done ? 'muted' : ''}">${esc(r.State)}</span>` },
+        ], { empty: T('OcreSummary') || 'Aucune étape.' })}
+        <aside class="detail glass">${sel ? `<h2 class="acc">${esc(T('OcreDetailTitle'))}</h2>
+          <div class="muted" style="white-space:pre-line">${esc(T('OcreDetailSub'))}</div>
+          <div class="lines">${rows('OcreSouls').map(s => `<div class="card" style="display:flex;gap:8px;align-items:center;padding:6px 8px;margin-top:6px">
+            ${itemImg(s.StoneTemplate, 'sm')}<div style="flex:1;min-width:0"><b class="${s.Owned ? 'ok' : ''}">${esc(s.Name)}</b>
+            <div class="muted small">${esc(s.Kind)} · niv. ${esc(s.Level)}${s.Where ? ' · ' + esc(s.Where) : ''}</div></div>
+            <span class="acc strong">${esc(s.PriceText)}</span></div>`).join('')}</div>` : '<div class="empty">Sélectionnez une étape.</div>'}</aside>
       </div>`;
   },
 

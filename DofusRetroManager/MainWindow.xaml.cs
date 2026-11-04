@@ -531,6 +531,7 @@ public partial class MainWindow : Window
         InitPda(_data);
         InitHunt(_data);
         InitHarvest(_data);
+        InitOcre(_data);
         InitCarte(_data);
         InitArene();
         InitHdv(_data);

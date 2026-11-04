@@ -14,6 +14,9 @@ public sealed class Snapshot
     /// <summary>uid de l'objet -> (template, quantité)</summary>
     public Dictionary<long, OwnedItem> Bank { get; set; } = new();
     public Dictionary<long, OwnedItem> Inventory { get; set; } = new();
+    /// <summary>Cartes rangées dans le classeur TTG (identifiants de carte du fichier de langue « ttg »).</summary>
+    public HashSet<int> Binder { get; set; } = new();
+    public DateTime BinderUpdatedAt { get; set; }
 }
 
 /// <summary>Effects : effets de l'objet au format du protocole ("7e#5#0#0#0d0+5,…", identifiants et valeurs en hexa).</summary>
@@ -215,6 +218,9 @@ public sealed class DofusTracker
         else if (msg.StartsWith("ERK") && msg[3..].Split('|') is [_, var to, ..] && long.TryParse(to, out var target))
             ExchangeRequested?.Invoke(target);
         else if (msg.StartsWith("PIK") && msg[3..].Split('|') is [_, var invited, ..]) PartyInvited?.Invoke(invited);
+        // Classeur TTG : contenu à l'ouverture (« td »), carte ajoutée (« ta »)
+        else if (msg.StartsWith("td") && msg.Length > 2 && char.IsAsciiDigit(msg[2])) OnBinder(msg[2..]);
+        else if (msg.StartsWith("ta") && int.TryParse(msg.AsSpan(2), out var added)) OnBinderAdd(added);
     }
 
     /// <summary>
@@ -367,6 +373,41 @@ public sealed class DofusTracker
     void CommitBank()
     {
         State.BankUpdatedAt = DateTime.Now;
+        SaveSnapshot();
+        BankChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Contenu du classeur TTG, envoyé à son ouverture : « idPersonnage|carte,date;carte,date… » (dates en millisecondes).
+    /// Seuls les identifiants des cartes sont gardés, pour le personnage concerné (celui en jeu, sinon sa banque sauvegardée).
+    /// </summary>
+    void OnBinder(string data)
+    {
+        var p = data.Split('|');
+        if (!long.TryParse(p[0], out var owner)) return;
+        var cards = (p.Length > 1 ? p[1] : "").Split(';', StringSplitOptions.RemoveEmptyEntries)
+            .Select(e => int.TryParse(e.Split(',')[0], out var c) ? c : 0).Where(c => c > 0).ToHashSet();
+        if (State.CharacterId == 0 || State.CharacterId == owner)
+        {
+            State.Binder = cards;
+            State.BinderUpdatedAt = DateTime.Now;
+            SaveSnapshot();
+        }
+        else if (AllSnapshots().FirstOrDefault(s => s.CharacterId == owner && s.Character.Length > 0) is { } saved)
+        {
+            saved.Binder = cards;
+            saved.BinderUpdatedAt = DateTime.Now;
+            try { File.WriteAllText(SnapshotPath(saved.Character), JsonSerializer.Serialize(saved, JsonOpts)); } catch { }
+        }
+        else return;
+        BankChanged?.Invoke();
+    }
+
+    /// <summary>Carte rangée dans le classeur (« ta » + carte), par le personnage en jeu.</summary>
+    void OnBinderAdd(int card)
+    {
+        if (!State.Binder.Add(card)) return;
+        State.BinderUpdatedAt = DateTime.Now;
         SaveSnapshot();
         BankChanged?.Invoke();
     }

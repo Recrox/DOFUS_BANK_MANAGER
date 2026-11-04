@@ -10,6 +10,11 @@ public sealed record TtgRow(int ItemId, int? Number, string Name, string Rarity,
     CarteTarget? Goto) : IHasCarteTarget
 {
     public int Index { get; init; }
+    /// <summary>Carte rangée dans le classeur TTG (du personnage choisi, ou d'au moins un).</summary>
+    public bool InBinder { get; init; }
+    public string BinderText => InBinder ? "✓" : "";
+    /// <summary>Possédée : en banque, en inventaire ou dans le classeur.</summary>
+    public bool Has => Owned > 0 || InBinder;
 }
 
 /// <summary>Offre vue chez un marchand : prix, quantité, pseudo et position (« groupe » si elle vient du partage).</summary>
@@ -40,6 +45,16 @@ public partial class MainWindow
         TtgRarity.SelectedIndex = 0;
     }
 
+    bool _ttgCharsUpdating;
+
+    void TtgCharacter_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_ttgCharsUpdating) TtgFilters_Changed(sender, e);
+    }
+
+    /// <summary>Prix d'une carte : HDV (prix unitaire), sinon meilleur marchand de la période, sinon dernier prix marchand.</summary>
+    static double? CardPrice(TtgRow r) => r.HdvPrice ?? r.BestPrice ?? r.MerchantPrice;
+
     void TtgFilters_Changed(object sender, RoutedEventArgs e)
     {
         ApplyTtgFilters();
@@ -61,9 +76,13 @@ public partial class MainWindow
             ? Ttg.MerchantTracker.CardTypes
             : [Ttg.MerchantTracker.CardTypes[TtgRarity.SelectedIndex - 1]];
 
-        var s = _tracker.State;
-        var owned = s.Bank.Values.Concat(s.Inventory.Values)
+        // Cartes possédées (banque et inventaire) d'un personnage ou de tous
+        var character = CharacterChoice(TtgCharacter, ref _ttgCharsUpdating);
+        var owned = OwnedItems(character).Select(x => x.Item)
             .GroupBy(i => i.TemplateId).ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+        // Cartes du classeur (message reçu à son ouverture en jeu), converties en objets carte
+        var binder = _tracker.AllSnapshots().Where(x => character == null ? x.Character.Length > 0 || x == _tracker.State : x.Character == character)
+            .SelectMany(x => x.Binder).Select(c => _data.TtgCardItems.GetValueOrDefault(c)).Where(i => i > 0).ToHashSet();
 
         int days = TtgDays;
         TtgBestColumn.Header = $"Meilleur {days} j";
@@ -75,7 +94,8 @@ public partial class MainWindow
             var best = m?.Recent(days).OrderBy(sn => sn.Price).ThenByDescending(sn => sn.Time).FirstOrDefault();
             return new TtgRow(it.Id, CardNumber(it.Name), it.Name, it.TypeName, owned.GetValueOrDefault(it.Id),
                 last?.Price, best?.Price, last != null ? Ago(last.Time) + (last.Shared ? " · groupe" : "") : "", last?.Time ?? DateTime.MinValue,
-                UnitPrice(it.Id), best == null ? "" : OfferMerchant(best), best == null ? "" : OfferWhere(best), best == null ? null : OfferGoto(best));
+                UnitPrice(it.Id), best == null ? "" : OfferMerchant(best), best == null ? "" : OfferWhere(best), best == null ? null : OfferGoto(best))
+                { InBinder = binder.Contains(it.Id) };
         }).ToList();
 
         IEnumerable<TtgRow> q = all;
@@ -84,8 +104,8 @@ public partial class MainWindow
         if (!showAll) q = q.Where(r => r.MerchantPrice != null || r.HdvPrice != null);
         q = TtgShow.SelectedIndex switch
         {
-            1 => q.Where(r => r.Owned > 0),
-            2 => q.Where(r => r.Owned == 0),
+            1 => q.Where(r => r.Has),
+            2 => q.Where(r => !r.Has),
             _ => q,
         };
         if (search.Length > 0) q = q.Where(r => Contains(r.Name, search) || Contains(r.Rarity, search));
@@ -100,7 +120,11 @@ public partial class MainWindow
         var cards = all.Where(r => r.Number != null).ToList();
         TtgCount.Text = $"{list.Count} objet(s)";
         TtgCollection.Text = cards.Count == 0 ? ""
-            : $"Collection : {cards.Count(r => r.Owned > 0)} / {cards.Count} cartes · {_merchants.Prices.Count} prix marchand(s)";
+            : $"Collection : {cards.Count(r => r.Has)} / {cards.Count} cartes (dont {cards.Count(r => r.InBinder)} au classeur) · {_merchants.Prices.Count} prix marchand(s)";
+        // Cartes manquantes et leur coût : meilleur prix relevé (HDV, marchand de la période, sinon dernier prix marchand)
+        var missing = cards.Where(r => !r.Has).Select(r => CardPrice(r)).ToList();
+        TtgMissing.Text = cards.Count == 0 || missing.Count == 0 ? ""
+            : $"Manquantes : {missing.Count} · coût estimé {Kamas(missing.Sum(p => p ?? 0))} ({missing.Count(p => p != null)}/{missing.Count} avec un prix)";
         TtgEmpty.Visibility = list.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         TtgEmpty.Text = showAll || all.Any(r => r.MerchantPrice != null || r.HdvPrice != null)
             ? "Aucune carte ne correspond à ces critères."
@@ -130,7 +154,7 @@ public partial class MainWindow
         TtgDetailTitle.Text = row.Name;
         TtgDetailIcon.Source = ItemIcons.Get(row.ItemId);
         int days = TtgDays;
-        var lines = new List<string> { $"{row.Rarity} · {row.Owned} possédé(s)" };
+        var lines = new List<string> { $"{row.Rarity} · {row.Owned} possédé(s)" + (row.InBinder ? " · dans le classeur" : "") };
         lines.Add(m?.Last is { } last
             ? $"Marchand : {Kamas(last.Price)} ({Ago(last.Time)}, {last.Quantity} en vente) · meilleur sur {days} j : {Kamas(m.BestRecent(days))}"
             : "Marchand : pas encore vu. Consultez la boutique d'un marchand qui la vend.");

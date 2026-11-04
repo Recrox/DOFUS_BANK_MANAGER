@@ -964,6 +964,9 @@
                         <TextBox x:Name="TtgSearch" Width="220" TextChanged="TtgFilters_Changed"/>
                         <TextBlock Text="Rareté" Style="{StaticResource Label}"/>
                         <ComboBox x:Name="TtgRarity" Width="180" SelectionChanged="TtgFilters_Changed"/>
+                        <TextBlock Text="Personnage" Style="{StaticResource Label}"/>
+                        <ComboBox x:Name="TtgCharacter" Width="200" SelectionChanged="TtgCharacter_Changed"
+                                  ToolTip="Cartes de la banque et de l'inventaire de ce personnage (dernière banque connue pour ceux qui ne sont pas connectés), ou de tous"/>
                         <TextBlock Text="Afficher" Style="{StaticResource Label}"/>
                         <ComboBox x:Name="TtgShow" Width="200" SelectedIndex="0" SelectionChanged="TtgFilters_Changed">
                             <ComboBoxItem Content="Tout"/>
@@ -982,6 +985,9 @@
                         <TextBlock x:Name="TtgCollection" VerticalAlignment="Center" Margin="14,0,0,0" FontWeight="Bold"
                                    Foreground="{DynamicResource AccentSolid}"
                                    ToolTip="Cartes différentes présentes dans votre banque ou votre inventaire"/>
+                        <TextBlock x:Name="TtgMissing" VerticalAlignment="Center" Margin="14,0,0,0" FontWeight="Bold"
+                                   Foreground="{DynamicResource AccentSolid}"
+                                   ToolTip="Cartes de la collection (rareté choisie) que vous n'avez pas, et leur coût au meilleur prix relevé : HDV, sinon marchand de la période, sinon dernier prix marchand. Les cartes sans prix ne sont pas comptées."/>
                     </WrapPanel>
 
                     <Grid Grid.Row="1">
@@ -1015,6 +1021,16 @@
                                                 <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
                                             </DataTrigger>
                                         </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Classeur" Binding="{Binding BinderText}" Width="70" SortMemberPath="InBinder">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource Ok}"/>
+                                        <Setter Property="ToolTip" Value="Carte rangée dans le classeur (relevé à son ouverture en jeu)"/>
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
@@ -1240,6 +1256,110 @@
                                 <TextBlock Text="Évolution du prix" Foreground="{DynamicResource TextMuted}" FontWeight="SemiBold" Margin="0,12,0,4"/>
                                 <local:PriceChart x:Name="PdaChart" Height="180"/>
                             </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Ocre" Tag="{StaticResource TabOcre}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="0.4*" MinWidth="300" MaxWidth="440"/>
+                    </Grid.ColumnDefinitions>
+
+                    <WrapPanel Grid.ColumnSpan="2" Margin="0,0,0,6">
+                        <TextBlock Text="Personnage" Style="{StaticResource Label}" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="OcreCharacter" Width="200" SelectionChanged="Ocre_Changed"
+                                  ToolTip="Pierres d'âme de la banque et de l'inventaire de ce personnage (dernière banque connue pour ceux qui ne sont pas connectés), ou de tous"/>
+                        <TextBlock Text="Étape atteinte" Style="{StaticResource Label}"/>
+                        <ComboBox x:Name="OcreStep" Width="120" SelectionChanged="Ocre_Changed"
+                                  ToolTip="Étape où en est le personnage dans la quête : les précédentes sont comptées comme validées. Retenue par personnage."/>
+                        <TextBlock Text="Coût de" Style="{StaticResource Label}"/>
+                        <ComboBox x:Name="OcreKindFilter" Width="190" SelectedIndex="0" SelectionChanged="Ocre_Changed"
+                                  ToolTip="Âmes comptées dans les colonnes « Manquantes » et « Coût » et dans le total">
+                            <ComboBoxItem Content="Toutes"/>
+                            <ComboBoxItem Content="Monstre"/>
+                            <ComboBoxItem Content="Boss"/>
+                            <ComboBoxItem Content="Archi-monstre"/>
+                            <ComboBoxItem Content="Boss et archi-monstres"/>
+                        </ComboBox>
+                    </WrapPanel>
+                    <TextBlock x:Name="OcreSummary" Grid.Row="1" Grid.ColumnSpan="2" Margin="0,0,0,10" FontWeight="Bold" TextWrapping="Wrap"
+                               Foreground="{DynamicResource AccentSolid}"/>
+
+                    <DataGrid x:Name="OcreGrid" Grid.Row="2" SelectionChanged="OcreGrid_SelectionChanged">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Étape" Binding="{Binding Step}" Width="60" ElementStyle="{StaticResource IndexText}"/>
+                            <DataGridTextColumn Header="Âmes" Binding="{Binding Kind}" Width="*" MinWidth="130"/>
+                            <DataGridTextColumn Header="Total" Binding="{Binding Total}" Width="56"/>
+                            <DataGridTextColumn Header="Possédées" Binding="{Binding Owned}" Width="84"/>
+                            <DataGridTextColumn Header="Manquantes" Binding="{Binding Missing}" Width="96"/>
+                            <DataGridTextColumn Header="dont boss" Binding="{Binding MissingBoss}" Width="80"/>
+                            <DataGridTextColumn Header="dont archi" Binding="{Binding MissingArchi}" Width="84"/>
+                            <DataGridTextColumn Header="Coût" Binding="{Binding CostText}" Width="150" SortMemberPath="Cost">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentSolid}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="État" Binding="{Binding State}" Width="190">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Validable}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource Ok}"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Done}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Détail de l'étape : âmes possédées (où) et manquantes (prix) -->
+                    <Border Grid.Row="2" Grid.Column="1" Margin="10,0,0,0" Background="{DynamicResource Surface2}"
+                            BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="{DynamicResource RadiusLg}" Padding="14">
+                        <DockPanel>
+                            <TextBlock x:Name="OcreDetailTitle" DockPanel.Dock="Top" FontSize="16" FontWeight="Bold"
+                                       Foreground="{DynamicResource AccentSolid}" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="OcreDetailSub" DockPanel.Dock="Top" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,6,0,10"/>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl x:Name="OcreSouls">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel Margin="0,0,0,6">
+                                                <Image DockPanel.Dock="Left" Source="{Binding StoneTemplate, Converter={StaticResource Icon}}" Width="26" Height="26" Margin="0,0,8,0"/>
+                                                <TextBlock x:Name="Right" DockPanel.Dock="Right" Text="{Binding PriceText}" FontWeight="Bold" Margin="8,0,0,0"
+                                                           Foreground="{DynamicResource AccentSolid}" VerticalAlignment="Center"/>
+                                                <StackPanel>
+                                                    <TextBlock x:Name="Name" Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock FontSize="11" Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis">
+                                                        <Run Text="{Binding Kind, Mode=OneWay}"/><Run Text=" · niv. "/><Run Text="{Binding Level, Mode=OneWay}"/><Run Text="  "/><Run Text="{Binding Where, Mode=OneWay}"/>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </DockPanel>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding Owned}" Value="True">
+                                                    <Setter TargetName="Name" Property="Foreground" Value="{DynamicResource Ok}"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
                         </DockPanel>
                     </Border>
                 </Grid>

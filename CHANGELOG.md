@@ -2,6 +2,12 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.37.0 — 4 novembre 2026
+
+- **Ocre** : nouvel onglet pour la quête du Dofus Ocre : ses 34 étapes et les âmes à rapporter, comparées aux pierres d’âme de votre banque et de votre inventaire. Il indique les étapes que vous pouvez valider, et pour chaque étape les âmes qui manquent (monstres, boss, archi-monstres) avec leur prix relevé à l’HDV et le total en kamas. Choisissez votre personnage et l’étape où vous en êtes ; « Coût de » sépare la valeur des boss de celle des archi-monstres.
+- **TTG** : les cartes rangées dans votre classeur comptent maintenant dans la collection et les manquantes (nouvelle colonne « Classeur ») : ouvrez votre classeur en jeu, application lancée, pour qu’il soit relevé.
+- **TTG** : une liste « Personnage » choisit de qui compter les cartes, ou de tous vos personnages, et « Manquantes » donne le nombre de cartes qui vous manquent et leur coût estimé d’après les prix relevés.
+
 ## 1.36.0 — 4 novembre 2026
 
 - **Carte** : nouvelles **ressources** : choisissez un métier (Bûcheron, Pêcheur…) puis cochez les ressources voulues, avec leur icône, pour les voir sur la carte avec leur nombre par map. Seules les maps que vous avez visitées avec l’application lancée sont connues : la carte se complète au fil de vos déplacements.
