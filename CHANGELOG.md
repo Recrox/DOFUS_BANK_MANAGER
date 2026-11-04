@@ -2,6 +2,10 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.33.1 — 4 novembre 2026
+
+- **HDV** : Correction : dans l’historique des relevés, les lots ×1, ×10 et ×100 sont en gras et bien séparés de leur prix (« ×1 1 658 k » ne se lit plus « ×11 658 k »).
+
 ## 1.33.0 — 4 novembre 2026
 
 - **Nouveau nom** : Dofus Bank Manager devient **Dofus Retro Manager**, avec une nouvelle icône « DRM ». Vos banques, prix, réglages et historiques sont repris automatiquement ; les raccourcis du menu Démarrer et du Bureau sont remplacés.

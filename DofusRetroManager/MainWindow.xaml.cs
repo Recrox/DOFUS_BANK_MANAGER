@@ -48,7 +48,7 @@ public sealed record FmWeightRow(int Stat, int RuneId, string Rune, string Label
 public sealed record HdvRow(int Index, int ItemId, string Name, int Level, string Type,
     long? Lot1, long? Lot10, long? Lot100, double? Unit, long? Average, string Seen, DateTime SeenAt);
 
-public sealed record HdvHistoryRow(string When, string Prices);
+public sealed record HdvHistoryRow(string When, string Lot1, string Lot10, string Lot100);
 
 public sealed record BankRow(int ItemId, string Name, int Quantity, int Level, string Type, int UsedIn)
 {
@@ -909,8 +909,7 @@ public partial class MainWindow : Window
         HdvChart.Points = price?.History
             .Where(s => s.UnitPrice != null).Select(s => (s.Time, s.UnitPrice!.Value)).ToList() ?? [];
         HdvHistory.ItemsSource = price?.History.AsEnumerable().Reverse()
-            .Select(s => new HdvHistoryRow(s.Time.ToString("dd/MM/yyyy HH:mm"),
-                $"×1 {Kamas(s.Lot1)} · ×10 {Kamas(s.Lot10)} · ×100 {Kamas(s.Lot100)}"))
+            .Select(s => new HdvHistoryRow(s.Time.ToString("dd/MM/yyyy HH:mm"), Kamas(s.Lot1), Kamas(s.Lot10), Kamas(s.Lot100)))
             .ToList();
     }
 

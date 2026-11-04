@@ -928,7 +928,11 @@
                                                     CornerRadius="{DynamicResource RadiusSm}" Padding="8,5" Margin="0,0,0,5">
                                                 <StackPanel>
                                                     <TextBlock Text="{Binding When}" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="{Binding Prices}" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
+                                                    <TextBlock Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap">
+                                                        <Bold>×1</Bold><Run Text="  "/><Run Text="{Binding Lot1, Mode=OneWay}"/><Run Text="   ·   "/>
+                                                        <Bold>×10</Bold><Run Text="  "/><Run Text="{Binding Lot10, Mode=OneWay}"/><Run Text="   ·   "/>
+                                                        <Bold>×100</Bold><Run Text="  "/><Run Text="{Binding Lot100, Mode=OneWay}"/>
+                                                    </TextBlock>
                                                 </StackPanel>
                                             </Border>
                                         </DataTemplate>
