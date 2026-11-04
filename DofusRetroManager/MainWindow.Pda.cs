@@ -30,7 +30,13 @@ public partial class MainWindow
         _tracker.HdvAverage += _pda.OnAverage;
     }
 
-    void PdaFilters_Changed(object sender, RoutedEventArgs e) => ApplyPdaFilters();
+    const string AllCharacters = "Tous les personnages";
+    bool _pdaCharsUpdating;
+
+    void PdaFilters_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!_pdaCharsUpdating) ApplyPdaFilters();
+    }
 
     static string LevelText(MonsterInfo m) => m.LevelMin == m.LevelMax ? $"{m.LevelMax}" : $"{m.LevelMin}–{m.LevelMax}";
 
@@ -40,12 +46,36 @@ public partial class MainWindow
         var search = PdaSearch.Text.Trim();
         var category = (PdaCategory.SelectedItem as ComboBoxItem)?.Content as string ?? "Toutes";
 
-        // Pierres possédées (banque et inventaire) et leurs monstres
-        var s = _tracker.State;
-        // Banque et inventaire du personnage suivi (le dernier connecté ou dont la banque a été ouverte)
-        var of = s.Character.Length > 0 ? $" de {s.Character}" : "";
-        var stones = s.Bank.Values.Select(i => (Item: i, Where: "Banque" + of))
-            .Concat(s.Inventory.Values.Select(i => (Item: i, Where: "Inventaire" + of)))
+        // Pierres possédées (banque et inventaire) et leurs monstres, pour un personnage ou tous : celui en jeu (état en cours)
+        // et les autres d'après leur dernière banque connue
+        var snapshots = _tracker.AllSnapshots().Where(x => x.Character.Length > 0 || x == _tracker.State).ToList();
+        var chars = snapshots.Select(x => x.Character).Where(n => n.Length > 0).Distinct().Order().Prepend(AllCharacters).ToList();
+        var chosen = PdaCharacter.SelectedItem as string ?? AllCharacters;
+        if (!chars.SequenceEqual(PdaCharacter.Items.Cast<string>()))
+        {
+            _pdaCharsUpdating = true;
+            PdaCharacter.ItemsSource = chars;
+            if (!chars.Contains(chosen)) chosen = AllCharacters;
+            PdaCharacter.SelectedItem = chosen;
+            _pdaCharsUpdating = false;
+        }
+        var mine = PdaSource.SelectedIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
+        PdaCharacter.Visibility = PdaCharacterLabel.Visibility = mine;
+        if (chosen != AllCharacters && PdaSource.SelectedIndex == 1) snapshots = snapshots.Where(x => x.Character == chosen).ToList();
+
+        static string Of(string name) => name.Length > 0 ? $" de {name}" : "";
+        // La banque est commune aux personnages d'un même compte : un objet (même identifiant) vu dans plusieurs banques
+        // n'est compté qu'une fois, d'après la banque relevée le plus récemment
+        var bankItems = snapshots.SelectMany(x => x.Bank.Select(b => (Uid: b.Key, Item: b.Value, Snap: x)))
+            .GroupBy(b => b.Uid)
+            .Select(g =>
+            {
+                var latest = g.MaxBy(b => b.Snap.BankUpdatedAt);
+                var names = g.Select(b => b.Snap.Character).Where(n => n.Length > 0).Distinct().Order().ToList();
+                return (latest.Item, Where: "Banque" + Of(string.Join(", ", names)));
+            });
+        var stones = bankItems
+            .Concat(snapshots.SelectMany(x => x.Inventory.Values.Select(i => (Item: i, Where: "Inventaire" + Of(x.Character)))))
             .Where(x => _pda.IsStone(x.Item.TemplateId))
             .Select(x => (x.Item, x.Where, Monsters: PdaTracker.MonstersOf(x.Item.Effects)))
             .ToList();

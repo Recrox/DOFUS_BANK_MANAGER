@@ -2,6 +2,11 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.35.0 — 4 novembre 2026
+
+- **PDA** : dans « Mes pierres », une liste « Personnage » choisit de qui afficher les pierres (banque et inventaire), ou de tous vos personnages. Les personnages qui ne sont pas connectés sont repris de leur dernière banque connue ; une banque commune à plusieurs personnages d’un même compte n’est comptée qu’une fois.
+- **Banque** : une liste « Personnage » affiche la banque du personnage en jeu ou la dernière banque connue d’un autre de vos personnages, avec sa date.
+
 ## 1.34.0 — 4 novembre 2026
 
 - **Logo** : nouveau logo Dofus Retro Manager (l’œuf « DRM »), partout : en haut de l’application (interface classique et HTML), barre de titre, barre des tâches, menu Démarrer, Bureau et installateur.

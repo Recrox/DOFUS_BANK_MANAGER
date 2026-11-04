@@ -10,7 +10,7 @@ const post = m => window.chrome.webview.postMessage(m);
 const COMMON = ['VersionText', 'CaptureDot', 'CaptureStatus', 'BankStatus', 'CaptureButton', 'AdminButton', 'UpdateBanner',
   'UpdateTitle', 'UpdateText', 'UpdateActionButton', 'UpdateLaterButton', 'UpdateNotesButton', 'MainTabs'];
 const TABS = [
-  { key: 'bank', label: 'Banque', watch: ['BankOwner', 'BankSearch', 'BankTypeFilter', 'BankCount', 'BankValue', 'BankGrid'] },
+  { key: 'bank', label: 'Banque', watch: ['BankOwner', 'BankCharacter', 'BankSearch', 'BankTypeFilter', 'BankCount', 'BankValue', 'BankGrid'] },
   { key: 'recipes', label: 'Recettes', watch: ['RecipeSearch', 'JobFilter', 'ModeFilter', 'SellMinPanel', 'SellMin',
     'LevelMin', 'LevelMax', 'SlotFilters', 'IncludeInventory', 'InventoryHint', 'RecipeCount', 'IngredientChip', 'IngredientChipText',
     'RecipeGrid', 'DetailTitle', 'DetailSub', 'DetailCostPanel', 'DetailCraftCount', 'DetailCraftMax', 'DetailCostTitle', 'DetailCost',
@@ -23,7 +23,7 @@ const TABS = [
   { key: 'ttg', label: 'TTG', watch: ['TtgSearch', 'TtgRarity', 'TtgShow', 'TtgShowAll', 'TtgDaysBox', 'TtgCount',
     'TtgCollection', 'TtgGrid', 'TtgBestColumn', 'TtgEmpty', 'TtgDetailTitle', 'TtgDetailSub', 'TtgOffersMode', 'TtgOffersTitle',
     'TtgOffers', 'TtgMerchantChart', 'TtgHdvChart'] },
-  { key: 'pda', label: 'PDA', watch: ['PdaSearch', 'PdaSource', 'PdaCategory', 'PdaShowAll', 'PdaCount', 'PdaValue',
+  { key: 'pda', label: 'PDA', watch: ['PdaSearch', 'PdaSource', 'PdaCharacter', 'PdaCategory', 'PdaShowAll', 'PdaCount', 'PdaValue',
     'PdaGrid', 'PdaEmpty', 'PdaDetailTitle', 'PdaDetailSub', 'PdaChart'] },
   { key: 'combat', label: 'Combat', watch: ['HuntCharacterBox', 'HuntLevel', 'HuntGroupLevel', 'HuntWisdom', 'HuntProspection',
     'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
@@ -223,7 +223,7 @@ function tabs(active) {
 
 const views = {
   bank() {
-    return `<div class="filters"><span class="strong acc">${esc(T('BankOwner'))}</span>${input('BankSearch', 'Rechercher un objet…', '260px')}${select('BankTypeFilter')}
+    return `<div class="filters"><span class="strong acc">${esc(T('BankOwner'))}</span><span class="lbl">Personnage</span>${select('BankCharacter')}${input('BankSearch', 'Rechercher un objet…', '260px')}${select('BankTypeFilter')}
       <span class="chip">${esc(T('BankCount'))}</span>${T('BankValue') ? `<span class="chip accent">${esc(T('BankValue'))}</span>` : ''}</div>
       ${table('BankGrid', [
         { h: '', f: r => itemImg(r.ItemId) },
@@ -430,7 +430,7 @@ Object.assign(views, {
 
   pda() {
     const sel = rows('PdaGrid')[S.PdaGrid?.sel ?? -1];
-    return `<div class="filters">${input('PdaSearch', 'Monstre ou race…', '220px')}<span class="lbl">Afficher</span>${select('PdaSource')}
+    return `<div class="filters">${input('PdaSearch', 'Monstre ou race…', '220px')}<span class="lbl">Afficher</span>${select('PdaSource')}${shown('PdaCharacter') ? `<span class="lbl">Personnage</span>${select('PdaCharacter')}` : ''}
         <span class="lbl">Catégorie</span>${select('PdaCategory')}${check('PdaShowAll', 'Tous les monstres du jeu')}
         <span class="chip">${esc(T('PdaCount'))}</span>${T('PdaValue') ? `<span class="chip accent">${esc(T('PdaValue'))}</span>` : ''}</div>
       <div class="split">

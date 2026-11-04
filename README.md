@@ -213,7 +213,7 @@ L'HDV des pierres d'âme ne liste pas les offres par objet mais **par monstre** 
 Une même liste mélange les catégories : celle d'un Bulbuisson contient des pierres de monstre, mais aussi des pierres d'archi-monstre où il accompagne l'archi (Bambouské le Camouflé). Les prix sont donc tenus **par monstre et par catégorie** (Monstre, Donjon, Archi-monstre), et une pierre d'archi-monstre ne compte que pour l'archi-monstre lui-même.
 
 - **Prix relevés à l'HDV** : un monstre par ligne, avec sa race, son niveau et la catégorie de pierre (Monstre, Donjon, Archi-monstre). « Tous les monstres du jeu » ajoute ceux dont le prix n'a pas encore été relevé.
-- **Mes pierres** : vos pierres pleines (banque et inventaire) avec leur contenu ; la colonne « Où » indique le personnage (« Banque de … », « Inventaire de … »). L'onglet Banque affiche de même « Banque de … ». La valeur estimée d'une pierre est le prix relevé le plus haut parmi ses monstres.
+- **Mes pierres** : vos pierres pleines (banque et inventaire) avec leur contenu. La liste **Personnage** choisit de qui les afficher, ou « Tous les personnages » : celui en jeu, et les autres d'après leur dernière banque connue (`banks/`). La colonne « Où » indique le personnage (« Banque de … », « Inventaire de … ») ; une banque commune à plusieurs personnages d'un même compte (mêmes objets) n'est comptée qu'une fois. L'onglet Banque a la même liste **Personnage** : la banque du personnage en jeu, ou la dernière connue d'un autre, avec sa date. La valeur estimée d'une pierre est le prix relevé le plus haut parmi ses monstres.
 
 Le panneau de détail montre l'évolution du prix du monstre sélectionné. Les noms des monstres viennent du fichier de langue `monsters`.
 

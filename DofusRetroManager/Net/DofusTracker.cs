@@ -388,6 +388,29 @@ public sealed class DofusTracker
         catch { return null; }
     }
 
+    readonly Dictionary<string, (DateTime Time, Snapshot? Snapshot)> _savedCache = new();
+
+    /// <summary>
+    /// Banques et inventaires de tous les personnages : celui suivi (état en cours) puis les autres, tels que
+    /// sauvegardés dans <see cref="BanksDir"/>. Les fichiers ne sont relus que s'ils ont changé.
+    /// </summary>
+    public List<Snapshot> AllSnapshots()
+    {
+        var list = new List<Snapshot> { State };
+        if (!Directory.Exists(BanksDir)) return list;
+        foreach (var f in new DirectoryInfo(BanksDir).GetFiles("*.json"))
+        {
+            if (!_savedCache.TryGetValue(f.FullName, out var c) || c.Time != f.LastWriteTimeUtc)
+            {
+                Snapshot? s = null;
+                try { s = JsonSerializer.Deserialize<Snapshot>(File.ReadAllText(f.FullName)); } catch { }
+                _savedCache[f.FullName] = c = (f.LastWriteTimeUtc, s);
+            }
+            if (c.Snapshot is { Character.Length: > 0 } saved && saved.Character != State.Character) list.Add(saved);
+        }
+        return list;
+    }
+
     /// <summary>Recharge la banque la plus récemment sauvegardée (au démarrage).</summary>
     public void LoadLatest()
     {

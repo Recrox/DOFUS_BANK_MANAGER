@@ -253,6 +253,9 @@
                         <TextBlock x:Name="BankOwner" VerticalAlignment="Center" Margin="0,0,16,0" FontWeight="Bold" FontSize="14"
                                    Foreground="{DynamicResource AccentSolid}"
                                    ToolTip="Personnage dont la banque est affichée (la banque est commune aux personnages d'un même compte)"/>
+                        <TextBlock Text="Personnage" Style="{StaticResource Label}" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="BankCharacter" Width="200" SelectionChanged="BankFilter_Changed" Margin="0,0,16,0"
+                                  ToolTip="Banque à afficher : celle du personnage en jeu, ou la dernière banque connue d'un autre personnage"/>
                         <TextBlock Text="Recherche" Style="{StaticResource Label}" Margin="0,0,8,0"/>
                         <TextBox x:Name="BankSearch" Width="240" TextChanged="BankFilter_Changed"/>
                         <TextBlock Text="Type" Style="{StaticResource Label}"/>
@@ -1127,6 +1130,9 @@
                             <ComboBoxItem Content="Prix relevés à l'HDV"/>
                             <ComboBoxItem Content="Mes pierres (banque et inventaire)"/>
                         </ComboBox>
+                        <TextBlock x:Name="PdaCharacterLabel" Text="Personnage" Style="{StaticResource Label}" Visibility="Collapsed"/>
+                        <ComboBox x:Name="PdaCharacter" Width="200" SelectionChanged="PdaFilters_Changed" Visibility="Collapsed"
+                                  ToolTip="Pierres de la banque et de l'inventaire de ce personnage (dernière banque connue pour ceux qui ne sont pas connectés)"/>
                         <TextBlock Text="Catégorie" Style="{StaticResource Label}"/>
                         <ComboBox x:Name="PdaCategory" Width="160" SelectedIndex="0" SelectionChanged="PdaFilters_Changed">
                             <ComboBoxItem Content="Toutes"/>

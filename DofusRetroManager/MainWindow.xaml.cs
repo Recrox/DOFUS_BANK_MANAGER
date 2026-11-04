@@ -758,7 +758,25 @@ public partial class MainWindow : Window
     {
         if (!_ready || _data == null || _bankTypesUpdating) return;
         var search = BankSearch.Text.Trim();
-        var all = _tracker.State.Bank.Values
+
+        // Personnage : celui en jeu (1re entrée, suit les changements de personnage) ou la dernière banque connue d'un autre
+        var current = _tracker.State;
+        var snapshots = _tracker.AllSnapshots();
+        var chars = snapshots.Skip(1).Select(x => x.Character).Distinct().Order()
+            .Prepend("En jeu" + (current.Character.Length > 0 ? $" ({current.Character})" : "")).ToList();
+        var chosen = BankCharacter.SelectedIndex > 0 ? BankCharacter.SelectedItem as string : null;
+        if (!chars.SequenceEqual(BankCharacter.Items.Cast<string>()))
+        {
+            _bankTypesUpdating = true;
+            BankCharacter.ItemsSource = chars;
+            BankCharacter.SelectedIndex = chosen != null && chars.IndexOf(chosen) is > 0 and var i ? i : 0;
+            _bankTypesUpdating = false;
+        }
+        var shown = BankCharacter.SelectedIndex > 0
+            ? snapshots.Skip(1).FirstOrDefault(x => x.Character == (string)BankCharacter.SelectedItem) ?? current
+            : current;
+
+        var all = shown.Bank.Values
             .GroupBy(i => i.TemplateId)
             .Select(g =>
             {
@@ -793,8 +811,9 @@ public partial class MainWindow : Window
             .Select((r, i) => r with { Index = i + 1 })
             .ToList();
         SetRows(BankGrid, rows);
-        var owner = _tracker.State.Character;
-        BankOwner.Text = owner.Length > 0 ? $"Banque de {owner}" : "Banque";
+        var owner = shown.Character;
+        BankOwner.Text = (owner.Length > 0 ? $"Banque de {owner}" : "Banque")
+            + (shown != current && shown.BankUpdatedAt > DateTime.MinValue ? $" · relevée le {shown.BankUpdatedAt:dd/MM/yyyy HH:mm}" : "");
         BankCount.Text = $"{rows.Count} objet(s) distinct(s)";
 
         int priced = rows.Count(r => r.Value != null);
