@@ -235,6 +235,17 @@ public partial class MainWindow
                         finally { _webConfirmed = false; }
                     }
                     break;
+                case "show":
+                    // Lien vers un objet : ingrédient d'une recette -> HDV, objet du brisage -> sa recette
+                    if (m.TryGetProperty("id", out var shownId) && shownId.TryGetInt32(out var shownItem))
+                    {
+                        if (m.TryGetProperty("tab", out var tab) && tab.GetString() == "recipe")
+                        {
+                            if (!ShowRecipeOf(shownItem)) AddLog($"{_data?.GetItem(shownItem).Name} : pas de recette.");
+                        }
+                        else ShowInHdv(shownItem);
+                    }
+                    break;
                 case "fmweight":
                     // Poids d'une stat saisi dans l'écran « Poids des stats » (onglet FM)
                     SetFmWeight(index, m.GetProperty("value").GetString() ?? "");

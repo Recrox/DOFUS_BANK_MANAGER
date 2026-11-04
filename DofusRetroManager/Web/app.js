@@ -17,7 +17,7 @@ const TABS = [
     'DetailCostNote', 'DetailProfit', 'DetailProfitOwned', 'DetailStatsPanel', 'DetailStats', 'DetailIngredients'] },
   { key: 'brisage', label: 'Brisage', watch: ['BrisageSearch', 'BrisageSource', 'BrisageTypeFilter', 'BrisageLevelMin',
     'BrisageLevelMax', 'BrisageCount', 'BrisageStats', 'BrisageGrid', 'BrisageGainColumn', 'BrisageEmpty', 'BrisageDetailTitle',
-    'BrisageDetailSub', 'BrisageBreakCount', 'BrisageBreakMax', 'BrisageDetailTotal', 'BrisageRunes'] },
+    'BrisageDetailSub', 'BrisageGoRecipe', 'BrisageBreakCount', 'BrisageBreakMax', 'BrisageDetailTotal', 'BrisageRunes'] },
   { key: 'hdv', label: 'HDV', watch: ['HdvSearch', 'HdvTypeFilter', 'HdvShowAll', 'HdvCount', 'HdvGrid', 'HdvEmpty',
     'HdvDetailTitle', 'HdvDetailSub', 'HdvChart', 'HdvHistory', 'HdvForget'] },
   { key: 'ttg', label: 'TTG', watch: ['TtgSearch', 'TtgRarity', 'TtgCharacter', 'TtgMissing', 'TtgShow', 'TtgShowAll', 'TtgDaysBox', 'TtgCount',
@@ -378,7 +378,7 @@ Object.assign(views, {
       <div class="split">
         ${table('BrisageGrid', [
           { h: '', f: r => itemImg(r.ItemId) },
-          { h: 'Objet', k: 'Name', f: r => `<span class="strong">${esc(r.Name)}</span><div class="muted">${esc(r.Type)} · niv. ${r.Level}</div>` },
+          { h: 'Objet', k: 'Name', f: r => `<a class="strong item-link" data-act="item-recipe" data-id="${r.ItemId}" title="Voir la recette de cet objet">${esc(r.Name)}</a><div class="muted">${esc(r.Type)} · niv. ${r.Level}</div>` },
           { h: 'Caractéristiques', k: 'Score', f: r => `<span class="ellipsis" title="${esc(r.Stats)}">${esc(r.Stats)}</span>` },
           { h: 'Où', k: 'Where' },
           { h: 'Poss.', k: 'Owned', num: true, f: r => `<span class="strong ${r.Owned > 0 ? 'acc' : 'muted'}">${r.Owned}</span>` },
@@ -390,6 +390,7 @@ Object.assign(views, {
           { h: S.BrisageGainColumn?.t || 'Gain', k: 'Gain', num: true, f: r => r.Gain == null ? '—' : `<span class="strong ${r.GainSign < 0 ? 'bad' : 'ok'}">${r.Gain > 0 ? '+' : ''}${fmt(r.Gain)}</span>` },
         ], { empty: T('BrisageEmpty') || 'Aucun objet ne correspond à ces critères.' })}
         <aside class="detail glass">${sel ? `${detailHead(itemImg(sel.ItemId, 'lg'), 'BrisageDetailTitle', 'BrisageDetailSub')}
+          ${btn('BrisageGoRecipe', 'Voir la recette', 'small')}
           <div class="filters"><span class="lbl">Quantité à briser</span>${input('BrisageBreakCount', '', '80px')}${btn('BrisageBreakMax', 'Max', 'small')}</div>
           ${T('BrisageDetailTotal') ? `<div class="card strong lines" style="color:${S.BrisageDetailTotal?.c || 'inherit'}">${esc(T('BrisageDetailTotal'))}</div>` : ''}
           <h3>Runes estimées</h3>
@@ -654,7 +655,7 @@ function recipeDetail(sel) {
   const tree = (list, path) => (list || []).map((g, i) => {
     const key = path + '/' + i, open = !!local.open[key];
     return `<div class="ing"><span>${g.HasChildren ? `<button class="caret ${open ? 'open' : ''}" data-act="open" data-key="${esc(key)}">▶</button>` : ''}</span>
-      ${itemImg(g.ItemId)}<div><div class="name">${esc(g.Name)}</div>${g.Note ? `<div class="note">${esc(g.Note)}</div>` : ''}<div class="price">${esc(g.Price)}</div></div>
+      <a class="item-link" data-act="item-hdv" data-id="${g.ItemId}" title="Voir cet objet à l'HDV">${itemImg(g.ItemId)}</a><div><div class="name"><a class="item-link" data-act="item-hdv" data-id="${g.ItemId}" title="Voir cet objet à l'HDV">${esc(g.Name)}</a></div>${g.Note ? `<div class="note">${esc(g.Note)}</div>` : ''}<div class="price">${esc(g.Price)}</div></div>
       <span class="ratio" style="color:${g.Brush || 'inherit'}">${esc(g.Ratio)}</span></div>
       ${g.HasChildren && open ? `<div class="children">${tree(g.Children, key)}</div>` : ''}`;
   }).join('');
@@ -900,6 +901,8 @@ document.addEventListener('click', e => {
     }
     case 'carte-go': carteSelect(carte.list[+d.i]); break;
     case 'carte-fit': carteFit(); break;
+    case 'item-hdv': post({ type: 'show', tab: 'hdv', id: +d.id }); break;
+    case 'item-recipe': post({ type: 'show', tab: 'recipe', id: +d.id }); break;
     case 'goto': case 'goto-me': {
       // Repère à montrer une fois la carte chargée (carteMount) ; vos personnages sont déjà marqués
       const g = d.act === 'goto' ? JSON.parse(d.g) : null;

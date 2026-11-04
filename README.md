@@ -183,7 +183,7 @@ Le panneau de détail d'une recette affiche :
 - le **prix** de chaque ingrédient (prix unitaire HDV × quantité) ;
 - le **coût total** de la recette, le montant à acheter pour les ingrédients manquants, et la marge si le prix HDV de l'objet est connu. Un ingrédient sans prix relevé est estimé par le coût de sa propre recette, quand celui-ci est connu ;
 - deux **bénéfices** : en comptant tous les ingrédients au prix HDV, et **hors ressources possédées** (seul ce qu'il faut acheter est compté). Le champ **Crafts** (par défaut, et avec le bouton **Max** : autant que vos ressources le permettent, au moins 1) multiplie les quantités, les coûts et la vente ;
-- les **sous-recettes** : un ingrédient fabricable (ex. Brochet farci pour le Kralano) se déplie avec la flèche ▸. Les quantités affichées sont celles qu'il faut pour toute la recette.
+- les **sous-recettes** : un ingrédient fabricable (ex. Brochet farci pour le Kralano) se déplie avec la flèche ▸. Les quantités affichées sont celles qu'il faut pour toute la recette. Un clic sur un ingrédient (nom ou icône) ouvre l'onglet HDV sur cet objet.
 
 **Rentabilité** : la liste des recettes affiche pour chacune le **coût** (prix HDV des ingrédients, ou coût de leur sous-recette), le prix de **vente** de l'objet à l'HDV, le **bénéfice** (vert s'il est positif, rouge à perte) et la **marge** en pourcentage du coût. Toutes ces colonnes se trient d'un clic. Dans « Afficher », **Rentables** ne garde que les recettes à bénéfice positif, et **Coût et vente connus** toutes celles dont le bénéfice est calculable ; les deux sont triées du plus gros bénéfice au plus petit. **Meilleure marge** garde les recettes rentables, triées par marge. Dans ces trois modes, le champ **Vente min.** (10 000 kamas par défaut, 0 pour aucun minimum) écarte les objets qui se vendent moins cher. Le coût reste vide tant qu'un ingrédient n'a pas de prix : plus le groupe relève de prix, plus la liste se remplit.
 
@@ -194,7 +194,7 @@ Cet onglet trouve les objets à briser pour générer des runes. Cochez une ou p
 - vos objets (banque et inventaire), avec leurs caractéristiques **réelles** ;
 - les objets fabricables avec vos ressources, toutes les recettes ou tous les objets du jeu, avec leurs caractéristiques **maximales**.
 
-Chaque ligne indique aussi le nombre d'exemplaires possédés, si l'objet est faisable, les ingrédients manquants, le coût de fabrication et le prix HDV.
+Chaque ligne indique aussi le nombre d'exemplaires possédés, si l'objet est faisable, les ingrédients manquants, le coût de fabrication et le prix HDV. Un clic sur le nom d'un objet (ou « Voir la recette » dans le détail) ouvre sa recette dans l'onglet Recettes.
 
 **Runes estimées** : chaque objet affiche les runes qu'il devrait donner, leur valeur au prix unitaire HDV et le **gain** du brisage (valeur des runes moins le prix HDV de l'objet pour vos objets, moins son coût de fabrication pour les recettes). Le panneau de droite détaille chaque rune : quantité, prix par unité, total. Le champ **Quantité à briser** (par défaut, et avec **Max** : tous les exemplaires possédés) multiplie les runes, leur valeur et le gain.
 

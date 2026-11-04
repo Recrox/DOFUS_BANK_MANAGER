@@ -2,6 +2,11 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.38.0 — 4 novembre 2026
+
+- **Recettes** : un clic sur un ingrédient (son nom ou son icône) dans le détail d’une recette ouvre l’onglet HDV sur cet objet.
+- **Brisage** : un clic sur le nom d’un objet, ou le bouton « Voir la recette » du détail, ouvre sa recette dans l’onglet Recettes.
+
 ## 1.37.0 — 4 novembre 2026
 
 - **Ocre** : nouvel onglet pour la quête du Dofus Ocre : ses 34 étapes et les âmes à rapporter, comparées aux pierres d’âme de votre banque et de votre inventaire. Il indique les étapes que vous pouvez valider, et pour chaque étape les âmes qui manquent (monstres, boss, archi-monstres) avec leur prix relevé à l’HDV et le total en kamas. Choisissez votre personnage et l’étape où vous en êtes ; « Coût de » sépare la valeur des boss de celle des archi-monstres.

@@ -104,9 +104,11 @@
                         <ToggleButton x:Name="Expand" Style="{StaticResource ExpandToggle}"
                                       Visibility="{Binding HasChildren, Converter={StaticResource Visible}}"/>
                         <Image Grid.Column="1" Source="{Binding ItemId, Converter={StaticResource Icon}}" Width="32" Height="32"
+                               Cursor="Hand" ToolTip="Voir cet objet à l'HDV" MouseLeftButtonUp="IngredientLink_Click"
                                Margin="0,0,10,0" VerticalAlignment="Center"/>
                         <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold" Cursor="Hand"
+                                       ToolTip="Voir cet objet à l'HDV" MouseLeftButtonUp="IngredientLink_Click"/>
                             <TextBlock Text="{Binding Note}" FontSize="11" Foreground="{DynamicResource Warning}" TextWrapping="Wrap"
                                        Style="{StaticResource HideWhenEmpty}"/>
                             <TextBlock Text="{Binding Price}" FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"/>
@@ -639,6 +641,10 @@
                                         <Style TargetType="TextBlock">
                                             <Setter Property="FontWeight" Value="SemiBold"/>
                                             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentSolid}"/>
+                                            <Setter Property="Cursor" Value="Hand"/>
+                                            <Setter Property="ToolTip" Value="Voir la recette de cet objet"/>
+                                            <EventSetter Event="MouseLeftButtonUp" Handler="BrisageRecipe_Click"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
@@ -756,6 +762,8 @@
                             </DockPanel>
                             <TextBlock x:Name="BrisageDetailSub" DockPanel.Dock="Top" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"
                                        Margin="0,6,0,0"/>
+                            <Button x:Name="BrisageGoRecipe" DockPanel.Dock="Top" Content="Voir la recette" Click="BrisageRecipe_Click"
+                                    HorizontalAlignment="Left" Margin="0,8,0,0" Visibility="Collapsed"/>
                             <!-- Nombre d'exemplaires brisés : quantités de runes, valeurs et gain sont multipliés -->
                             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,10,0,0">
                                 <TextBlock Text="Quantité à briser" Style="{StaticResource Label}" Margin="0,0,8,0"/>
@@ -807,7 +815,7 @@
             </TabItem>
 
             <!-- Hôtel de vente : prix relevés pendant les consultations en jeu -->
-            <TabItem Header="HDV" Tag="{StaticResource TabHdv}">
+            <TabItem x:Name="HdvTab" Header="HDV" Tag="{StaticResource TabHdv}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>

@@ -101,6 +101,7 @@ public partial class MainWindow
         if (_data == null || BrisageGrid.SelectedItem is not BrisageRow row)
         {
             BrisageDetailTitle.Text = "Sélectionnez un objet";
+            BrisageGoRecipe.Visibility = Visibility.Collapsed;
             BrisageRunes.ItemsSource = null;
             BrisageDetailTotal.Text = "";
             return;
@@ -108,6 +109,7 @@ public partial class MainWindow
         int n = int.TryParse(BrisageBreakCount.Text, out var c) && c > 0 ? Math.Min(c, 100_000) : 1;
         BrisageDetailIcon.Source = ItemIcons.Get(row.ItemId);
         BrisageDetailTitle.Text = row.Name;
+        BrisageGoRecipe.Visibility = _rows.Any(r => r.Recipe.ResultId == row.ItemId) ? Visibility.Visible : Visibility.Collapsed;
         BrisageDetailSub.Text = $"Niveau {row.Level} · {row.Type}" + (row.Owned > 0 ? $" · {row.Owned} possédé(s)" : "") + $"\n{row.Stats}";
         BrisageRunes.ItemsSource = row.Runes.Select(r =>
         {
