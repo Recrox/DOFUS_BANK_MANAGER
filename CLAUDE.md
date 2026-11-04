@@ -25,3 +25,12 @@ L'utilisateur pousse souvent entre deux demandes, et chaque push sur `main` publ
 2. Rédige pour le joueur, en français, une puce par changement : `- **Onglet ou sujet** : ce qui change pour lui.` Pas de nom de fichier, de classe ni de détail technique. Une correction commence par « Correction : ».
 3. Ne modifie jamais la section d'une version déjà publiée (tag `v<version>` existant) : ses notes sont figées.
 4. Le format est lu par [Changelog.cs](DofusRetroManager/Changelog.cs) et par le workflow de Release : titres `## x.y.z — date`, puces `- `, gras `**…**` seulement.
+
+## Interface : peu de texte, des images du jeu
+
+L'utilisateur veut une interface compacte, sans longs textes. À chaque ajout ou modification d'affichage (interface classique **et** HTML) :
+
+1. **Une image du jeu plutôt qu'un texte** quand elle existe : icône de l'objet (`ItemIcons.Get(id)` en classique, `icon/item/{id}.png` / `itemImg(id)` en HTML), du sort (`icon/spell/{id}.png`), tête du personnage (`CharacterIcons`), icônes de la carte. Ex. : les ingrédients d'une recette, les objets du brisage, les drops, les pierres d'âme s'affichent avec leur icône, le nom à côté ou au survol.
+2. **Textes courts** : libellés de quelques mots, chiffres plutôt que phrases. Les explications vont dans l'infobulle (`ToolTip` en classique, `title` en HTML), pas dans la page.
+3. **Colonnes étroites** (panneaux latéraux, petits tableaux) : raccourcir la donnée (position « [12,11] Amakna » au lieu du nom complet de la sous-zone, date « 01/11 », niveau sous le nom plutôt que dans sa propre colonne), et couper le reste avec des points de suspension, texte complet au survol. Aucun tableau ne doit déborder de son cadre.
+4. **Vérifier les deux interfaces** : ce qui tient dans l'interface classique doit aussi tenir dans l'interface HTML, à la taille de fenêtre par défaut.

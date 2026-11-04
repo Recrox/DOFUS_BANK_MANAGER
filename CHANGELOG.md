@@ -2,6 +2,10 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.41.0 — 4 novembre 2026
+
+- **Combat** : Correction : dans l’interface HTML, la liste des derniers archi-monstres n’est plus coupée : position et date raccourcies (texte complet au survol), niveau sous le nom.
+
 ## 1.40.0 — 4 novembre 2026
 
 - **Combat** : nouvelle liste « Drops de la session » : les objets obtenus, leur quantité, leur prix et le total ; un clic sur un combat n’affiche que ses drops.

@@ -113,6 +113,9 @@ function table(name, cols, opts = {}) {
 }
 
 // Position cliquable (TTG, Combat) : ouvre l'onglet Carte sur sa case ; grisée si la map est inconnue
+/** « [12,11] Amakna (Clairière de Brouce Boulgoure) » -> « [12,11] Amakna » ; « 01/11/2026 » -> « 01/11 ». */
+const shortMap = t => String(t || '').replace(/\s*\(.*\)\s*$/, '');
+const shortDate = t => /^\d\d\/\d\d\/\d{4}$/.test(t || '') ? t.slice(0, 5) : t;
 const posLink = (text, go, cls = '') => !text ? '' : go
   ? `<a class="pos-link ${cls}" data-act="goto" data-g="${esc(JSON.stringify(go))}" title="Voir sur la carte : ${esc(text)}">${esc(text)}</a>`
   : `<span class="muted ${cls}" title="${esc(text)}">${esc(text)}</span>`;
@@ -351,9 +354,10 @@ const views = {
           <div class="mini"><div class="filters" style="justify-content:space-between"><p class="section-title">Derniers archi-monstres vus</p>
             <button class="small" data-act="click" data-name="HuntClearArchis">Vider</button></div>
             ${table('HuntArchiGrid', [
-              { h: 'Vu', k: 'TimeSort', f: r => `<span class="muted">${esc(r.Time)}</span>` },
-              { h: 'Archi-monstre', k: 'Name', f: r => `<span class="strong">${esc(r.Name)}</span><div>${posLink(r.Map, r.Goto)}</div>` },
-              { h: 'Niv.', k: 'Level', num: true },
+              // Colonne étroite : date courte, niveau sous le nom, position réduite à ses coordonnées et sa zone (texte complet au survol)
+              { h: 'Vu', k: 'TimeSort', f: r => `<span class="muted" title="${esc(r.Time)}">${esc(shortDate(r.Time))}</span>` },
+              { h: 'Archi-monstre', k: 'Name', f: r => `<span class="strong ellipsis" title="${esc(r.Name)}">${esc(r.Name)}</span>
+                <div class="muted small">niv. ${r.Level}</div><div>${posLink(shortMap(r.Map), r.Goto, 'ellipsis')}</div>` },
               { h: 'Pierre', k: 'Price', num: true, f: r => fmt(r.Price) },
             ], { select: false, empty: 'Aucun archi-monstre vu.' })}</div>
           <div class="mini"><p class="section-title">Combats de la session</p>

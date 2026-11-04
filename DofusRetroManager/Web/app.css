@@ -506,3 +506,5 @@ tr.drop-target td { box-shadow: inset 0 3px 0 var(--accent-solid); }
 .carte-marker.player.goto > i { background: #e53935; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); }
 .card.harvest .muted { white-space: pre-line; margin-top: 2px; }
 .item-link { cursor: pointer; color: inherit; text-decoration: none; } .item-link:hover { color: var(--accent-solid); text-decoration: underline; }
+/* Colonne de droite (onglet Combat) : étroite, les textes longs sont coupés (texte complet au survol) */
+.side-tables .ellipsis { display: block; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
