@@ -34,6 +34,7 @@ public partial class MainWindow
     void InitArene()
     {
         _chronoTimer.Tick += (_, _) => RefreshChrono();
+        InitAreneGroups();
         _hunt!.Changed += RefreshArene;
         RefreshArene();
     }
@@ -68,7 +69,7 @@ public partial class MainWindow
     void RefreshChallenges()
     {
         var rows = new List<ChallengeRow>();
-        foreach (var c in _hunt!.Characters.Where(c => c.InFight || c.UsedSpells.Count > 0 || c.Challenges.Count > 0).OrderBy(c => c.Label))
+        foreach (var c in _hunt!.Characters.Where(c => (c.InFight || c.UsedSpells.Count > 0 || c.Challenges.Count > 0) && (c.Name.Length == 0 || InAreneGroup(c.Name))).OrderBy(c => c.Label))
         {
             var twice = c.UsedSpells.GroupBy(s => s).Where(g => g.Count() > 1)
                 .Select(g => g.Key == HuntTracker.Weapon ? "l'arme" : _data!.Spells.GetValueOrDefault(g.Key, $"sort {g.Key}")).ToList();
@@ -112,7 +113,7 @@ public partial class MainWindow
         ChronoStart.Content = ChronoRunning ? "⏸ Pause" : _chrono.Count == 0 ? "▶ Démarrer" : "▶ Reprendre";
 
         // Fins de combat pendant que le chronomètre tournait, réunies par combat (plusieurs personnages)
-        var records = _hunt.Fights.Where(f => _chrono.Any(p => f.Time >= p.Start && f.Time <= (p.End ?? DateTime.Now)))
+        var records = _hunt.Fights.Where(f => InAreneGroup(f.Character) && _chrono.Any(p => f.Time >= p.Start && f.Time <= (p.End ?? DateTime.Now)))
             .OrderBy(f => f.Time).ToList();
         var fights = new List<List<FightRecord>>();
         foreach (var f in records)

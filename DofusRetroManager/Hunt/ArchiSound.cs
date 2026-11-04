@@ -16,6 +16,8 @@ public static class ArchiSound
         [(659.25, 0), (987.77, 0.085), (1318.51, 0.17), (1661.22, 0.255), (2637.02, 0.34)];
     /// <summary>Notification (combat, tour, échange, groupe) : deux notes, plus courte et plus douce.</summary>
     static readonly (double Freq, double Start)[] NoticeNotes = [(1318.51, 0), (1975.53, 0.09)];
+    /// <summary>Alerte monstre (filtres du joueur) : trois notes graves descendantes (sol, ré, sol), pour ne pas la confondre avec l'archi.</summary>
+    static readonly (double Freq, double Start)[] MonsterNotes = [(783.99, 0), (587.33, 0.16), (392.0, 0.32)];
     /// <summary>Partiels d'une cloche : rapport de fréquence, amplitude, vitesse d'extinction.</summary>
     static readonly (double Ratio, double Amp, double Decay)[] Partials =
         [(1, 1, 3.2), (2, 0.32, 5), (3, 0.12, 7), (4.17, 0.07, 9), (5.43, 0.035, 12)];
@@ -26,6 +28,9 @@ public static class ArchiSound
 
     /// <summary>Son des notifications de l'onglet Switcheur, un peu moins fort que l'alerte archi-monstre.</summary>
     public static void PlayNotice(int volume) => Play(Wav(NoticeNotes, 0.9, volume * 0.8));
+
+    /// <summary>Alerte monstre de l'onglet Combat : son différent de celui des archi-monstres.</summary>
+    public static void PlayMonster(int volume) => Play(Wav(MonsterNotes, 1.4, volume));
 
     static void Play(byte[]? wav)
     {

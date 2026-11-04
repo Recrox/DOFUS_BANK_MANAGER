@@ -73,6 +73,7 @@ public partial class MainWindow
         _hunt.PartyJoined += c => Safe(() => OnPartyJoined(c));
         HuntSound.IsChecked = _hunt.SoundAlert;
         HuntVolume.Value = _hunt.SoundVolume;
+        InitHuntAlerts();
     }
 
     /// <summary>
@@ -88,6 +89,7 @@ public partial class MainWindow
     void OnArchiSpotted(ArchiSighting a)
     {
         if (_hunt?.SoundAlert == true) PlayAlert();
+        ShowArchiPopup(a);
         if (_data != null) HuntStatus.Text = $"⚠ Archi-monstre sur la map : {_data.GetMonster(a.MonsterId).Name} (niveau {a.Level})";
     }
 
@@ -350,11 +352,18 @@ public partial class MainWindow
         // Session du personnage affiché ; en multi-compte, le total de tous les personnages est rappelé
         var allSession = _hunt.Fights.Where(f => f.Time >= _hunt.SessionStart).ToList();
         var session = allSession.Where(f => f.Character == (me?.Name ?? "")).ToList();
-        SetRows(HuntFightGrid, session.AsEnumerable().Reverse().Take(100).Select(f => new FightRow(
+        var fightRows = session.AsEnumerable().Reverse().Take(100).Select(f => new FightRow(
             f.Time.ToString("HH:mm"), f.Time, $"{f.DurationSeconds / 60}:{f.DurationSeconds % 60:00}",
             string.Join(", ", f.Monsters.GroupBy(m => m.Id).Select(x => (x.Count() > 1 ? $"{x.Count()}× " : "") + _data.GetMonster(x.Key).Name)),
             f.Xp, f.Kamas,
-            string.Join(", ", f.Drops.Select(d => $"{d.Quantity}× {_data.GetItem(d.ItemId).Name}")), Value(f))).ToList());
+            string.Join(", ", f.Drops.Select(d => $"{d.Quantity}× {_data.GetItem(d.ItemId).Name}")), Value(f))).ToList();
+        // Combat choisi (détail de ses drops) : gardé d'un rafraîchissement à l'autre
+        _huntFightsUpdating = true;
+        SetRows(HuntFightGrid, fightRows);
+        HuntFightGrid.SelectedItem = fightRows.FirstOrDefault(r => r.TimeSort == _huntSelectedFight);
+        _huntFightsUpdating = false;
+        _huntSessionFights = session;
+        ShowHuntDrops();
 
         var minutes = Math.Max(1, (DateTime.Now - _hunt.SessionStart).TotalMinutes);
         double xpTotal = session.Sum(f => f.Xp), kamasTotal = session.Sum(f => f.Kamas), dropsTotal = session.Sum(Value);

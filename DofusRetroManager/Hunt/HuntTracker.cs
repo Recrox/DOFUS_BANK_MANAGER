@@ -7,6 +7,19 @@ namespace DofusRetroManager.Hunt;
 /// <summary>Monstre d'un groupe : modèle (fichier de langue « monsters ») et niveau.</summary>
 public sealed record GroupMonster(int Id, int Level);
 
+/// <summary>
+/// Alerte du joueur : prévenir (son et bulle) quand un groupe de la map contient au moins MinCount monstres de ce type,
+/// de niveau MinLevel à MaxLevel (ex. 3 Craqueleurs des plaines de niveau 49 au plus).
+/// </summary>
+public sealed class MonsterAlert
+{
+    public int MonsterId { get; set; }
+    public int MinCount { get; set; } = 1;
+    public int MinLevel { get; set; } = 1;
+    public int MaxLevel { get; set; } = 9999;
+    public bool Enabled { get; set; } = true;
+}
+
 /// <summary>Groupe de monstres présent sur la map. Bonus : étoiles du groupe, en % d'XP et de drop.</summary>
 public sealed record MapGroup(long SpriteId, int Bonus, List<GroupMonster> Monsters, DateTime SeenAt);
 
@@ -113,6 +126,8 @@ sealed class HuntData
     public bool SoundAlert { get; set; } = true;
     /// <summary>Volume de l'alerte archi-monstre, de 0 à 100.</summary>
     public int SoundVolume { get; set; } = 70;
+    public bool ArchiPopup { get; set; } = true;
+    public List<MonsterAlert> Alerts { get; set; } = new();
     /// <summary>Sorts connus par personnage (nom -> sorts), pour l'Économe même si l'appli démarre en jeu.</summary>
     public Dictionary<string, List<int>> Spells { get; set; } = new();
     /// <summary>Classe et sexe par personnage (nom -> apparence), pour son icône même si l'appli démarre en jeu.</summary>
@@ -167,6 +182,18 @@ public sealed class HuntTracker
         set { _store.SoundAlert = value; Save(); }
     }
 
+    /// <summary>Pop-up au premier plan quand un archi-monstre apparaît sur la map.</summary>
+    public bool ArchiPopup
+    {
+        get => _store.ArchiPopup;
+        set { _store.ArchiPopup = value; Save(); }
+    }
+
+    /// <summary>Alertes monstres du joueur (monstre, nombre minimum, niveaux).</summary>
+    public List<MonsterAlert> Alerts => _store.Alerts;
+
+    public void SaveAlerts() => Save();
+
     public int SoundVolume
     {
         get => _store.SoundVolume;
@@ -175,6 +202,8 @@ public sealed class HuntTracker
 
     public event Action? Changed;
     public event Action<ArchiSighting>? ArchiSpotted;
+    /// <summary>Un groupe de la map répond à une alerte monstre du joueur (personnage qui le voit, alerte, nombre trouvé).</summary>
+    public event Action<HuntCharacter, MonsterAlert, int>? AlertMatched;
     public event Action<string>? Log;
     /// <summary>
     /// Évènement à notifier (onglet Switcheur) : personnage de la connexion, type, et nom du personnage concerné quand le
@@ -315,9 +344,25 @@ public sealed class HuntTracker
             bool known = c.Groups.ContainsKey(id);
             c.Groups[id] = new MapGroup(id, int.TryParse(f[2], out var bonus) ? bonus : 0, monsters, DateTime.Now);
             changed = true;
-            if (!known) CheckArchis(c.MapId, monsters);
+            if (!known) { CheckArchis(c.MapId, monsters); CheckAlerts(c, monsters); }
         }
         if (changed) Changed?.Invoke();
+    }
+
+    /// <summary>Dernière alerte par map et par règle : plusieurs fenêtres sur la même map, ou un groupe revu, ne sonnent qu'une fois.</summary>
+    readonly Dictionary<(string Map, MonsterAlert Alert), DateTime> _alerted = new();
+
+    void CheckAlerts(HuntCharacter c, List<GroupMonster> monsters)
+    {
+        var now = DateTime.Now;
+        foreach (var alert in _store.Alerts.Where(a => a.Enabled))
+        {
+            int count = monsters.Count(m => m.Id == alert.MonsterId && m.Level >= alert.MinLevel && m.Level <= alert.MaxLevel);
+            if (count < Math.Max(1, alert.MinCount)) continue;
+            if (_alerted.TryGetValue((c.MapId, alert), out var last) && now - last < ArchiRepeat) continue;
+            _alerted[(c.MapId, alert)] = now;
+            AlertMatched?.Invoke(c, alert, count);
+        }
     }
 
     void CheckArchis(string mapId, List<GroupMonster> monsters)

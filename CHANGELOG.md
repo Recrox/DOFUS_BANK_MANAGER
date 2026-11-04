@@ -2,6 +2,13 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.40.0 — 4 novembre 2026
+
+- **Combat** : nouvelle liste « Drops de la session » : les objets obtenus, leur quantité, leur prix et le total ; un clic sur un combat n’affiche que ses drops.
+- **Combat** : option « Pop-up archi-monstre » : une bulle au premier plan dès qu’un archi-monstre apparaît sur la map, avec le prix de sa pierre.
+- **Combat** : nouvelles « Alertes monstres » : choisissez un monstre, un nombre minimum dans le groupe et des niveaux (ex. 3 Craqueleurs des plaines de niveau 49 au plus) ; un son différent de celui des archi-monstres vous prévient dès qu’un groupe de la map y répond.
+- **Arène** : choisissez les personnages comptés, tous ou un groupe que vous créez (ex. vos 8 comptes principaux), pour qu’un autre compte ne fausse pas le chronomètre.
+
 ## 1.39.0 — 4 novembre 2026
 
 - **Switcheur** : option « Agrandir la fenêtre au démarrage de Dofus » : chaque nouvelle fenêtre du jeu est agrandie dès qu’elle s’ouvre.

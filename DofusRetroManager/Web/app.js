@@ -29,7 +29,8 @@ const TABS = [
     'OcreDetailSub', 'OcreSouls'] },
   { key: 'combat', label: 'Combat', watch: ['HuntCharacterBox', 'HuntLevel', 'HuntGroupLevel', 'HuntWisdom', 'HuntProspection',
     'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
-    'HuntSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid'] },
+    'HuntSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid', 'HuntDropsTitle', 'HuntDropGrid', 'HuntArchiPopup',
+    'HuntAlertsToggle', 'HuntAlertMonster', 'HuntAlertCount', 'HuntAlertMin', 'HuntAlertMax', 'HuntAlertStatus', 'HuntAlertList'] },
   { key: 'windows', label: 'Switcheur', watch: ['OrganizerEnabled', 'HotkeyDebounce', 'NotifyAutoSwitchTurn', 'OrganizerSplitMode', 'OrganizerMaximize', 'OrganizerLockOrder', 'HotkeyNext', 'HotkeyPrevious', 'HotkeyMain', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
     'NotifyExchange', 'NotifyParty', 'NotifyToast', 'NotifyFlash', 'NotifySound', 'NotifyAutoSwitch', 'OrganizerCount', 'OrganizerGrid', 'OverlayEnabled', 'OverlayEconome', 'OverlayGroups', 'OverlayHarvest',
     'OverlayRotation', 'OverlayOpacity', 'OverlayOpacityText', 'OverlayMove', 'OrganizerSaveOrder', 'OrganizerResetOrder',
@@ -37,7 +38,7 @@ const TABS = [
   { key: 'fm', label: 'FM', watch: ['FmItemCombo', 'FmItemName', 'FmReliquat', 'FmReliquatInput', 'FmStats',
     'FmHistoryGrid', 'FmEmpty', 'FmWeights', 'FmWeightsPanel', 'FmWeightsGrid'] },
   { key: 'arene', label: 'Arène', watch: ['ChronoTime', 'ChronoStart', 'ChronoReset', 'ChronoFights', 'ChronoGains',
-    'ChronoRate', 'ChronoGrid', 'AreneChallenges', 'AreneOtherChallenges'] },
+    'ChronoRate', 'ChronoGrid', 'AreneChallenges', 'AreneOtherChallenges', 'AreneGroup', 'AreneGroupEdit', 'AreneGroupName', 'AreneGroupStatus', 'AreneGroupMembers'] },
   { key: 'carte', label: 'Carte', watch: ['CarteHarvestTitle', 'CarteHarvest'] },
   { key: 'journal', label: 'Journal', watch: ['LogBox', 'LogPacketsBox'] },
 ];
@@ -310,7 +311,15 @@ const views = {
           style="--p:${S.HuntVolume?.val ?? 70}%"><span class="muted">${esc(T('HuntVolumeText'))}</span></label>
         <button class="small" data-act="click" data-name="HuntTestSound">Tester le son</button>
         <button class="small" data-act="click" data-name="HuntNewSession">Nouvelle session</button>
+        ${check('HuntArchiPopup', 'Pop-up archi')}${check('HuntAlertsToggle', S.HuntAlertsToggle?.t || 'Alertes monstres')}
       </div>
+      ${S.HuntAlertsToggle?.on ? `<div class="glass card"><div class="filters"><span class="lbl">Monstre</span>${input('HuntAlertMonster', 'Craqueleur des plaines', '200px')}
+          <span class="lbl">Au moins</span>${input('HuntAlertCount', '', '50px')}<span class="lbl">dans le groupe, niveau</span>${input('HuntAlertMin', '', '56px')}
+          <span class="lbl">à</span>${input('HuntAlertMax', '', '56px')}<button class="small primary" data-act="click" data-name="HuntAlertAdd">Ajouter l'alerte</button>
+          <button class="small" data-act="click" data-name="HuntAlertTest">Tester le son</button><span class="muted">${esc(T('HuntAlertStatus'))}</span></div>
+        <div class="filters">${rows('HuntAlertList').map((a, i) => `<span class="chip ${a.Enabled ? 'on' : 'dim'}">
+          <a class="item-link" ${attrs({ act: 'row', grid: 'HuntAlertList', i, handler: 'HuntAlertToggle_Click' })} title="Activer ou couper cette alerte">${a.Enabled ? '🔔' : '🔕'}</a>
+          ${esc(a.Text)} <a class="item-link" ${attrs({ act: 'row', grid: 'HuntAlertList', i, handler: 'HuntAlertDelete_Click' })} title="Supprimer">✕</a></span>`).join('') || '<span class="muted">Aucune alerte.</span>'}</div></div>` : ''}
       ${T('HuntStatus') ? `<div class="alert">${esc(T('HuntStatus'))}</div>` : ''}
       <div class="split wide">
         <div class="stack">
@@ -353,7 +362,16 @@ const views = {
               { h: 'Monstres', k: 'Monsters', f: r => `<span class="ellipsis" title="${esc(r.Drops)}">${esc(r.Monsters)}</span>` },
               { h: 'XP', k: 'Xp', num: true, f: r => fmt(r.Xp) },
               { h: 'Kamas', k: 'Kamas', num: true, f: r => `<span class="acc">${fmt(r.Kamas)}</span>` },
-            ], { select: false, empty: 'Aucun combat sur cette session.' })}</div>
+              { h: 'Drops', k: 'DropValue', num: true, f: r => `<span title="${esc(r.Drops)}">${fmt(r.DropValue)}</span>` },
+            ], { empty: 'Aucun combat sur cette session.' })}</div>
+          <div class="mini"><p class="section-title">${esc(T('HuntDropsTitle'))}</p>
+            ${table('HuntDropGrid', [
+              { h: '', f: r => itemImg(r.ItemId, 'sm') },
+              { h: 'Objet', k: 'Name', f: r => `<span class="strong">${esc(r.Name)}</span>` },
+              { h: 'Qté', k: 'Quantity', num: true, f: r => fmt(r.Quantity) },
+              { h: 'Prix /u', k: 'Unit', num: true, f: r => fmt(r.Unit) },
+              { h: 'Total', k: 'Total', num: true, f: r => `<span class="acc strong">${fmt(r.Total)}</span>` },
+            ], { select: false, empty: 'Aucun objet obtenu.' })}</div>
         </div>
       </div>`;
   },
@@ -574,9 +592,13 @@ Object.assign(views, {
     return `<div class="card chrono">
         <div class="chrono-clock"><span class="lbl">Chronomètre</span><div class="time acc">${esc(T('ChronoTime'))}</div>
           <div class="filters">${btn('ChronoStart', '▶ Démarrer', 'primary')}${btn('ChronoReset', 'Remettre à zéro')}</div></div>
-        <div class="chrono-stats"><div class="strong">${esc(T('ChronoFights'))}</div><div class="strong acc">${esc(T('ChronoGains'))}</div>
+        <div class="chrono-stats"><div class="filters"><span class="lbl">Personnages comptés</span>${select('AreneGroup')}${check('AreneGroupEdit', 'Gérer les groupes')}</div>
+          ${S.AreneGroupEdit?.on ? `<div class="card"><div class="filters"><span class="lbl">Nom du groupe</span>${input('AreneGroupName', 'Groupe principal', '180px')}
+            <button class="small primary" data-act="click" data-name="AreneGroupSave">Enregistrer le groupe</button>
+            <button class="small" data-act="click" data-name="AreneGroupDelete">Supprimer</button><span class="muted">${esc(T('AreneGroupStatus'))}</span></div>
+            <div class="filters">${(S.AreneGroupMembers?.items || []).map((m, i) => `<button class="pill ${m.on ? 'on' : ''}" data-act="toggle" data-name="AreneGroupMembers" data-i="${i}">${esc(m.t)}</button>`).join('') || '<span class="muted">Aucun personnage connu.</span>'}</div></div>` : ''}<div class="strong">${esc(T('ChronoFights'))}</div><div class="strong acc">${esc(T('ChronoGains'))}</div>
           <div class="muted">${esc(T('ChronoRate'))}</div>
-          <div class="muted small">Compte les fins de combat de tous vos personnages pendant que le chronomètre tourne (un combat à plusieurs personnages compte une fois). Gains : kamas + drops au prix HDV (sinon prix marchand).</div></div>
+          <div class="muted small">Compte les fins de combat de vos personnages (tous, ou ceux du groupe choisi) pendant que le chronomètre tourne (un combat à plusieurs personnages compte une fois). Gains : kamas + drops au prix HDV (sinon prix marchand).</div></div>
       </div>
       <div class="split wide">
         ${table('ChronoGrid', [

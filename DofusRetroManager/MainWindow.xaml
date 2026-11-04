@@ -1378,6 +1378,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
@@ -1413,12 +1414,57 @@
                         <Button x:Name="HuntTestSound" Content="Tester le son" Click="HuntTestSound_Click" Margin="8,0,0,0" Padding="10,3"/>
                         <Button x:Name="HuntNewSession" Content="Nouvelle session" Click="HuntNewSession_Click" Margin="8,0,0,0" Padding="10,3"
                                 ToolTip="Remet à zéro le calcul de rentabilité (les combats restent dans l'historique et servent aux estimations)"/>
+                        <CheckBox x:Name="HuntArchiPopup" Content="Pop-up archi-monstre" VerticalAlignment="Center" Margin="14,0,0,0"
+                                  Checked="HuntArchiPopup_Changed" Unchecked="HuntArchiPopup_Changed"
+                                  ToolTip="Une bulle au premier plan dès qu'un archi-monstre apparaît sur la map (un clic affiche la fenêtre du personnage)"/>
+                        <ToggleButton x:Name="HuntAlertsToggle" Content="Alertes monstres" Margin="8,0,0,0" Padding="10,3"
+                                      Checked="HuntAlertsToggle_Changed" Unchecked="HuntAlertsToggle_Changed"
+                                      ToolTip="Être prévenu (son différent de l'archi, et bulle) quand un groupe de la map contient un monstre précis, à un niveau précis"/>
                         <TextBlock x:Name="HuntStatus" VerticalAlignment="Center" Margin="14,0,0,0" FontWeight="Bold"
                                    Foreground="{DynamicResource Missing}"/>
                     </WrapPanel>
 
+                    <!-- Alertes monstres : monstre, nombre minimum dans le groupe, niveaux -->
+                    <Border x:Name="HuntAlertsPanel" Grid.Row="1" Grid.ColumnSpan="2" Margin="0,0,0,10" Padding="12,8" Visibility="Collapsed"
+                            Background="{DynamicResource Surface2}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                            CornerRadius="{DynamicResource RadiusLg}">
+                        <StackPanel>
+                            <WrapPanel>
+                                <TextBlock Text="Monstre" Style="{StaticResource Label}" Margin="0,0,6,0"/>
+                                <TextBox x:Name="HuntAlertMonster" Width="200" ToolTip="Nom du monstre, ex. Craqueleur des plaines"/>
+                                <TextBlock Text="Au moins" Style="{StaticResource Label}"/>
+                                <TextBox x:Name="HuntAlertCount" Width="40" Text="1" HorizontalContentAlignment="Center"/>
+                                <TextBlock Text="dans le groupe, niveau" Style="{StaticResource Label}"/>
+                                <TextBox x:Name="HuntAlertMin" Width="44" Text="1" HorizontalContentAlignment="Center"/>
+                                <TextBlock Text="à" Style="{StaticResource Label}"/>
+                                <TextBox x:Name="HuntAlertMax" Width="44" Text="200" HorizontalContentAlignment="Center"/>
+                                <Button x:Name="HuntAlertAdd" Content="Ajouter l'alerte" Click="HuntAlertAdd_Click" Margin="10,0,0,0" Padding="10,3"/>
+                                <Button x:Name="HuntAlertTest" Content="Tester le son" Click="HuntAlertTest_Click" Margin="8,0,0,0" Padding="10,3"/>
+                                <TextBlock x:Name="HuntAlertStatus" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource TextMuted}"/>
+                            </WrapPanel>
+                            <ItemsControl x:Name="HuntAlertList" Margin="0,8,0,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                                                CornerRadius="{DynamicResource RadiusSm}" Padding="8,3" Margin="0,0,6,6">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox IsChecked="{Binding Enabled, Mode=OneWay}" Click="HuntAlertToggle_Click" VerticalAlignment="Center"
+                                                          ToolTip="Activer ou couper cette alerte"/>
+                                                <TextBlock Text="{Binding Text}" Margin="6,0,8,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                <Button Content="✕" Click="HuntAlertDelete_Click" Padding="6,0" ToolTip="Supprimer cette alerte"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
                     <!-- Gauche : la map, puis la rentabilité -->
-                    <Grid Grid.Row="1">
+                    <Grid Grid.Row="2">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
@@ -1659,8 +1705,10 @@
                     </Grid>
 
                     <!-- Droite : archi-monstres aperçus et derniers combats -->
-                    <Grid Grid.Row="1" Grid.Column="1" Margin="10,0,0,0">
+                    <Grid Grid.Row="2" Grid.Column="1" Margin="10,0,0,0">
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
@@ -1699,7 +1747,7 @@
                         </DataGrid>
                         <TextBlock Grid.Row="2" Text="Combats de la session" FontWeight="Bold" Foreground="{DynamicResource AccentSolid}"
                                    Margin="0,12,0,6"/>
-                        <DataGrid x:Name="HuntFightGrid" Grid.Row="3">
+                        <DataGrid x:Name="HuntFightGrid" Grid.Row="3" SelectionChanged="HuntFightGrid_SelectionChanged">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Heure" Binding="{Binding Time}" Width="62" SortMemberPath="TimeSort"/>
                                 <DataGridTextColumn Header="Monstres" Binding="{Binding Monsters}" Width="*" MinWidth="120">
@@ -1712,7 +1760,45 @@
                                 </DataGridTextColumn>
                                 <DataGridTextColumn Header="XP" Binding="{Binding Xp, StringFormat={}{0:N0}}" Width="80"/>
                                 <DataGridTextColumn Header="Kamas" Binding="{Binding Kamas, StringFormat={}{0:N0}}" Width="72"/>
-                                <DataGridTextColumn Header="Drops" Binding="{Binding DropValue, StringFormat={}{0:N0}}" Width="80"/>
+                                <DataGridTextColumn Header="Drops" Binding="{Binding DropValue, StringFormat={}{0:N0}}" Width="80">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding Drops}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock x:Name="HuntDropsTitle" Grid.Row="4" Text="Drops de la session" FontWeight="Bold" Foreground="{DynamicResource AccentSolid}"
+                                   Margin="0,12,0,6"/>
+                        <DataGrid x:Name="HuntDropGrid" Grid.Row="5">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="34" CanUserSort="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Image Source="{Binding ItemId, Converter={StaticResource Icon}}" Width="24" Height="24"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Objet" Binding="{Binding Name}" Width="*" MinWidth="120">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            <Setter Property="ToolTip" Value="{Binding Name}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Qté" Binding="{Binding Quantity, StringFormat={}{0:N0}}" Width="56"/>
+                                <DataGridTextColumn Header="Prix /u" Binding="{Binding Unit, StringFormat={}{0:N0}}" Width="72"/>
+                                <DataGridTextColumn Header="Total" Binding="{Binding Total, StringFormat={}{0:N0}}" Width="84">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentSolid}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                     </Grid>
@@ -2121,12 +2207,36 @@
                                 </StackPanel>
                             </StackPanel>
                             <StackPanel VerticalAlignment="Center">
+                                <!-- Personnages comptés : tous, ou un groupe enregistré (ex. les 8 comptes du groupe principal) -->
+                                <WrapPanel Margin="0,0,0,8">
+                                    <TextBlock Text="Personnages comptés" Style="{StaticResource Label}" Margin="0,0,8,0"/>
+                                    <ComboBox x:Name="AreneGroup" Width="220" SelectionChanged="AreneGroup_Changed"
+                                              ToolTip="Seuls les combats de ces personnages sont comptés (et leurs challenges affichés)"/>
+                                    <ToggleButton x:Name="AreneGroupEdit" Content="Gérer les groupes" Margin="8,0,0,0" Padding="10,3"
+                                                  Checked="AreneGroupEdit_Changed" Unchecked="AreneGroupEdit_Changed"/>
+                                </WrapPanel>
+                                <Border x:Name="AreneGroupPanel" Visibility="Collapsed" Margin="0,0,0,10" Padding="10,8"
+                                        Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                                        CornerRadius="{DynamicResource RadiusMd}">
+                                    <StackPanel>
+                                        <WrapPanel>
+                                            <TextBlock Text="Nom du groupe" Style="{StaticResource Label}" Margin="0,0,8,0"/>
+                                            <TextBox x:Name="AreneGroupName" Width="180"/>
+                                            <Button x:Name="AreneGroupSave" Content="Enregistrer le groupe" Click="AreneGroupSave_Click" Margin="8,0,0,0" Padding="10,3"/>
+                                            <Button x:Name="AreneGroupDelete" Content="Supprimer" Click="AreneGroupDelete_Click" Margin="6,0,0,0" Padding="10,3"
+                                                    ToolTip="Supprime le groupe sélectionné"/>
+                                            <TextBlock x:Name="AreneGroupStatus" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource TextMuted}"/>
+                                        </WrapPanel>
+                                        <TextBlock Text="Cochez les personnages du groupe :" Foreground="{DynamicResource TextMuted}" Margin="0,8,0,4"/>
+                                        <WrapPanel x:Name="AreneGroupMembers"/>
+                                    </StackPanel>
+                                </Border>
                                 <TextBlock x:Name="ChronoFights" FontSize="15" FontWeight="Bold" TextWrapping="Wrap"/>
                                 <TextBlock x:Name="ChronoGains" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource AccentSolid}"
                                            TextWrapping="Wrap" Margin="0,4,0,0"/>
                                 <TextBlock x:Name="ChronoRate" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                 <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"
-                                           Text="Compte les fins de combat de tous vos personnages pendant que le chronomètre tourne (un combat à plusieurs personnages compte une fois). Gains : kamas + drops au prix HDV (sinon prix marchand)."/>
+                                           Text="Compte les fins de combat de vos personnages (tous, ou ceux du groupe choisi) pendant que le chronomètre tourne (un combat à plusieurs personnages compte une fois). Gains : kamas + drops au prix HDV (sinon prix marchand)."/>
                             </StackPanel>
                         </DockPanel>
                     </Border>
