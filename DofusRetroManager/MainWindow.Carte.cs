@@ -56,7 +56,8 @@ public partial class MainWindow
         return image;
     }
 
-    static ImageSource? CarteIcon(MapHint h) => h.Category == GameData.HouseCategory ? HouseIcon : WorldMap.HintIcon(h.Gfx);
+    static ImageSource? CarteIcon(MapHint h) =>
+        h.Category == GameData.HouseCategory ? HouseIcon : IsResourceFilter(h.Category) ? ItemIcons.Get(h.Gfx) : WorldMap.HintIcon(h.Gfx);
 
     static Point CarteCenter(MapInfo m) =>
         new((m.X + 0.5) * WorldMap.CellWidth, (m.Y + 0.5) * WorldMap.CellHeight);
@@ -160,7 +161,7 @@ public partial class MainWindow
         if (_data == null || _carteSuperArea < 0) return;
         var search = CarteSearch.Text.Trim();
         // Une recherche porte sur toutes les catégories ; sans recherche, seules les catégories cochées s'affichent
-        var hints = _data.Hints.Where(h => h.Map.SuperArea == _carteSuperArea)
+        var hints = _data.Hints.Concat(_carteResourceHints).Where(h => h.Map.SuperArea == _carteSuperArea)
             .Where(h => search.Length > 0
                 ? Contains(h.Name, search) || Contains(h.Map.Area, search) || Contains(h.Map.SubArea, search)
                   || $"[{h.Map.X},{h.Map.Y}]".Contains(search.Replace(" ", ""))
@@ -168,7 +169,9 @@ public partial class MainWindow
             .ToList();
 
         string CategoryName(MapHint h) =>
-            CarteFilterOf(h) == ZaapFilter ? "Zaaps" : _data.HintCategories.GetValueOrDefault(h.Category, "Divers");
+            CarteFilterOf(h) == ZaapFilter ? "Zaaps"
+            : IsResourceFilter(h.Category) ? _data.Resources.GetValueOrDefault(h.Category - ResourceFilterBase)?.Name ?? "Ressource"
+            : _data.HintCategories.GetValueOrDefault(h.Category, "Divers");
 
         CarteMap.SetMarkers("hints", hints.Select(h =>
         {
@@ -206,7 +209,7 @@ public partial class MainWindow
         var text = $"[{x},{y}]";
         if (_carteCells.TryGetValue((x, y), out var m))
             text += $"  {m.Area}" + (m.SubArea.Length > 0 && m.SubArea != m.Area ? $" ({m.SubArea})" : "");
-        var here = _data?.Hints.Where(h => h.Map.SuperArea == _carteSuperArea && h.Map.X == x && h.Map.Y == y)
+        var here = _data?.Hints.Concat(_carteResourceHints).Where(h => h.Map.SuperArea == _carteSuperArea && h.Map.X == x && h.Map.Y == y)
             .Select(h => h.Name).Distinct().ToList();
         if (here is { Count: > 0 }) text += "  —  " + string.Join(", ", here.Take(4)) + (here.Count > 4 ? "…" : "");
         CarteHover.Text = text;

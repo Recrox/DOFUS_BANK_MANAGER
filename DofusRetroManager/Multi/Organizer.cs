@@ -42,6 +42,7 @@ public sealed class OrganizerSettings
     public bool OverlayEnabled { get; set; }
     public bool OverlayEconome { get; set; } = true;
     public bool OverlayGroups { get; set; } = true;
+    public bool OverlayHarvest { get; set; } = true;
     public bool OverlayRotation { get; set; } = true;
     public double OverlayOpacity { get; set; } = 0.92;
     public double? OverlayLeft { get; set; }

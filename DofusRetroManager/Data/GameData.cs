@@ -59,6 +59,19 @@ public sealed record MapInfo(int Id, int X, int Y, string Area, string SubArea, 
 /// </summary>
 public sealed record MapHint(string Name, int Category, int Gfx, MapInfo Map);
 
+/// <summary>Récolte d'une ressource par un métier : objet obtenu (compétence du fichier de langue « skills »).</summary>
+public sealed record HarvestSkill(int JobId, string Job, int ItemId);
+
+/// <summary>
+/// Ressource récoltable (objet interactif de type 1 du fichier de langue « interactiveobjects »), ex. « If » coupé par
+/// le bûcheron pour du Bois d'If. Une même ressource peut se récolter par plusieurs métiers (Lin : paysan et alchimiste).
+/// </summary>
+public sealed record HarvestResource(int Id, string Name, IReadOnlyList<HarvestSkill> Skills)
+{
+    /// <summary>Objet obtenu par le premier métier : sert d'icône.</summary>
+    public int ItemId => Skills.Count > 0 ? Skills[0].ItemId : 0;
+}
+
 public sealed record Recipe(int ResultId, IReadOnlyList<Ingredient> Ingredients, IReadOnlyList<string> Jobs);
 
 /// <summary>Effet d'objet. Characteristic est commune au bonus et au malus d'une même stat (ex. +Force / -Force).</summary>
@@ -72,9 +85,9 @@ public sealed class GameData
 {
     const string DefaultDataUrl = "https://dofusretro.cdn.ankama.com/static-data/612/";
     const string Lang = "fr";
-    static readonly string[] Files = ["items", "crafts", "skills", "jobs", "effects", "monsters", "maps", "spells", "monsterdrops", "hints", "dungeons", "fightChallenge", "houses"];
+    static readonly string[] Files = ["items", "crafts", "skills", "jobs", "effects", "monsters", "maps", "spells", "monsterdrops", "hints", "dungeons", "fightChallenge", "houses", "interactiveobjects"];
     /// <summary>Fichiers dont l'absence n'empêche pas de démarrer (ajoutés après coup, peut-être pas encore en cache).</summary>
-    static readonly string[] Optional = ["monsters", "maps", "spells", "monsterdrops", "hints", "dungeons", "fightChallenge", "houses"];
+    static readonly string[] Optional = ["monsters", "maps", "spells", "monsterdrops", "hints", "dungeons", "fightChallenge", "houses", "interactiveobjects"];
     /// <summary>Type d'objet « Objet de Quête » : ne tombe que pendant la quête.</summary>
     const int QuestItemType = 24;
 
@@ -111,6 +124,10 @@ public sealed class GameData
     public Dictionary<int, string> HintCategories { get; } = new();
     /// <summary>Catégorie ajoutée aux points d'intérêt pour les maisons (fichier de langue « houses » : porte de chaque maison).</summary>
     public const int HouseCategory = 100;
+    /// <summary>Ressources récoltables (arbres, minerais, céréales, poissons…) par identifiant d'objet interactif.</summary>
+    public Dictionary<int, HarvestResource> Resources { get; } = new();
+    /// <summary>Graphisme posé sur une case de map (calque d'objets 2) -> objet interactif (fichier « interactiveobjects »).</summary>
+    public Dictionary<int, int> InteractiveGfx { get; } = new();
     /// <summary>Noms des challenges de combat (fichier de langue « fightChallenge »), ex. 5 = Économe.</summary>
     public Dictionary<int, string> FightChallenges { get; } = new();
     /// <summary>Noms des sorts (fichier de langue « spells »).</summary>
@@ -340,6 +357,30 @@ public sealed class GameData
                             First(i.GetValueOrDefault("bc")), First(i.GetValueOrDefault("fc")), First(i.GetValueOrDefault("pc")));
                     }
                 }
+
+        // Ressources : IO.d[id] = { n: nom, t: type (1 = ressource) }, IO.g[graphisme] = id ;
+        // compétences de récolte : SK[id] = { io: objet interactif, j: métier, i: objet obtenu }
+        if (paths.TryGetValue("interactiveobjects", out var ioPath)
+            && Avm1.Run(await File.ReadAllBytesAsync(ioPath)).GetValueOrDefault("IO") is AsObject IO
+            && skills.GetValueOrDefault("SK") is AsObject harvestSkills)
+        {
+            var bySkill = harvestSkills.Values.OfType<AsObject>()
+                .Where(o => o.ContainsKey("i") && o.ContainsKey("io") && (int)Avm1.ToNum(o.GetValueOrDefault("j")) > 1)
+                .GroupBy(o => (int)Avm1.ToNum(o.GetValueOrDefault("io")))
+                .ToDictionary(g => g.Key, g => g.Select(o =>
+                {
+                    int job = (int)Avm1.ToNum(o.GetValueOrDefault("j"));
+                    return new HarvestSkill(job, jobNames.GetValueOrDefault(job, "?"), (int)Avm1.ToNum(o.GetValueOrDefault("i")));
+                }).DistinctBy(s => (s.JobId, s.ItemId)).ToList());
+            if (IO.GetValueOrDefault("d") is AsObject ioDefs)
+                foreach (var (k, v) in ioDefs)
+                    if (v is AsObject o && int.TryParse(k, out var ioId) && (int)Avm1.ToNum(o.GetValueOrDefault("t")) == 1
+                        && bySkill.TryGetValue(ioId, out var harvest))
+                        data.Resources[ioId] = new HarvestResource(ioId, Avm1.ToStr(o.GetValueOrDefault("n")).Trim(), harvest);
+            if (IO.GetValueOrDefault("g") is AsObject gfx)
+                foreach (var (k, v) in gfx)
+                    if (int.TryParse(k, out var g)) data.InteractiveGfx[g] = (int)Avm1.ToNum(v);
+        }
 
         LoadMonsterXp(data, log);
         data.JobNames.AddRange(data.Recipes.SelectMany(r => r.Jobs).Distinct().Order());

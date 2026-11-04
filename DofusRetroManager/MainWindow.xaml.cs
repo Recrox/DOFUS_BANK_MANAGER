@@ -530,6 +530,7 @@ public partial class MainWindow : Window
         InitTtg(_data);
         InitPda(_data);
         InitHunt(_data);
+        InitHarvest(_data);
         InitCarte(_data);
         InitArene();
         InitHdv(_data);
@@ -581,6 +582,7 @@ public partial class MainWindow : Window
             // Multi-compte : chasse et marchands sont suivis par fenêtre de jeu
             if (_hunt != null) _hunt.Stream = stream;
             if (_merchants != null) _merchants.Stream = stream;
+            if (_harvest != null) _harvest.Stream = stream;
             try { _tracker.Handle(msg); }
             catch (Exception ex) { AddLog($"Paquet ignoré ({ex.Message}) : {msg[..Math.Min(80, msg.Length)]}"); }
         });

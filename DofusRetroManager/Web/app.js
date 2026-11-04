@@ -29,14 +29,14 @@ const TABS = [
     'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
     'HuntSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid'] },
   { key: 'windows', label: 'Switcheur', watch: ['OrganizerEnabled', 'HotkeyDebounce', 'NotifyAutoSwitchTurn', 'OrganizerLockOrder', 'HotkeyNext', 'HotkeyPrevious', 'HotkeyMain', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
-    'NotifyExchange', 'NotifyParty', 'NotifyToast', 'NotifyFlash', 'NotifySound', 'NotifyAutoSwitch', 'OrganizerCount', 'OrganizerGrid', 'OverlayEnabled', 'OverlayEconome', 'OverlayGroups',
+    'NotifyExchange', 'NotifyParty', 'NotifyToast', 'NotifyFlash', 'NotifySound', 'NotifyAutoSwitch', 'OrganizerCount', 'OrganizerGrid', 'OverlayEnabled', 'OverlayEconome', 'OverlayGroups', 'OverlayHarvest',
     'OverlayRotation', 'OverlayOpacity', 'OverlayOpacityText', 'OverlayMove', 'OrganizerSaveOrder', 'OrganizerResetOrder',
     'OrganizerOrderStatus'] },
   { key: 'fm', label: 'FM', watch: ['FmItemCombo', 'FmItemName', 'FmReliquat', 'FmReliquatInput', 'FmStats',
     'FmHistoryGrid', 'FmEmpty', 'FmWeights', 'FmWeightsPanel', 'FmWeightsGrid'] },
   { key: 'arene', label: 'Arène', watch: ['ChronoTime', 'ChronoStart', 'ChronoReset', 'ChronoFights', 'ChronoGains',
     'ChronoRate', 'ChronoGrid', 'AreneChallenges', 'AreneOtherChallenges'] },
-  { key: 'carte', label: 'Carte', watch: [] },
+  { key: 'carte', label: 'Carte', watch: ['CarteHarvestTitle', 'CarteHarvest'] },
   { key: 'journal', label: 'Journal', watch: ['LogBox', 'LogPacketsBox'] },
 ];
 post({ type: 'watch', names: COMMON.concat(...TABS.map(t => t.watch || [])) });
@@ -511,7 +511,7 @@ Object.assign(views, {
           ${sw('OrganizerLockOrder', "Figer l'ordre en groupe", "L'ordre de jeu est enregistré à l'entrée en groupe.")}</section>
         <section class="card org-card"><h3><span class="ico">▣</span>Superposition en jeu</h3>
           ${sw('OverlayEnabled', 'Afficher au-dessus du jeu', 'Laisse passer les clics vers le jeu.')}
-          <div class="sub">Blocs</div><div class="togs">${pill('OverlayEconome', 'Économe')}${pill('OverlayGroups', 'Groupes de la map')}${pill('OverlayRotation', 'Ordre de jeu')}</div>
+          <div class="sub">Blocs</div><div class="togs">${pill('OverlayEconome', 'Économe')}${pill('OverlayGroups', 'Groupes de la map')}${pill('OverlayHarvest', 'Récolte')}${pill('OverlayRotation', 'Ordre de jeu')}</div>
           <label class="volume">Opacité<input type="range" data-set="OverlayOpacity" data-fk="OverlayOpacity" min="${S.OverlayOpacity?.min ?? 40}"
             max="${S.OverlayOpacity?.max ?? 100}" step="1" value="${opacity}" style="--p:${((opacity - 40) / 60 * 100).toFixed(0)}%">
             <span class="muted">${esc(T('OverlayOpacityText'))}</span></label>
@@ -573,8 +573,12 @@ Object.assign(views, {
     if (!D) return `<div class="empty">Chargement de la carte…</div>`;
     if (!carte.shown) carte.shown = new Set(D.shown);
     const list = carte.list = carteHints(D);
+    // Ressources des maps visitées : un métier, puis ses ressources (mêmes filtres que les catégories)
+    const R = S._carteRes || { jobs: [], hints: [], maps: 0 };
+    const resName = k => R.jobs.flatMap(j => j.res).find(r => r.k === k)?.n;
+    const job = R.jobs.find(j => j.n === carte.job);
     const groups = {};
-    list.forEach(h => { const n = D.cats.find(c => c.k === h.k)?.n || 'Divers'; groups[n] = (groups[n] || 0) + 1; });
+    list.forEach(h => { const n = D.cats.find(c => c.k === h.k)?.n || resName(h.k) || 'Divers'; groups[n] = (groups[n] || 0) + 1; });
     const counts = list.length ? Object.entries(groups).map(([n, c]) => `${n} (${c})`).join(' · ')
       : carte.search ? "Aucun point d'intérêt ne correspond à la recherche." : 'Cochez une catégorie pour afficher ses points.';
     return `<div class="filters">
@@ -586,10 +590,21 @@ Object.assign(views, {
         <button class="small" data-act="carte-me">Ma position</button>
         <button class="small" data-act="carte-fit">Vue d'ensemble</button>
       </div>
+      <div class="filters"><span class="lbl">Ressources</span>
+        <select data-carte="job" title="Métier dont les ressources sont proposées. Elles apparaissent sur les maps déjà visitées avec l'application lancée.">
+          <option value="">Aucune</option>${R.jobs.map(j => `<option ${j.n === carte.job ? 'selected' : ''}>${esc(j.n)}</option>`).join('')}</select>
+        ${(job?.res || []).map(r => {
+          const maps = R.hints.filter(h => h.k === r.k).length;
+          return `<button class="pill carte-cat ${carte.shown.has(r.k) ? 'on' : ''}" data-act="carte-cat" data-k="${r.k}"
+            title="${esc(r.t)} · ${maps ? `vue sur ${maps} map(s) visitée(s)` : 'pas encore vue sur une map visitée'}"><img src="${r.i}" alt="">${esc(r.n)}</button>`;
+        }).join('')}
+        <span class="muted">${R.maps > 0 ? `${R.maps} map(s) lue(s)` : 'aucune map lue pour l’instant'}</span>
+      </div>
       <div class="split wide">
         <div id="carte-host" class="carte-host"></div>
         <aside class="glass detail carte-side">
           <input type="search" data-carte="search" data-fk="carteSearch" value="${esc(carte.search)}" placeholder="Zaap, Temple Iop, Bouftou, [4,-18]…">
+          <div class="card harvest"><b>${esc(T('CarteHarvestTitle'))}</b><div class="muted">${esc(T('CarteHarvest'))}</div></div>
           <div class="muted">${esc(counts)}</div>
           <div class="carte-list">${list.slice(0, 400).map((h, i) => `<div class="carte-row ${carte.sel === h ? 'on' : ''}" data-act="carte-go" data-i="${i}">
             ${h.i ? `<img src="${h.i}" alt="">` : '<span></span>'}<div><b>${esc(h.n)}</b><small>${esc(h.l)}</small></div></div>`).join('')}
@@ -628,14 +643,14 @@ function recipeDetail(sel) {
 // --- Carte : vue persistante (les tuiles ne sont pas rechargées à chaque rendu), déplacée et zoomée à la souris ---
 // Une map occupe 40 × 23 ; une tuile du client (600 × 345) couvre 15 × 15 maps.
 const CW = 40, CH = 23, TW = 600, TH = 345;
-const carte = { el: null, built: null, sa: 0, s: 0.2, ox: 0, oy: 0, fitted: false, grid: true, search: '', shown: null,
+const carte = { el: null, built: null, sa: 0, s: 0.2, ox: 0, oy: 0, fitted: false, grid: true, search: '', shown: null, job: '',
   sel: null, list: [], bounds: null, drag: null };
 
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 function carteHints(D) {
   const q = norm(carte.search.trim());
-  return D.hints.filter(h => h.sa === carte.sa && (q
+  return D.hints.concat(S._carteRes?.hints || []).filter(h => h.sa === carte.sa && (q
     ? norm(h.n).includes(q) || norm(h.l).includes(q) || `[${h.x},${h.y}]`.includes(q.replace(/\s/g, ''))
     : carte.shown.has(h.k)))
     .sort((a, b) => a.k - b.k || a.n.localeCompare(b.n));
@@ -958,6 +973,7 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   const el = e.target;
   if (el.dataset?.carte === 'sa') { carte.sa = +el.value; carte.sel = null; schedule(); return; }
+  if (el.dataset?.carte === 'job') { carte.job = el.value; schedule(); return; }
   if (el.dataset?.carte === 'grid') { carte.grid = el.checked; carteView(); return; }
   if (el.dataset?.fmweight != null) { post({ type: 'fmweight', index: +el.dataset.fmweight, value: el.value }); return; }
   if (el.dataset?.stat != null && el.type === 'checkbox') { post({ type: 'stat', index: +el.dataset.stat, field: 'on', value: el.checked }); return; }

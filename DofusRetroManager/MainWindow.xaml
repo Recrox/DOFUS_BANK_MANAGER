@@ -1664,6 +1664,8 @@
                                           ToolTip="Affiche les infos utiles au-dessus du jeu, seulement quand une fenêtre de jeu est au premier plan. Les clics passent au jeu."/>
                                 <CheckBox x:Name="OverlayEconome" Content="Économe" Margin="0,0,14,0" Checked="OverlayOption_Changed" Unchecked="OverlayOption_Changed"/>
                                 <CheckBox x:Name="OverlayGroups" Content="Groupes de la map" Margin="0,0,14,0" Checked="OverlayOption_Changed" Unchecked="OverlayOption_Changed"/>
+                                <CheckBox x:Name="OverlayHarvest" Content="Récolte" Margin="0,0,14,0" Checked="OverlayOption_Changed" Unchecked="OverlayOption_Changed"
+                                          ToolTip="Ressources de la map : disponibles, récoltées et repousse estimée"/>
                                 <CheckBox x:Name="OverlayRotation" Content="Ordre de jeu" Margin="0,0,14,0" Checked="OverlayOption_Changed" Unchecked="OverlayOption_Changed"/>
                                 <TextBlock Text="Opacité" Style="{StaticResource Label}" Margin="4,0,8,0"/>
                                 <Slider x:Name="OverlayOpacity" Width="100" Minimum="40" Maximum="100" Value="92" VerticalAlignment="Center"
@@ -2099,6 +2101,14 @@
                         <Button Content="Vue d'ensemble" Click="CarteFit_Click" Margin="0,0,6,4"/>
                         <Button Content="+" Width="32" Click="CarteZoomIn_Click" Margin="0,0,4,4" ToolTip="Zoomer (ou molette)"/>
                         <Button Content="−" Width="32" Click="CarteZoomOut_Click" Margin="0,0,0,4" ToolTip="Dézoomer (ou molette)"/>
+                        <!-- Ressources des maps visitées : un métier, puis les ressources à afficher -->
+                        <WrapPanel Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=WrapPanel}}">
+                            <TextBlock Text="Ressources" Style="{StaticResource Label}" Margin="0,0,8,4"/>
+                            <ComboBox x:Name="CarteJob" Width="170" Margin="0,0,8,4" SelectionChanged="CarteJob_Changed"
+                                      ToolTip="Métier dont les ressources sont proposées. Les ressources apparaissent sur les maps déjà visitées avec l'application lancée."/>
+                            <WrapPanel x:Name="CarteResourceFilters"/>
+                            <TextBlock x:Name="CarteResourceInfo" VerticalAlignment="Center" Margin="6,0,0,4" Foreground="{DynamicResource TextMuted}"/>
+                        </WrapPanel>
                     </WrapPanel>
 
                     <Border Grid.Row="1" BorderBrush="{DynamicResource Border}" BorderThickness="1"
@@ -2121,6 +2131,13 @@
                         <DockPanel>
                             <TextBox x:Name="CarteSearch" DockPanel.Dock="Top" TextChanged="CarteSearch_Changed"
                                      ToolTip="Nom (Zaap, Temple Iop, Donjon Bouftou…), zone ou coordonnées [x,y]. Cherche dans toutes les catégories."/>
+                            <Border DockPanel.Dock="Top" Margin="0,8,0,0" Padding="8,6" Background="{DynamicResource Surface}"
+                                    BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="{DynamicResource RadiusSm}">
+                                <StackPanel>
+                                    <TextBlock x:Name="CarteHarvestTitle" FontWeight="SemiBold" Text="Récolte sur la map"/>
+                                    <TextBlock x:Name="CarteHarvest" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Border>
                             <TextBlock x:Name="CarteCount" DockPanel.Dock="Top" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,8,0,8"/>
                             <TextBlock DockPanel.Dock="Bottom" FontSize="11" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,8,0,0"
                                        Text="Carte et icônes lues dans le client Dofus Retro installé. Glissez pour déplacer, molette pour zoomer."/>

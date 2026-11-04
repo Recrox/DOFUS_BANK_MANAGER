@@ -100,6 +100,18 @@
                 </ItemsControl>
             </StackPanel>
 
+            <!-- Récolte : ressources de la map, disponibles et récoltées -->
+            <StackPanel Visibility="{Binding ShowHarvest, Converter={StaticResource Visible}}">
+                <TextBlock Text="{Binding HarvestTitle}" Style="{StaticResource Section}"/>
+                <ItemsControl ItemsSource="{Binding Harvest}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,0,0,2"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
             <!-- Ordre de jeu (onglet Switcheur) -->
             <StackPanel Visibility="{Binding ShowRotation, Converter={StaticResource Visible}}">
                 <TextBlock Text="Ordre de jeu" Style="{StaticResource Section}"/>

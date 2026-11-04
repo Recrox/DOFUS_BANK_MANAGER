@@ -103,6 +103,10 @@ public sealed class DofusTracker
 
     /// <summary>Nouvelle map (identifiant).</summary>
     public event Action<string>? MapChanged;
+    /// <summary>Nouvelle map, avec la version de son fichier et sa clé de lecture : « id|date|clé » (onglet Récolte).</summary>
+    public event Action<string>? MapLoaded;
+    /// <summary>État des ressources de la map (message GDF sans le préfixe : « case;état;interactif|… »).</summary>
+    public event Action<string>? MapResourceStates;
     /// <summary>Sprites ajoutés/retirés de la map (message GM sans le préfixe).</summary>
     public event Action<string>? MapSprites;
     /// <summary>Caractéristiques du personnage (message As sans le préfixe).</summary>
@@ -187,7 +191,13 @@ public sealed class DofusTracker
         else if (InCraft && msg.StartsWith("Im"))
             foreach (var code in InfoCodes(msg)) CraftInfo?.Invoke(code);
         // Chasse
-        else if (msg.StartsWith("GDM|")) MapChanged?.Invoke(msg.Split('|')[1]);
+        else if (msg.StartsWith("GDM|"))
+        {
+            MapChanged?.Invoke(msg.Split('|')[1]);
+            MapLoaded?.Invoke(msg[4..]);
+        }
+        // Récolte : état des ressources de la map (cases et états seulement)
+        else if (msg.StartsWith("GDF|")) MapResourceStates?.Invoke(msg[4..]);
         else if (msg.StartsWith("GM|")) MapSprites?.Invoke(msg[3..]);
         else if (msg.StartsWith("As") && !msg.StartsWith("ASK")) CharacterStats?.Invoke(msg[2..]);
         else if (msg.StartsWith("GE") && msg.Length > 2 && char.IsDigit(msg[2])) FightEnded?.Invoke(msg[2..]);

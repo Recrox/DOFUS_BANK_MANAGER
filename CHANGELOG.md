@@ -2,6 +2,12 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.36.0 — 4 novembre 2026
+
+- **Carte** : nouvelles **ressources** : choisissez un métier (Bûcheron, Pêcheur…) puis cochez les ressources voulues, avec leur icône, pour les voir sur la carte avec leur nombre par map. Seules les maps que vous avez visitées avec l’application lancée sont connues : la carte se complète au fil de vos déplacements.
+- **Carte** : un bloc « Récolte sur la map » liste les ressources de votre map, disponibles et récoltées (« Petits poissons (mer) ×4 »), avec une estimation de leur réapparition, apprise en les voyant repousser.
+- **Switcheur** : nouveau bloc « Récolte » dans la superposition en jeu, avec les ressources de la map de la fenêtre au premier plan.
+
 ## 1.35.0 — 4 novembre 2026
 
 - **PDA** : dans « Mes pierres », une liste « Personnage » choisit de qui afficher les pierres (banque et inventaire), ou de tous vos personnages. Les personnages qui ne sont pas connectés sont repris de leur dernière banque connue ; une banque commune à plusieurs personnages d’un même compte n’est comptée qu’une fois.

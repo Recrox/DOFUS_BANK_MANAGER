@@ -21,6 +21,7 @@ public partial class MainWindow
         OverlayEnabled.IsChecked = _organizer.OverlayEnabled;
         OverlayEconome.IsChecked = _organizer.OverlayEconome;
         OverlayGroups.IsChecked = _organizer.OverlayGroups;
+        OverlayHarvest.IsChecked = _organizer.OverlayHarvest;
         OverlayRotation.IsChecked = _organizer.OverlayRotation;
         OverlayOpacity.Value = _organizer.OverlayOpacity * 100;
         _organizerLoading = false;
@@ -35,6 +36,7 @@ public partial class MainWindow
         _organizer.OverlayEnabled = OverlayEnabled.IsChecked == true;
         _organizer.OverlayEconome = OverlayEconome.IsChecked == true;
         _organizer.OverlayGroups = OverlayGroups.IsChecked == true;
+        _organizer.OverlayHarvest = OverlayHarvest.IsChecked == true;
         _organizer.OverlayRotation = OverlayRotation.IsChecked == true;
         _organizer.Save();
         // Superposition désactivée : on ressort du mode déplacement
@@ -138,6 +140,7 @@ public partial class MainWindow
                 c?.Initiative?.ToString("N0") ?? "?", w.Handle == fg, c?.LifePercent, Data.CharacterIcons.Get(LookOf(w)));
         }).ToList();
 
+        var harvest = HarvestLinesOf(me);
         static string N(int? v) => v?.ToString("N0") ?? "?";
         EnsureOverlay().Show(new OverlayModel(
             me?.Label ?? "Aucun personnage suivi",
@@ -147,6 +150,9 @@ public partial class MainWindow
             allGroups.Count == 0 ? "Map · aucun groupe" : $"Map · {allGroups.Count} groupe(s)" + (allGroups.Count > 3 ? " (3 plus forts)" : ""),
             groups, rotation,
             _organizer.OverlayEconome && spells.Count > 0, _organizer.OverlayGroups, _organizer.OverlayRotation && rotation.Count > 1,
-            Data.CharacterIcons.Get(_hunt?.LookOf(me?.Name ?? ""))));
+            Data.CharacterIcons.Get(_hunt?.LookOf(me?.Name ?? "")),
+            harvest.Count == 0 ? "Récolte · aucune ressource" : $"Récolte · {harvest.Sum(l => l.Available)} disponible(s)",
+            harvest.Select(Harvest.HarvestTracker.Describe).ToList(),
+            _organizer.OverlayHarvest && me != null && _harvest?.MapOf(me.Stream) != null));
     }
 }
