@@ -177,7 +177,36 @@ public sealed class DofusTracker
         }
     }
 
-    public void Handle(string msg)
+    // --- Multi-compte : chaque fenêtre de jeu (connexion) a son personnage, sa banque, son inventaire et son échange ---
+
+    /// <summary>Personnage de chaque connexion, appris par ASK (même objet que State quand c'est le personnage suivi).</summary>
+    readonly Dictionary<string, Snapshot> _byStream = new();
+    readonly Dictionary<string, int> _exchanges = new();
+    string _stream = "";
+
+    /// <summary>
+    /// Personnage de la connexion du message en cours : c'est lui que modifient les messages de banque et d'inventaire.
+    /// Connexion inconnue (application lancée après la connexion) : le personnage suivi, comme avant.
+    /// </summary>
+    Snapshot Cur => _byStream.TryGetValue(_stream, out var s) ? s : State;
+
+    /// <summary>Message reçu sur une connexion : il ne touche que le personnage de cette fenêtre de jeu.</summary>
+    public void Handle(string stream, string msg)
+    {
+        _stream = stream;
+        _exchangeType = _exchanges.GetValueOrDefault(stream, -1);
+        try { Handle(msg); }
+        finally { _exchanges[stream] = _exchangeType; }
+    }
+
+    /// <summary>Connexion fermée : son personnage n'est plus en jeu (il reste dans les banques sauvegardées).</summary>
+    public void OnStreamClosed(string stream)
+    {
+        _byStream.Remove(stream);
+        _exchanges.Remove(stream);
+    }
+
+    void Handle(string msg)
     {
         if (msg.StartsWith("ASK|")) OnCharacter(msg);
         else if (msg.StartsWith("ECK")) OnExchangeCreate(msg);
@@ -239,19 +268,19 @@ public sealed class DofusTracker
         if (p.Length >= 4 && int.TryParse(p[1], out var qty) && int.TryParse(p[2], out var tpl))
         {
             var item = new OwnedItem(tpl, qty, p[3]);
-            if (State.Inventory.ContainsKey(uid)) UpdateItem(uid, item);
+            if (Cur.Inventory.ContainsKey(uid)) UpdateItem(uid, item);
             else if (item.Effects.Length > 0) CraftItemSeen?.Invoke(uid, tpl, item.Effects);
         }
-        else if (State.Inventory.TryGetValue(uid, out var known) && known.Effects.Length > 0)
+        else if (Cur.Inventory.TryGetValue(uid, out var known) && known.Effects.Length > 0)
             CraftItemSeen?.Invoke(uid, known.TemplateId, known.Effects);
     }
 
     /// <summary>Met à jour un objet de l'inventaire et le signale s'il bouge pendant un atelier.</summary>
     void UpdateItem(long uid, OwnedItem item)
     {
-        if (InCraft && State.Inventory.TryGetValue(uid, out var old) && item.Quantity < old.Quantity)
+        if (InCraft && Cur.Inventory.TryGetValue(uid, out var old) && item.Quantity < old.Quantity)
             CraftItemConsumed?.Invoke(uid, item.TemplateId, old.Quantity - item.Quantity);
-        State.Inventory[uid] = item;
+        Cur.Inventory[uid] = item;
         if (InCraft && item.Effects.Length > 0)
             CraftItemSeen?.Invoke(uid, item.TemplateId, item.Effects);
     }
@@ -261,31 +290,32 @@ public sealed class DofusTracker
         var parts = msg.Split('|');
         if (parts.Length < 3) return;
         var name = parts[2];
-        if (name != State.Character)
+        // Personnage de cette fenêtre : le même objet s'il est déjà suivi, sinon sa dernière banque connue
+        var snap = State.Character == name ? State
+            : _byStream.Values.FirstOrDefault(s => s.Character == name) ?? LoadSnapshot(name) ?? new Snapshot { Character = name };
+        _byStream[_stream] = snap;
+        if (snap != State)
         {
-            // Changement de personnage : on recharge sa dernière banque connue
-            State = LoadSnapshot(name) ?? new Snapshot { Character = name };
+            State = snap;
             BankChanged?.Invoke();
         }
         if (long.TryParse(parts[1], out var id))
         {
-            if (id != State.CharacterId)
-            {
-                State.CharacterId = id;
-                SaveSnapshot();
-            }
+            snap.CharacterId = id;
             // "ASK|id|nom|niveau|classe|sexe|apparence|couleurs…|objets" : seules la classe et le sexe sont gardés (icône du Switcheur)
             var look = parts.Length > 5 && int.TryParse(parts[4], out var breed) && int.TryParse(parts[5], out var sex)
                 ? new Data.CharacterLook(breed, sex) : null;
             CharacterSelected?.Invoke(id, name, parts.Length > 3 && int.TryParse(parts[3], out var level) ? level : 0,
                 look is { IsKnown: true } ? look : null);
         }
-        State.Inventory.Clear();
+        Cur.Inventory.Clear();
         var items = parts.LastOrDefault(p => p.Contains('~')) ?? "";
         foreach (var s in items.Split(';', StringSplitOptions.RemoveEmptyEntries))
-            if (TryParseHexItem(s, out var uid, out var item)) State.Inventory[uid] = item;
+            if (TryParseHexItem(s, out var uid, out var item)) Cur.Inventory[uid] = item;
         InventoryComplete = true;
-        Log?.Invoke($"Personnage détecté : {name} ({State.Inventory.Count} objets en inventaire).");
+        Log?.Invoke($"Personnage détecté : {name} ({Cur.Inventory.Count} objets en inventaire).");
+        // Inventaire enregistré tout de suite : les onglets PDA, Banque, TTG et Ocre le voient même sans ouvrir de banque
+        SaveSnapshot(snap);
         InventoryChanged?.Invoke();
     }
 
@@ -295,6 +325,12 @@ public sealed class DofusTracker
         int end = body.IndexOf('|');
         if (end >= 0) body = body[..end];
         _exchangeType = int.TryParse(body, out var t) ? t : -1;
+        // Banque ouverte dans une autre fenêtre : son personnage devient celui affiché
+        if (_exchangeType == BankExchangeType && Cur != State)
+        {
+            State = Cur;
+            BankChanged?.Invoke();
+        }
         // Boutique d'un marchand : "ECK4|id du marchand sur la map"
         if (_exchangeType == ShopExchangeType && end >= 0 && long.TryParse(msg.AsSpan(3 + end + 1), out var seller))
             ShopOpened?.Invoke(seller);
@@ -304,13 +340,13 @@ public sealed class DofusTracker
 
     void OnBankList(string data)
     {
-        State.Bank.Clear();
+        Cur.Bank.Clear();
         foreach (var entry in data.Split(';', StringSplitOptions.RemoveEmptyEntries))
         {
-            if (entry[0] == 'O' && TryParseHexItem(entry[1..], out var uid, out var item)) State.Bank[uid] = item;
-            else if (entry[0] == 'G' && long.TryParse(entry.AsSpan(1), out var k)) State.BankKamas = k;
+            if (entry[0] == 'O' && TryParseHexItem(entry[1..], out var uid, out var item)) Cur.Bank[uid] = item;
+            else if (entry[0] == 'G' && long.TryParse(entry.AsSpan(1), out var k)) Cur.BankKamas = k;
         }
-        Log?.Invoke($"Banque reçue : {State.Bank.Count} objets, {State.BankKamas:N0} kamas.");
+        Log?.Invoke($"Banque reçue : {Cur.Bank.Count} objets, {Cur.BankKamas:N0} kamas.");
         CommitBank();
     }
 
@@ -319,17 +355,17 @@ public sealed class DofusTracker
         if (data.Length < 2) return;
         if (data[0] == 'G')
         {
-            if (long.TryParse(data.AsSpan(1), out var k)) State.BankKamas = k;
+            if (long.TryParse(data.AsSpan(1), out var k)) Cur.BankKamas = k;
         }
         else if (data[0] == 'O' && data[1] == '+')
         {
             var p = data[2..].Split('|');
             if (p.Length >= 3 && long.TryParse(p[0], out var uid) && int.TryParse(p[1], out var qty) && int.TryParse(p[2], out var tpl))
-                State.Bank[uid] = new OwnedItem(tpl, qty, p.Length > 3 ? p[3] : "");
+                Cur.Bank[uid] = new OwnedItem(tpl, qty, p.Length > 3 ? p[3] : "");
         }
         else if (data[0] == 'O' && data[1] == '-')
         {
-            if (long.TryParse(data.AsSpan(2), out var uid)) State.Bank.Remove(uid);
+            if (long.TryParse(data.AsSpan(2), out var uid)) Cur.Bank.Remove(uid);
         }
         else return;
         CommitBank();
@@ -339,24 +375,24 @@ public sealed class DofusTracker
     {
         foreach (var s in data.Split('*', ';', StringSplitOptions.RemoveEmptyEntries))
             if (TryParseHexItem(s, out var uid, out var item)) UpdateItem(uid, item);
-        InventoryChanged?.Invoke();
+        InventoryEdited();
     }
 
     void OnInventoryRemove(long uid)
     {
-        if (!State.Inventory.Remove(uid, out var old)) return;
+        if (!Cur.Inventory.Remove(uid, out var old)) return;
         if (InCraft) CraftItemConsumed?.Invoke(uid, old.TemplateId, old.Quantity);
-        InventoryChanged?.Invoke();
+        InventoryEdited();
     }
 
     void OnInventoryQuantity(string data)
     {
         var p = data.Split('|');
         if (p.Length >= 2 && long.TryParse(p[0], out var uid) && int.TryParse(p[1], out var qty)
-            && State.Inventory.TryGetValue(uid, out var it))
+            && Cur.Inventory.TryGetValue(uid, out var it))
         {
             UpdateItem(uid, it with { Quantity = qty });
-            InventoryChanged?.Invoke();
+            InventoryEdited();
         }
     }
 
@@ -377,14 +413,21 @@ public sealed class DofusTracker
 
     void CommitBank()
     {
-        State.BankUpdatedAt = DateTime.Now;
-        SaveSnapshot();
+        Cur.BankUpdatedAt = DateTime.Now;
+        SaveSnapshot(Cur);
         BankChanged?.Invoke();
+    }
+
+    /// <summary>Inventaire modifié : enregistré aussitôt, pour que les autres onglets le voient sans ouvrir de banque.</summary>
+    void InventoryEdited()
+    {
+        if (Cur.Character.Length > 0) SaveSnapshot(Cur);
+        InventoryChanged?.Invoke();
     }
 
     /// <summary>
     /// Contenu du classeur TTG, envoyé à son ouverture : « idPersonnage|carte,date;carte,date… » (dates en millisecondes).
-    /// Seuls les identifiants des cartes sont gardés, pour le personnage concerné (celui en jeu, sinon sa banque sauvegardée).
+    /// Seuls les identifiants des cartes sont gardés, pour le personnage concerné (celui de la fenêtre, sinon sa banque sauvegardée).
     /// </summary>
     void OnBinder(string data)
     {
@@ -392,28 +435,21 @@ public sealed class DofusTracker
         if (!long.TryParse(p[0], out var owner)) return;
         var cards = (p.Length > 1 ? p[1] : "").Split(';', StringSplitOptions.RemoveEmptyEntries)
             .Select(e => int.TryParse(e.Split(',')[0], out var c) ? c : 0).Where(c => c > 0).ToHashSet();
-        if (State.CharacterId == 0 || State.CharacterId == owner)
-        {
-            State.Binder = cards;
-            State.BinderUpdatedAt = DateTime.Now;
-            SaveSnapshot();
-        }
-        else if (AllSnapshots().FirstOrDefault(s => s.CharacterId == owner && s.Character.Length > 0) is { } saved)
-        {
-            saved.Binder = cards;
-            saved.BinderUpdatedAt = DateTime.Now;
-            try { File.WriteAllText(SnapshotPath(saved.Character), JsonSerializer.Serialize(saved, JsonOpts)); } catch { }
-        }
-        else return;
+        var target = Cur.CharacterId == 0 || Cur.CharacterId == owner ? Cur
+            : AllSnapshots().FirstOrDefault(s => s.CharacterId == owner && s.Character.Length > 0);
+        if (target == null) return;
+        target.Binder = cards;
+        target.BinderUpdatedAt = DateTime.Now;
+        SaveSnapshot(target);
         BankChanged?.Invoke();
     }
 
-    /// <summary>Carte rangée dans le classeur (« ta » + carte), par le personnage en jeu.</summary>
+    /// <summary>Carte rangée dans le classeur (« ta » + carte), par le personnage de la fenêtre.</summary>
     void OnBinderAdd(int card)
     {
-        if (!State.Binder.Add(card)) return;
-        State.BinderUpdatedAt = DateTime.Now;
-        SaveSnapshot();
+        if (!Cur.Binder.Add(card)) return;
+        Cur.BinderUpdatedAt = DateTime.Now;
+        SaveSnapshot(Cur);
         BankChanged?.Invoke();
     }
 
@@ -424,12 +460,12 @@ public sealed class DofusTracker
     static string SnapshotPath(string character) =>
         Path.Combine(BanksDir, string.Concat((character.Length > 0 ? character : "_inconnu").Split(Path.GetInvalidFileNameChars())) + ".json");
 
-    void SaveSnapshot()
+    void SaveSnapshot(Snapshot s)
     {
         try
         {
             Directory.CreateDirectory(BanksDir);
-            File.WriteAllText(SnapshotPath(State.Character), JsonSerializer.Serialize(State, JsonOpts));
+            File.WriteAllText(SnapshotPath(s.Character), JsonSerializer.Serialize(s, JsonOpts));
         }
         catch (Exception ex) { Log?.Invoke($"Sauvegarde impossible : {ex.Message}"); }
     }
@@ -447,12 +483,15 @@ public sealed class DofusTracker
     readonly Dictionary<string, (DateTime Time, Snapshot? Snapshot)> _savedCache = new();
 
     /// <summary>
-    /// Banques et inventaires de tous les personnages : celui suivi (état en cours) puis les autres, tels que
-    /// sauvegardés dans <see cref="BanksDir"/>. Les fichiers ne sont relus que s'ils ont changé.
+    /// Banques et inventaires de tous les personnages : celui suivi (état en cours), ceux des autres fenêtres de jeu
+    /// ouvertes (état en cours), puis les autres, tels que sauvegardés dans <see cref="BanksDir"/>.
+    /// Les fichiers ne sont relus que s'ils ont changé.
     /// </summary>
     public List<Snapshot> AllSnapshots()
     {
         var list = new List<Snapshot> { State };
+        foreach (var s in _byStream.Values.Distinct())
+            if (s.Character.Length > 0 && list.All(x => x.Character != s.Character)) list.Add(s);
         if (!Directory.Exists(BanksDir)) return list;
         foreach (var f in new DirectoryInfo(BanksDir).GetFiles("*.json"))
         {
@@ -462,7 +501,7 @@ public sealed class DofusTracker
                 try { s = JsonSerializer.Deserialize<Snapshot>(File.ReadAllText(f.FullName)); } catch { }
                 _savedCache[f.FullName] = c = (f.LastWriteTimeUtc, s);
             }
-            if (c.Snapshot is { Character.Length: > 0 } saved && saved.Character != State.Character) list.Add(saved);
+            if (c.Snapshot is { Character.Length: > 0 } saved && list.All(x => x.Character != saved.Character)) list.Add(saved);
         }
         return list;
     }

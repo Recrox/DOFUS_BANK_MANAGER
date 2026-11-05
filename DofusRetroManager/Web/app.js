@@ -39,7 +39,7 @@ const TABS = [
     'FmHistoryGrid', 'FmEmpty', 'FmWeights', 'FmWeightsPanel', 'FmWeightsGrid'] },
   { key: 'arene', label: 'Arène', watch: ['ChronoTime', 'ChronoStart', 'ChronoReset', 'ChronoFights', 'ChronoGains',
     'ChronoRate', 'ChronoGrid', 'AreneChallenges', 'AreneOtherChallenges', 'AreneGroup', 'AreneGroupEdit', 'AreneGroupName', 'AreneGroupStatus', 'AreneGroupMembers'] },
-  { key: 'carte', label: 'Carte', watch: ['CarteHarvestTitle', 'CarteHarvest'] },
+  { key: 'carte', label: 'Carte', watch: ['CarteHarvestTitle', 'CarteHarvest', 'CarteHarvestList'] },
   { key: 'journal', label: 'Journal', watch: ['LogBox', 'LogPacketsBox'] },
 ];
 post({ type: 'watch', names: COMMON.concat(...TABS.map(t => t.watch || [])) });
@@ -387,11 +387,12 @@ const detailHead = (icon, title, sub) => `<div class="head">${icon}<div><h2>${es
 
 Object.assign(views, {
   brisage() {
-    const stats = (S.BrisageStats?.items || []).map((s, i) => `<span class="chip stat-filter ${s.on ? 'on' : ''}">
-      <label class="check"><input type="checkbox" data-stat="${i}" data-field="on" ${s.on ? 'checked' : ''}>${esc(s.t)}</label>
-      <input type="text" data-stat="${i}" data-field="min" data-fk="stat-${i}-min" value="${esc(s.min)}" placeholder="min">
+    // Un bouton compact par caractéristique (icône de sa rune + abréviation, nom au survol) ; seuils affichés une fois cochée
+    const stats = (S.BrisageStats?.items || []).map((s, i) => `<span class="chip stat-filter ${s.on ? 'on' : ''}" title="${esc(s.t)}">
+      <label class="check"><input type="checkbox" data-stat="${i}" data-field="on" ${s.on ? 'checked' : ''}>${s.r ? itemImg(s.r, 'xs') : ''}${esc(s.s || s.t)}</label>
+      ${s.on ? `<input type="text" data-stat="${i}" data-field="min" data-fk="stat-${i}-min" value="${esc(s.min)}" placeholder="min" title="${esc(s.t)} minimum">
       <span class="muted">à</span>
-      <input type="text" data-stat="${i}" data-field="max" data-fk="stat-${i}-max" value="${esc(s.max)}" placeholder="max"></span>`).join('');
+      <input type="text" data-stat="${i}" data-field="max" data-fk="stat-${i}-max" value="${esc(s.max)}" placeholder="max" title="${esc(s.t)} maximum (vide = pas de limite)">` : ''}</span>`).join('');
     const sel = rows('BrisageGrid')[S.BrisageGrid?.sel ?? -1];
     return `<div class="filters">${input('BrisageSearch', 'Rechercher un objet…', '220px')}${select('BrisageSource')}${select('BrisageTypeFilter')}
         <span class="lbl">Niveau</span>${input('BrisageLevelMin', '', '60px')}<span class="lbl">à</span>${input('BrisageLevelMax', '', '60px')}
@@ -401,14 +402,13 @@ Object.assign(views, {
         ${table('BrisageGrid', [
           { h: '', f: r => itemImg(r.ItemId) },
           { h: 'Objet', k: 'Name', f: r => `<a class="strong item-link" data-act="item-recipe" data-id="${r.ItemId}" title="Voir la recette de cet objet">${esc(r.Name)}</a><div class="muted">${esc(r.Type)} · niv. ${r.Level}</div>` },
-          { h: 'Caractéristiques', k: 'Score', f: r => `<span class="ellipsis" title="${esc(r.Stats)}">${esc(r.Stats)}</span>` },
-          { h: 'Où', k: 'Where' },
-          { h: 'Poss.', k: 'Owned', num: true, f: r => `<span class="strong ${r.Owned > 0 ? 'acc' : 'muted'}">${r.Owned}</span>` },
-          { h: 'Faisable', k: 'Craftable', num: true, f: r => r.Craftable > 0 ? `<span class="ok strong">×${r.Craftable}</span>` : r.Missing ? `<span class="bad ellipsis" title="${esc(r.Missing)}">${esc(r.Missing)}</span>` : '' },
+          // Caractéristiques en entier (sur plusieurs lignes si besoin) ; lieu au survol du nombre possédé ; runes sous leur valeur
+          { h: 'Caractéristiques', k: 'Score', f: r => `<span class="stats-wrap">${esc(r.Stats)}</span>` },
+          { h: 'Poss.', k: 'Owned', num: true, f: r => `<span class="strong ${r.Owned > 0 ? 'acc' : 'muted'}" title="${esc(r.Where)}">${r.Owned}</span>` },
+          { h: 'Faisable', k: 'Craftable', num: true, f: r => r.Craftable > 0 ? `<span class="ok strong">×${r.Craftable}</span>` : r.Missing ? `<span class="bad ellipsis craft-miss" title="${esc(r.Missing)}">${esc(r.Missing)}</span>` : '' },
           { h: 'Coût craft', k: 'CraftCost', num: true, f: r => fmt(r.CraftCost) },
           { h: 'Prix HDV', k: 'HdvPrice', num: true, f: r => `<span class="acc strong">${fmt(r.HdvPrice)}</span>` },
-          { h: 'Runes ≈', k: 'RunesText', f: r => `<span class="ellipsis" title="${esc(r.RunesText)}">${esc(r.RunesText)}</span>` },
-          { h: 'Valeur runes', k: 'RunesValue', num: true, f: r => `<span class="strong">${fmt(r.RunesValue)}</span>` },
+          { h: 'Runes ≈', k: 'RunesValue', num: true, f: r => `<span class="strong">${fmt(r.RunesValue)}</span><div class="muted small runes-text" title="${esc(r.RunesText)}">${esc(r.RunesText)}</div>` },
           { h: S.BrisageGainColumn?.t || 'Gain', k: 'Gain', num: true, f: r => r.Gain == null ? '—' : `<span class="strong ${r.GainSign < 0 ? 'bad' : 'ok'}">${r.Gain > 0 ? '+' : ''}${fmt(r.Gain)}</span>` },
         ], { empty: T('BrisageEmpty') || 'Aucun objet ne correspond à ces critères.' })}
         <aside class="detail glass">${sel ? `${detailHead(itemImg(sel.ItemId, 'lg'), 'BrisageDetailTitle', 'BrisageDetailSub')}
@@ -663,7 +663,8 @@ Object.assign(views, {
         <div id="carte-host" class="carte-host"></div>
         <aside class="glass detail carte-side">
           <input type="search" data-carte="search" data-fk="carteSearch" value="${esc(carte.search)}" placeholder="Zaap, Temple Iop, Bouftou, [4,-18]…">
-          <div class="card harvest"><b>${esc(T('CarteHarvestTitle'))}</b><div class="muted">${esc(T('CarteHarvest'))}</div></div>
+          <div class="card harvest"><b>${esc(T('CarteHarvestTitle'))}</b>${T('CarteHarvest') ? `<div class="muted">${esc(T('CarteHarvest'))}</div>` : ''}
+            <div class="harvest-chips">${rows('CarteHarvestList').map(h => `<span class="harvest-chip" title="${esc(h.Tooltip)}">${itemImg(h.ItemId)}<span><b>${esc(h.Count)}</b>${h.State ? `<small class="muted">${esc(h.State)}</small>` : ''}</span></span>`).join('')}</div></div>
           <div class="muted">${esc(counts)}</div>
           <div class="carte-list">${list.slice(0, 400).map((h, i) => `<div class="carte-row ${carte.sel === h ? 'on' : ''}" data-act="carte-go" data-i="${i}">
             ${h.i ? `<img src="${h.i}" alt="">` : '<span></span>'}<div><b>${esc(h.n)}</b><small>${esc(h.l)}</small></div></div>`).join('')}

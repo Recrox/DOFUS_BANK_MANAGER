@@ -168,7 +168,7 @@ public partial class MainWindow
             _organizer.OverlayEconome && spells.Count > 0, _organizer.OverlayGroups, _organizer.OverlayRotation && rotation.Count > 1,
             Data.CharacterIcons.Get(_hunt?.LookOf(me?.Name ?? "")),
             harvest.Count == 0 ? "Récolte · aucune ressource" : $"Récolte · {harvest.Sum(l => l.Available)} disponible(s)",
-            harvest.Select(Harvest.HarvestTracker.Describe).ToList(),
+            harvest.Select(Harvest.HarvestTracker.Chip).ToList(),
             _organizer.OverlayHarvest && me != null && _harvest?.MapOf(me.Stream) != null));
     }
 }

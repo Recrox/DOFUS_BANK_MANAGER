@@ -341,6 +341,8 @@ public partial class MainWindow
                 {
                     w.WriteStartObject();
                     w.WriteString("t", f.Stat.Name);
+                    w.WriteString("s", f.Short);
+                    if (f.RuneId is { } rune) w.WriteNumber("r", rune);
                     w.WriteBoolean("on", f.Box.IsChecked == true);
                     w.WriteString("min", f.Min.Text);
                     w.WriteString("max", f.Max.Text);

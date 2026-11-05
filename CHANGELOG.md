@@ -2,6 +2,14 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.42.0 — 5 novembre 2026
+
+- **Brisage** : filtres plus compacts : un bouton par caractéristique, avec l’icône de sa rune (Vi, Sa, Fo…) ; les champs minimum et maximum n’apparaissent que pour celles choisies.
+- **Brisage** : les caractéristiques des objets s’affichent en entier, sans faire défiler le tableau de côté (type et niveau sous le nom, runes sous leur valeur).
+- **Carte** : « Récolte sur la map » affiche l’icône de chaque ressource avec son nombre et sa repousse ; le nom au survol. Même chose dans la superposition en jeu.
+- **PDA et Banque** : Correction : l’inventaire de chaque personnage est à jour sans ouvrir de banque, et en multi-compte chaque fenêtre de jeu garde son propre inventaire.
+- **Combat** : Correction : la liste des derniers archi-monstres tient dans son cadre dans l’interface classique (bouton « Vider » toujours visible), et les trois listes de droite s’affichent en entier dans l’interface HTML.
+
 ## 1.41.0 — 4 novembre 2026
 
 - **Combat** : Correction : dans l’interface HTML, la liste des derniers archi-monstres n’est plus coupée : position et date raccourcies (texte complet au survol), niveau sous le nom.

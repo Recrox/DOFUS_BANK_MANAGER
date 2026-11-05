@@ -28,7 +28,15 @@ sealed record GroupDrop(int ItemId, double Chance, int Count, double Value, doub
     int MaxPerFight, bool Blocked, bool Conditional);
 
 public sealed record ArchiRow(string Time, DateTime TimeSort, string Name, int Level, string Map, long? Price, string PriceSeen,
-    CarteTarget? Goto) : IHasCarteTarget;
+    CarteTarget? Goto) : IHasCarteTarget
+{
+    /// <summary>Colonne étroite : « 3 min », « 2 h », « 05/11 » (texte complet au survol).</summary>
+    public string ShortTime => Time == "à l'instant" ? "< 1 min"
+        : Time.StartsWith("il y a ") ? Time[7..]
+        : Time.Length == 10 ? Time[..5] : Time;
+    /// <summary>Position sans le nom de la sous-zone : « [12,11] Amakna ».</summary>
+    public string ShortMap => System.Text.RegularExpressions.Regex.Replace(Map, @"\s*\(.*\)\s*$", "");
+}
 
 public sealed record FightRow(string Time, DateTime TimeSort, string Duration, string Monsters, long Xp, long Kamas,
     string Drops, double DropValue);

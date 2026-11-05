@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using DofusRetroManager.Data;
 
 namespace DofusRetroManager;
@@ -10,6 +11,9 @@ public sealed record BrisageRow(int ItemId, string Name, int Level, string Type,
 {
     public int Index { get; init; }
     public int GainSign => Gain is { } g ? Math.Sign(g) : 0;
+    /// <summary>Colonne « Faisable » : « ×3 », sinon les ingrédients manquants.</summary>
+    public bool CanCraft => Craftable > 0;
+    public string CraftText => Craftable > 0 ? $"×{Craftable}" : Missing;
 }
 
 /// <summary>Rune du détail : quantité estimée, prix unitaire HDV et total.</summary>
@@ -22,20 +26,44 @@ public sealed record RuneRow(int ItemId, string Name, string Quantity, double? U
 /// </summary>
 public partial class MainWindow
 {
-    sealed record StatFilter(StatDef Stat, CheckBox Box, TextBox Min, TextBox Max);
+    sealed record StatFilter(StatDef Stat, string Short, int? RuneId, ToggleButton Box, TextBox Min, TextBox Max);
 
     readonly List<StatFilter> _statFilters = new();
 
+    /// <summary>Abréviation des caractéristiques du Brisage (nom complet en infobulle), comme sur les runes.</summary>
+    static readonly Dictionary<int, string> StatShort = new()
+    {
+        [11] = "Vi", [12] = "Sa", [10] = "Fo", [15] = "Int", [13] = "Cha", [14] = "Agi", [1] = "PA", [23] = "PM",
+        [19] = "PO", [26] = "Invo", [18] = "CC", [17] = "% Do", [80] = "Do", [49] = "Soins", [44] = "Ini", [48] = "PP",
+    };
+
     void InitBrisage(GameData data)
     {
+        // Un bouton compact par caractéristique (icône de sa rune + abréviation) ; ses seuils n'apparaissent qu'une fois cochée
         foreach (var stat in ItemStats.All.Where(s => s.Main))
         {
-            var box = new CheckBox { Content = stat.Name, VerticalAlignment = VerticalAlignment.Center, MinWidth = 104 };
-            var min = new TextBox { Width = 52, Padding = new Thickness(4, 0, 4, 0), HorizontalContentAlignment = HorizontalAlignment.Center, ToolTip = "Minimum" };
-            var max = new TextBox { Width = 52, Padding = new Thickness(4, 0, 4, 0), HorizontalContentAlignment = HorizontalAlignment.Center, ToolTip = "Maximum (vide = pas de limite)" };
-            var filter = new StatFilter(stat, box, min, max);
-            box.Checked += BrisageFilters_Changed;
-            box.Unchecked += BrisageFilters_Changed;
+            var shortName = StatShort.GetValueOrDefault(stat.Characteristic, stat.Name);
+            var rune = RuneBreaking.SmallestRuneId(data, stat.Characteristic);
+            var content = new StackPanel { Orientation = Orientation.Horizontal };
+            if (rune is { } r && ItemIcons.Get(r) is { } icon)
+                content.Children.Add(new Image { Source = icon, Width = 18, Height = 18, Margin = new Thickness(0, 0, 4, 0) });
+            content.Children.Add(new TextBlock { Text = shortName, VerticalAlignment = VerticalAlignment.Center });
+            var box = new ToggleButton
+            {
+                Content = content, Style = (Style)FindResource("PillToggle"), VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = $"{stat.Name} : cliquez, puis indiquez le minimum (et le maximum si besoin).",
+            };
+            var min = new TextBox { Width = 46, Padding = new Thickness(2, 0, 2, 0), HorizontalContentAlignment = HorizontalAlignment.Center, ToolTip = $"{stat.Name} minimum", Margin = new Thickness(4, 0, 0, 0) };
+            var max = new TextBox { Width = 46, Padding = new Thickness(2, 0, 2, 0), HorizontalContentAlignment = HorizontalAlignment.Center, ToolTip = $"{stat.Name} maximum (vide = pas de limite)" };
+            var to = new TextBlock { Text = "à", Style = (Style)FindResource("Label"), Margin = new Thickness(4, 0, 4, 0) };
+            var filter = new StatFilter(stat, shortName, rune, box, min, max);
+            void ShowBounds()
+            {
+                var v = box.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+                min.Visibility = to.Visibility = max.Visibility = v;
+            }
+            box.Checked += (s, e) => { ShowBounds(); if (box.IsKeyboardFocusWithin) min.Focus(); BrisageFilters_Changed(s, e); };
+            box.Unchecked += (s, e) => { ShowBounds(); BrisageFilters_Changed(s, e); };
             // Saisir un seuil coche la caractéristique
             foreach (var t in new[] { min, max })
                 t.TextChanged += (_, _) =>
@@ -44,21 +72,14 @@ public partial class MainWindow
                     else ApplyBrisageFilters();
                 };
             _statFilters.Add(filter);
+            ShowBounds();
 
-            var panel = new StackPanel { Orientation = Orientation.Horizontal };
+            var panel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 6, 6) };
             panel.Children.Add(box);
             panel.Children.Add(min);
-            panel.Children.Add(new TextBlock { Text = "à", Style = (Style)FindResource("Label"), Margin = new Thickness(6, 0, 6, 0) });
+            panel.Children.Add(to);
             panel.Children.Add(max);
-            var frame = new Border
-            {
-                Child = panel, Padding = new Thickness(10, 4, 6, 4), Margin = new Thickness(0, 0, 8, 8),
-                CornerRadius = new CornerRadius(10), BorderThickness = new Thickness(1),
-            };
-            // Couleurs liées au thème (comme DynamicResource)
-            frame.SetResourceReference(Border.BackgroundProperty, "Surface2");
-            frame.SetResourceReference(Border.BorderBrushProperty, "Border");
-            BrisageStats.Children.Add(frame);
+            BrisageStats.Children.Add(panel);
         }
 
         BrisageTypeFilter.Items.Add(AllTypes);

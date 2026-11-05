@@ -115,7 +115,9 @@ public partial class MainWindow
         CarteHarvest.Text = me == null ? "Changez de map en jeu pour voir ses ressources."
             : _harvest.MapOf(me.Stream) == null ? "Map pas encore lue : changez de map en jeu (application lancée)."
             : lines.Count == 0 ? "Aucune ressource sur cette map."
-            : string.Join("\n", lines.Select(HarvestTracker.Describe));
+            : "";
+        CarteHarvest.Visibility = CarteHarvest.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        CarteHarvestList.ItemsSource = lines.Select(HarvestTracker.Chip).ToList();
     }
 
     /// <summary>Ressources pour la page HTML : métiers et leurs ressources (avec icône), points des maps visitées.</summary>

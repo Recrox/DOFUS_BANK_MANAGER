@@ -85,6 +85,7 @@ public partial class MainWindow : Window
         _sniffer.Log += m => Ui(() => AddLog(m));
         _sniffer.MessageReceived += OnMessage;
         _sniffer.StreamClassified += OnStreamClassified;
+        _sniffer.StreamClosed += stream => Ui(() => _tracker.OnStreamClosed(stream));
         _tracker.Log += m => Ui(() => AddLog(m));
         _tracker.BankChanged += () => Ui(Refresh);
         _tracker.InventoryChanged += () => Ui(() =>
@@ -584,7 +585,7 @@ public partial class MainWindow : Window
             if (_hunt != null) _hunt.Stream = stream;
             if (_merchants != null) _merchants.Stream = stream;
             if (_harvest != null) _harvest.Stream = stream;
-            try { _tracker.Handle(msg); }
+            try { _tracker.Handle(stream, msg); }
             catch (Exception ex) { AddLog($"Paquet ignoré ({ex.Message}) : {msg[..Math.Min(80, msg.Length)]}"); }
         });
     }

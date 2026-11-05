@@ -347,7 +347,7 @@ svg.chart circle { fill: var(--accent-solid); }
 .drops td, .drops th { padding: 5px 8px; border: none; }
 .drops th { position: static; background: transparent; backdrop-filter: none; cursor: default; }
 .drops tr.dim { opacity: .5; }
-.side-tables { display: grid; grid-template-rows: 1fr 1fr; gap: 12px; min-height: 0; }
+.side-tables { display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 12px; min-height: 0; }
 .section-title { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--accent-solid); font-weight: 800; }
 .mini { display: flex; flex-direction: column; min-height: 0; }
 .proj { font-size: 12.5px; }
@@ -508,3 +508,17 @@ tr.drop-target td { box-shadow: inset 0 3px 0 var(--accent-solid); }
 .item-link { cursor: pointer; color: inherit; text-decoration: none; } .item-link:hover { color: var(--accent-solid); text-decoration: underline; }
 /* Colonne de droite (onglet Combat) : étroite, les textes longs sont coupés (texte complet au survol) */
 .side-tables .ellipsis { display: block; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Récolte sur la map : icône de la ressource, nombre et repousse (nom au survol) */
+.harvest-chips { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; }
+.harvest-chip { display: inline-flex; align-items: center; gap: 4px; cursor: default; }
+.harvest-chip .ico { width: 24px; height: 24px; }
+.harvest-chip b, .harvest-chip small { display: block; line-height: 1.15; }
+.harvest-chip small { font-size: 10.5px; }
+
+/* Brisage : filtres compacts (icône de la rune + abréviation), tableau sans défilement horizontal */
+.ico.xs { width: 18px; height: 18px; margin-right: 2px; }
+.stat-filter input[type="text"] { width: 44px; }
+.stats-wrap { display: block; min-width: 160px; max-width: 340px; white-space: normal; }
+.runes-text { font-size: 11px; max-width: 150px; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.craft-miss { max-width: 130px; }

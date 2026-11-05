@@ -9,12 +9,12 @@ namespace DofusRetroManager.Multi;
 public sealed record OverlayModel(string Title, string Stats, string Econome, IReadOnlyList<EconomeSpell> Spells,
     string GroupsTitle, IReadOnlyList<OverlayGroup> Groups, IReadOnlyList<OverlayTurn> Rotation,
     bool ShowEconome, bool ShowGroups, bool ShowRotation, System.Windows.Media.ImageSource? Icon = null,
-    string HarvestTitle = "", IReadOnlyList<string>? Harvest = null, bool ShowHarvest = false)
+    string HarvestTitle = "", IReadOnlyList<Harvest.HarvestChip>? Harvest = null, bool ShowHarvest = false)
 {
     /// <summary>Résumé comparable : la fenêtre n'est redessinée que si quelque chose a changé.</summary>
     public string Key => string.Join("|", Title, Stats, Econome, string.Join(",", Spells.Select(s => $"{s.Id}:{s.State}")),
         GroupsTitle, string.Join(",", Groups), string.Join(",", Rotation), ShowEconome, ShowGroups, ShowRotation, Icon,
-        HarvestTitle, string.Join(",", Harvest ?? []), ShowHarvest);
+        HarvestTitle, string.Join(",", (Harvest ?? []).Select(h => h.Tooltip)), ShowHarvest);
 }
 
 public sealed record OverlayGroup(string Monsters, string Info, bool Archi);

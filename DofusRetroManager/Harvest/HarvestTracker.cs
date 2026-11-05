@@ -33,6 +33,12 @@ public sealed class HarvestData
 public sealed record CellState(DateTime? HarvestedAt, bool Seen);
 
 /// <summary>Ressources d'un même type sur la map, pour l'affichage (« Petits poissons (mer) ×4 »).</summary>
+/// <summary>Ressource affichée par son icône (objet récolté) : nombre, état court ; Tooltip : texte complet.</summary>
+public sealed record HarvestChip(int ItemId, string Count, string State, string Tooltip)
+{
+    public System.Windows.Media.ImageSource? Icon => Data.ItemIcons.Get(ItemId);
+}
+
 public sealed record HarvestLine(HarvestResource Resource, int Total, int Available, IReadOnlyList<CellState> Harvested, double? RespawnSeconds);
 
 /// <summary>
@@ -190,6 +196,25 @@ public sealed class HarvestTracker
         else if (next != default) when = $"récoltée il y a {Duration(DateTime.Now - next)}";
         else when = l.RespawnSeconds is { } a ? $"repousse ~{Duration(TimeSpan.FromSeconds(a))}" : "repousse inconnue";
         return $"{text} · {l.Harvested.Count} récoltée(s), {when}";
+    }
+
+    /// <summary>Version courte, à côté de l'icône de la ressource : « ×4 / 6 », « ↻ 2 min » (texte complet : Describe).</summary>
+    public static HarvestChip Chip(HarvestLine l)
+    {
+        var count = $"×{l.Available}" + (l.Available < l.Total ? $"/{l.Total}" : "");
+        var state = "";
+        if (l.Harvested.Count > 0)
+        {
+            var next = l.Harvested.Where(h => h.Seen).Select(h => h.HarvestedAt!.Value).DefaultIfEmpty().Min();
+            if (next != default && l.RespawnSeconds is { } avg)
+            {
+                var left = next.AddSeconds(avg) - DateTime.Now;
+                state = left.TotalSeconds <= 0 ? "↻ bientôt" : $"↻ {Duration(left)}";
+            }
+            else if (next != default) state = $"depuis {Duration(DateTime.Now - next)}";
+            else if (l.RespawnSeconds is { } a) state = $"↻ ~{Duration(TimeSpan.FromSeconds(a))}";
+        }
+        return new HarvestChip(l.Resource.ItemId, count, state, Describe(l));
     }
 
     static string Duration(TimeSpan t) =>
