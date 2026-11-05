@@ -181,6 +181,43 @@ function changelog() {
     </div></div>`;
 }
 
+// Livre de la collection TTG (bouton « Classeur » de l'onglet TTG), comme celui du jeu : totaux, raretés, familles et cartes
+function ttgBook() {
+  if (!local.book) return '';
+  const B = S._ttgBook;
+  if (!B) return `<div class="modal-back" data-act="book-close"><div class="modal glass" data-act="none"><div class="empty">Données des cartes pas encore chargées.</div></div></div>`;
+  const bar = (label, done, total, tip) => `<div class="book-prog" title="${esc(tip)}"><span>${label}</span>
+    <i><b style="width:${total ? Math.round(100 * done / total) : 0}%"></b></i><small>${done} / ${total}</small></div>`;
+  const stars = n => '★'.repeat(Math.max(1, n));
+  const fam = B.Families.find(f => f.Id === local.book.fam) || B.Families.find(f => f.Owned > 0) || B.Families[0];
+  const list = fam ? (local.book.shiny ? fam.Shiny : fam.Cards) : [];
+  const card = c => `<div class="book-card s${c.State} ${c.Shiny ? 'shiny' : ''}" title="${esc(c.Tip)}">
+      <small class="muted">#${c.Number}</small>${c.State > 0 && c.ArtItem ? itemImg(c.ArtItem, 'card') : '<div class="book-blank"></div>'}
+      <b>${esc(c.Name)}</b><span class="stars">${stars(c.Rarity)}</span></div>`;
+  return `<div class="modal-back" data-act="book-close"><div class="modal glass book" data-act="none">
+      <div class="row"><h2>Collection de ${esc(B.Owner)}</h2><button class="small ghost right" data-act="book-close">✕</button></div>
+      <div class="book-pages">
+        <section class="book-page">
+          <p class="section-title">Par types</p>
+          ${bar('Classeur', B.Done, B.Total, `Cartes rangées au classeur. ${B.Owned} possédée(s) en comptant la banque et l'inventaire.`)}
+          ${bar('Brillantes', B.ShinyDone, B.ShinyTotal, 'Cartes brillantes rangées au classeur')}
+          ${bar('Familles', B.FamiliesDone, B.FamiliesTotal, 'Familles complètes au classeur')}
+          <p class="section-title">Par raretés</p>
+          ${B.Rarities.map(r => bar(`<span class="stars">${stars(r.Rarity)}</span>`, r.Done, r.Total, `Rareté ${r.Rarity} : cartes rangées au classeur`)).join('')}
+          <p class="section-title">Par familles</p>
+          <div class="book-fams">${B.Families.map(f => `<button class="book-fam ${f === fam ? 'on' : ''}" data-act="book-fam" data-id="${f.Id}"
+              title="${esc(`${f.Name} : ${f.Done} / ${f.Total} au classeur` + (f.Owned > f.Done ? `, ${f.Owned} possédée(s)` : '') + (f.ShinyDone ? ` · ${f.ShinyDone} brillante(s)` : ''))}">
+              ${itemImg(f.ItemId)}<i><b style="width:${f.Total ? Math.round(100 * f.Done / f.Total) : 0}%"></b></i></button>`).join('')}</div>
+        </section>
+        <section class="book-page">
+          <div class="row"><h3>${esc(fam?.Name || '')}</h3><span class="muted">${list.filter(c => c.State === 2).length} / ${list.length}</span>
+            <button class="small right ${local.book.shiny ? 'primary' : 'ghost'}" data-act="book-shiny" title="Cartes brillantes de la famille">✨ Brillantes</button></div>
+          <div class="book-cards">${list.map(card).join('')}</div>
+          <small class="muted">Couleur : au classeur · pâle : en banque ou inventaire · pointillés : manquante (prix au survol)</small>
+        </section>
+      </div></div></div>`;
+}
+
 // Confirmation dans la page (ex. « Oublier l'objet » de l'onglet FM), puis l'action est envoyée à l'application
 function confirmBox() {
   if (!local.confirm) return '';
@@ -429,6 +466,7 @@ Object.assign(views, {
     return `<div class="filters">${input('TtgSearch', 'Rechercher une carte…', '220px')}<span class="lbl">Rareté</span>${select('TtgRarity')}<span class="lbl">Personnage</span>${select('TtgCharacter')}
         <span class="lbl">Afficher</span>${select('TtgShow')}${check('TtgShowAll', 'Toutes les cartes du jeu')}
         <span class="lbl">Période</span>${input('TtgDaysBox', '', '56px')}<span class="lbl">jours</span>
+        <button class="small" data-act="book" title="Votre collection présentée comme le livre du jeu : familles, raretés, cartes rangées, possédées et manquantes (personnage choisi)">📖 Classeur</button>
         <span class="chip">${esc(T('TtgCount'))}</span>${T('TtgCollection') ? `<span class="chip accent">${esc(T('TtgCollection'))}</span>` : ''}${T('TtgMissing') ? `<span class="chip accent">${esc(T('TtgMissing'))}</span>` : ''}</div>
       <div class="split">
         ${table('TtgGrid', [
@@ -886,7 +924,7 @@ function render() {
   const scroll = [...document.querySelectorAll('.table-wrap, .detail, .modal-body')].map(e => e.scrollTop);
 
   document.getElementById('app').innerHTML = header() + banner() + tabs(active)
-    + `<main class="glass">${views[tab.key]()}</main>` + changelog() + confirmBox();
+    + `<main class="glass">${views[tab.key]()}</main>` + changelog() + confirmBox() + ttgBook();
 
   if (tab.key === 'carte') carteMount();
   document.querySelectorAll('.table-wrap, .detail, .modal-body').forEach((e, i) => { if (scroll[i]) e.scrollTop = scroll[i]; });
@@ -921,6 +959,10 @@ document.addEventListener('click', e => {
     case 'ui': post({ type: 'ui' }); break;
     case 'changelog': local.changelog = true; schedule(); break;
     case 'changelog-close': local.changelog = false; schedule(); break;
+    case 'book': local.book = { fam: null, shiny: false }; schedule(); break;
+    case 'book-close': local.book = null; schedule(); break;
+    case 'book-fam': local.book.fam = +d.id; schedule(); break;
+    case 'book-shiny': local.book.shiny = !local.book.shiny; schedule(); break;
     case 'confirm': local.confirm = { name: d.name, text: d.text }; schedule(); break;
     case 'confirm-close': local.confirm = null; schedule(); break;
     case 'org-settings': local.orgHidden = !local.orgHidden; schedule(); break;
@@ -1000,6 +1042,7 @@ const KEYS = { ArrowRight: 'Right', ArrowLeft: 'Left', ArrowUp: 'Up', ArrowDown:
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && local.confirm) { local.confirm = null; schedule(); return; }
   if (e.key === 'Escape' && local.changelog) { local.changelog = false; schedule(); return; }
+  if (e.key === 'Escape' && local.book) { local.book = null; schedule(); return; }
   const name = e.target.dataset?.hotkey;
   if (!name) return;
   e.preventDefault();

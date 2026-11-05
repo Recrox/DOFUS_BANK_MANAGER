@@ -297,7 +297,9 @@ public partial class MainWindow
         if (_web?.CoreWebView2 == null || WebHost.Visibility != Visibility.Visible) return;
         var changed = new StringBuilder();
         // La carte (données lourdes) n'est envoyée que si la page affiche l'onglet Carte
-        var extra = MainTabs.SelectedItem == CarteTab ? new[] { "_theme", "_style", "_carte", "_cartePos", "_carteRes" } : ["_theme", "_style"];
+        // Le livre TTG (toute la collection) n'est envoyé que si la page affiche l'onglet TTG
+        var extra = MainTabs.SelectedItem == CarteTab ? new[] { "_theme", "_style", "_carte", "_cartePos", "_carteRes" }
+            : MainTabs.SelectedItem == TtgTab ? ["_theme", "_style", "_ttgBook"] : ["_theme", "_style"];
         foreach (var name in _webWatched.Concat(extra))
         {
             string json;
@@ -310,6 +312,7 @@ public partial class MainWindow
                     "_carte" => CarteWebJson(),
                     "_cartePos" => CartePlayersJson(),
                     "_carteRes" => CarteResourcesJson(),
+                    "_ttgBook" => JsonSerializer.Serialize(BuildTtgBook()),
                     _ => ElementJson(name),
                 };
             }

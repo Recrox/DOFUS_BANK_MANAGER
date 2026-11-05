@@ -69,6 +69,19 @@ public sealed record HarvestSkill(int JobId, string Job, int ItemId);
 /// Ressource récoltable (objet interactif de type 1 du fichier de langue « interactiveobjects »), ex. « If » coupé par
 /// le bûcheron pour du Bois d'If. Une même ressource peut se récolter par plusieurs métiers (Lin : paysan et alchimiste).
 /// </summary>
+/// <summary>
+/// Carte du classeur TTG (fichier de langue « ttg ») : numéro (1 à 464, brillantes à partir de 10001), créature représentée,
+/// famille, rareté (1 à 4), objet carte (aucun pour une brillante : elle n'existe que dans le classeur).
+/// </summary>
+public sealed record TtgCard(int Id, string Name, int Family, int Rarity, int ItemId, bool Shiny)
+{
+    /// <summary>Numéro affiché dans le livre : celui de la carte normale (« #346 »).</summary>
+    public int Number => Shiny ? Id - 10000 : Id;
+}
+
+/// <summary>Famille de cartes TTG : nom et objet (paquet) qui sert d'icône.</summary>
+public sealed record TtgFamily(int Id, string Name, int ItemId);
+
 public sealed record HarvestResource(int Id, string Name, IReadOnlyList<HarvestSkill> Skills)
 {
     /// <summary>Objet obtenu par le premier métier : sert d'icône.</summary>
@@ -135,6 +148,10 @@ public sealed class GameData
     public List<List<int>> OcreSteps { get; } = new();
     /// <summary>Carte du classeur TTG -> objet carte (fichier de langue « ttg » : TTG.c[carte].o).</summary>
     public Dictionary<int, int> TtgCardItems { get; } = new();
+    /// <summary>Cartes du classeur TTG (normales et brillantes), par numéro, pour le livre de l'onglet TTG.</summary>
+    public Dictionary<int, TtgCard> TtgCards { get; } = new();
+    /// <summary>Familles de cartes TTG, par identifiant.</summary>
+    public Dictionary<int, TtgFamily> TtgFamilies { get; } = new();
     /// <summary>Noms des challenges de combat (fichier de langue « fightChallenge »), ex. 5 = Économe.</summary>
     public Dictionary<int, string> FightChallenges { get; } = new();
     /// <summary>Noms des sorts (fichier de langue « spells »).</summary>
@@ -389,13 +406,29 @@ public sealed class GameData
                     if (int.TryParse(k, out var g)) data.InteractiveGfx[g] = (int)Avm1.ToNum(v);
         }
 
-        // Classeur TTG : TTG.c[carte] = { o: objet carte, e: monstre représenté, v: version }
+        // Classeur TTG : TTG.c[carte] = { o: objet carte (-1 : brillante), e: créature représentée, v: 1 si brillante },
+        // TTG.e[créature] = { n: nom, f: famille, a: rareté }, TTG.f[famille] = { n: nom, o: objet (paquet) }
         if (paths.TryGetValue("ttg", out var ttgPath)
             && Avm1.Run(await File.ReadAllBytesAsync(ttgPath)).GetValueOrDefault("TTG") is AsObject TTG
             && TTG.GetValueOrDefault("c") is AsObject cards)
+        {
+            var entities = TTG.GetValueOrDefault("e") as AsObject;
+            if (TTG.GetValueOrDefault("f") is AsObject families)
+                foreach (var (k, v) in families)
+                    if (v is AsObject o && int.TryParse(k, out var fam))
+                        data.TtgFamilies[fam] = new TtgFamily(fam, Avm1.ToStr(o.GetValueOrDefault("n")).Trim(), (int)Avm1.ToNum(o.GetValueOrDefault("o")));
             foreach (var (k, v) in cards)
-                if (v is AsObject o && int.TryParse(k, out var card) && (int)Avm1.ToNum(o.GetValueOrDefault("o")) is > 0 and var item)
-                    data.TtgCardItems[card] = item;
+            {
+                if (v is not AsObject o || !int.TryParse(k, out var card)) continue;
+                int item = (int)Avm1.ToNum(o.GetValueOrDefault("o"));
+                if (item > 0) data.TtgCardItems[card] = item;
+                var entity = entities?.GetValueOrDefault(((int)Avm1.ToNum(o.GetValueOrDefault("e"))).ToString()) as AsObject;
+                if (entity == null) continue;
+                data.TtgCards[card] = new TtgCard(card, Avm1.ToStr(entity.GetValueOrDefault("n")).Trim(),
+                    (int)Avm1.ToNum(entity.GetValueOrDefault("f")), (int)Avm1.ToNum(entity.GetValueOrDefault("a")),
+                    Math.Max(0, item), Avm1.ToNum(o.GetValueOrDefault("v")) == 1);
+            }
+        }
 
         if (paths.TryGetValue("quests", out var questsPath))
             try { LoadOcre(data, Avm1.Run(await File.ReadAllBytesAsync(questsPath))); }

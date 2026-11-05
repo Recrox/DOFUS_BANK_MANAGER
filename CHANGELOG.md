@@ -2,6 +2,10 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.44.0 — 5 novembre 2026
+
+- **TTG** : nouveau bouton « 📖 Classeur » : votre collection présentée comme le livre du jeu. Avancement par type (classeur, brillantes, familles complètes) et par rareté, une icône par famille avec sa progression, puis les cartes de la famille : en couleur si elles sont rangées au classeur, pâles si elles sont en banque ou dans l’inventaire, en pointillés si elles manquent (prix au survol). Les cartes brillantes ont leur propre page.
+
 ## 1.43.0 — 5 novembre 2026
 
 - **Switcheur** : option « Clic + Ctrl » : cliquez dans le jeu en gardant Ctrl enfoncé (ou Alt, Maj) ; votre clic part normalement, puis la fenêtre suivante dans l’ordre de jeu s’affiche. Pratique pour déplacer vos personnages l’un après l’autre.

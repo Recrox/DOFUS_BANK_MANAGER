@@ -941,7 +941,7 @@
             </TabItem>
 
             <!-- TTG : cartes et paquets de cartes, prix chez les marchands et à l'HDV, collection -->
-            <TabItem Header="TTG" Tag="{StaticResource TabTtg}">
+            <TabItem x:Name="TtgTab" Header="TTG" Tag="{StaticResource TabTtg}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -974,6 +974,8 @@
                         <TextBox x:Name="TtgDaysBox" Width="46" Text="7" TextChanged="TtgFilters_Changed" Padding="2,0"
                                  HorizontalContentAlignment="Center"/>
                         <TextBlock Text="jours" Style="{StaticResource Label}" Margin="6,0,0,0"/>
+                        <Button x:Name="TtgBookButton" Content="📖 Classeur" Click="TtgBook_Click" Margin="14,0,0,0" Padding="10,2"
+                                ToolTip="Votre collection présentée comme le livre du jeu : familles, raretés, cartes rangées, possédées et manquantes (personnage choisi)"/>
                         <TextBlock x:Name="TtgCount" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource TextMuted}"/>
                         <TextBlock x:Name="TtgCollection" VerticalAlignment="Center" Margin="14,0,0,0" FontWeight="Bold"
                                    Foreground="{DynamicResource AccentSolid}"

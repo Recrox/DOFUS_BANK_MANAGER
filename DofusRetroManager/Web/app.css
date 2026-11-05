@@ -526,3 +526,29 @@ tr.drop-target td { box-shadow: inset 0 3px 0 var(--accent-solid); }
 /* Switcheur : touche + clic (case, touche et libellé sur une ligne) */
 .org-key.click { grid-template-columns: 24px 1fr auto; }
 .org-key.click select { width: 72px; }
+
+/* Onglet TTG : livre de la collection (deux pages, comme le classeur du jeu) */
+.modal.book { width: min(1180px, 100%); height: 100%; }
+.book-pages { flex: 1; min-height: 0; display: grid; grid-template-columns: 340px 1fr; gap: 12px; margin-top: 6px; }
+.book-page { min-height: 0; overflow: auto; padding: 12px 14px; border-radius: var(--radius-lg); border: 1px solid var(--line); background: var(--glass); display: flex; flex-direction: column; gap: 6px; }
+.book-page .row { display: flex; align-items: center; gap: 8px; }
+.book-page h3 { margin: 0; }
+.book-prog { display: grid; grid-template-columns: 84px 1fr 70px; align-items: center; gap: 8px; font-weight: 600; }
+.book-prog small { text-align: right; color: var(--muted); }
+.book-prog i, .book-fam i { display: block; height: 8px; border-radius: 99px; background: var(--hover); overflow: hidden; }
+.book-prog b, .book-fam b { display: block; height: 100%; background: var(--accent-solid); }
+.stars { color: #e6b422; letter-spacing: 1px; }
+.book-fams { display: flex; flex-wrap: wrap; gap: 4px; }
+.book-fam { width: 52px; padding: 4px 4px 5px; display: flex; flex-direction: column; align-items: center; gap: 3px; border-radius: 10px; border: 1px solid var(--line); background: transparent; cursor: pointer; }
+.book-fam i { width: 100%; height: 5px; }
+.book-fam.on { border-color: var(--accent-solid); background: var(--selected); }
+.book-cards { flex: 1; display: flex; flex-wrap: wrap; gap: 10px; align-content: flex-start; }
+.book-card { width: 124px; height: 172px; padding: 8px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.book-card small { align-self: flex-end; font-size: 11px; }
+.book-card b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
+.book-card .ico.card { width: 92px; height: 92px; }
+.book-card .book-blank { flex: 1; }
+.book-card.s0 { border: 1.5px dashed var(--muted); opacity: .75; }
+.book-card.s1 { border: 2px solid var(--line); background: var(--glass); opacity: .6; }
+.book-card.s2 { border: 2px solid var(--accent-solid); background: var(--glass); }
+.book-card.shiny.s2 { border: 3px solid #ffc94d; box-shadow: 0 0 10px rgba(255, 201, 77, .55); }
