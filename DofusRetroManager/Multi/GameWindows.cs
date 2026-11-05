@@ -45,6 +45,13 @@ public static partial class GameWindows
 
     public static IntPtr Foreground => GetForegroundWindow();
 
+    /// <summary>Processus d'une fenêtre.</summary>
+    public static uint ProcessOf(IntPtr h)
+    {
+        GetWindowThreadProcessId(h, out var pid);
+        return pid;
+    }
+
     /// <summary>
     /// Met la fenêtre au premier plan (comme Alt+Tab), à la demande du joueur (raccourci ou clic).
     /// Windows n'autorise ce changement que depuis l'application active : on se rattache brièvement au fil de la fenêtre

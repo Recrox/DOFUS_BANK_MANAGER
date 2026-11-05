@@ -152,7 +152,7 @@ public partial class MainWindow
                 timer = c.TurnMs > 0 ? $"{Math.Min(elapsed, c.TurnMs / 1000)} / {c.TurnMs / 1000} s" : $"{elapsed} s";
             }
             return new OverlayTurn(i + 1, (IsMain(w) ? "★ " : "") + (w.Name.Length > 0 ? w.Name : "(sélection du personnage)"),
-                c?.Initiative?.ToString("N0") ?? "?", w.Handle == fg, c?.LifePercent, Data.CharacterIcons.Get(LookOf(w)),
+                InitiativeOf(w)?.ToString("N0") ?? "?", w.Handle == fg, c?.LifePercent ?? (c == null ? KnownOf(w)?.LifePercent : null), Data.CharacterIcons.Get(LookOf(w)),
                 w.Handle.ToInt64(), timer, turn && _organizer.SplitMode);
         }).ToList();
 

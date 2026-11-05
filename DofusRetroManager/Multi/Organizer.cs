@@ -32,6 +32,10 @@ public sealed class OrganizerSettings
     /// <summary>Personnage principal (étoile) : un seul, affiché par son propre raccourci.</summary>
     public string? MainCharacter { get; set; }
     public string MainKey { get; set; } = "Ctrl+Alt+Up";
+    /// <summary>Touche + clic dans le jeu : au relâchement du clic, la fenêtre suivante de l'ordre de jeu passe au premier plan.</summary>
+    public bool ClickSwitch { get; set; }
+    /// <summary>Touche à garder enfoncée pendant le clic : Ctrl, Alt ou Maj.</summary>
+    public string ClickSwitchKey { get; set; } = "Ctrl";
     public bool NotifyFight { get; set; } = true;
     public bool NotifyTurn { get; set; } = true;
     public bool NotifyExchange { get; set; } = true;

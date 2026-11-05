@@ -1832,6 +1832,12 @@
                         <TextBox x:Name="HotkeyDebounce" Width="60" HorizontalContentAlignment="Center" TextChanged="HotkeyDebounce_Changed"
                                  ToolTip="Délai minimal entre deux raccourcis, en millisecondes (160 par défaut) : un double appui involontaire ne saute pas un personnage"/>
                         <TextBlock Text="ms" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                        <CheckBox x:Name="OrganizerClickSwitch" Content="Clic +" Margin="14,0,6,0" FontWeight="SemiBold"
+                                  Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"
+                                  ToolTip="Cliquez dans le jeu en gardant cette touche enfoncée : votre clic arrive au jeu, puis la fenêtre suivante (ordre de jeu) s'affiche. Rien n'est cliqué à votre place."/>
+                        <ComboBox x:Name="OrganizerClickKey" Width="70" SelectionChanged="OrganizerClickKey_Changed"
+                                  ToolTip="Touche à garder enfoncée pendant le clic"/>
+                        <TextBlock Text=": suivant" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" Margin="4,0,0,0"/>
                         <TextBlock Text="Les raccourcis marchent aussi en jeu ; ils ne font qu'afficher la fenêtre." Foreground="{DynamicResource TextMuted}"
                                    VerticalAlignment="Center" Margin="14,0,0,0"/>
                         <TextBlock x:Name="HotkeyStatus" Foreground="{DynamicResource Missing}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="14,0,0,0"/>

@@ -118,6 +118,27 @@ public sealed class HuntCharacter(string stream, int number)
 /// <summary>Évènements notifiés dans l'onglet Switcheur.</summary>
 public enum GameNotice { Fight, Turn, Exchange, Party }
 
+/// <summary>
+/// Dernier état connu d'un de vos personnages, gardé d'un lancement à l'autre (chasse.json) : l'application, relancée
+/// pendant que le jeu est ouvert (mise à jour…), retrouve son ordre de jeu, sa vie et son identifiant sans reconnexion.
+/// </summary>
+public sealed class KnownCharacter
+{
+    public long Id { get; set; }
+    public int? Level { get; set; }
+    public int? Initiative { get; set; }
+    public int? Wisdom { get; set; }
+    public int? Prospection { get; set; }
+    public int? Life { get; set; }
+    public int? MaxLife { get; set; }
+    public DateTime LifeAt { get; set; }
+    public double RegenMs { get; set; } = 1000;
+
+    /// <summary>Vie estimée maintenant (hors combat : régénération depuis le dernier relevé), en pourcentage.</summary>
+    public int? LifePercent => Life is not { } l || MaxLife is not { } m || m <= 0 ? null
+        : (int)Math.Round(100.0 * Math.Clamp(l + Math.Max(0, (DateTime.Now - LifeAt).TotalMilliseconds) / Math.Max(100, RegenMs), 0, m) / m);
+}
+
 sealed class HuntData
 {
     public List<ArchiSighting> Archis { get; set; } = new();
@@ -132,6 +153,8 @@ sealed class HuntData
     public Dictionary<string, List<int>> Spells { get; set; } = new();
     /// <summary>Classe et sexe par personnage (nom -> apparence), pour son icône même si l'appli démarre en jeu.</summary>
     public Dictionary<string, CharacterLook> Looks { get; set; } = new();
+    /// <summary>Dernier état connu de vos personnages (nom -> identifiant, niveau, initiative, vie…).</summary>
+    public Dictionary<string, KnownCharacter> Known { get; set; } = new();
 }
 
 /// <summary>
@@ -212,6 +235,8 @@ public sealed class HuntTracker
     public event Action<HuntCharacter, GameNotice, string?>? Notice;
     /// <summary>Le personnage entre dans un groupe (il était seul) : l'onglet Switcheur peut figer l'ordre de jeu.</summary>
     public event Action<HuntCharacter>? PartyJoined;
+    /// <summary>Personnage d'une connexion reconnu sans sa sélection (connexion, nom) : la banque suit la même fenêtre.</summary>
+    public event Action<string, string>? Identified;
 
     public HuntTracker(GameData data, Func<long> savedCharacterId)
     {
@@ -272,6 +297,87 @@ public sealed class HuntTracker
     public CharacterLook? LookOf(string name) => name.Length == 0 ? null
         : _store.Looks.GetValueOrDefault(name) ?? _store.Looks.FirstOrDefault(kv => string.Equals(kv.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
 
+    // --- Mémoire des personnages : l'application relancée pendant que le jeu est ouvert les retrouve sans reconnexion ---
+
+    DateTime _knownSaved;
+    bool _knownDirty;
+
+    /// <summary>Dernier état connu d'un personnage, par son nom (celui du titre de sa fenêtre).</summary>
+    public KnownCharacter? KnownOf(string name) => name.Length == 0 ? null
+        : _store.Known.GetValueOrDefault(name) ?? _store.Known.FirstOrDefault(kv => string.Equals(kv.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
+
+    /// <summary>Retient l'état du personnage ; le fichier est réécrit au plus toutes les 30 s (et à la fermeture).</summary>
+    void Remember(HuntCharacter c)
+    {
+        if (c.Name.Length == 0) return;
+        if (!_store.Known.TryGetValue(c.Name, out var k)) _store.Known[c.Name] = k = new KnownCharacter();
+        if (c.Id != 0) k.Id = c.Id;
+        k.Level = c.Level ?? k.Level;
+        k.Initiative = c.Initiative ?? k.Initiative;
+        k.Wisdom = c.Wisdom ?? k.Wisdom;
+        k.Prospection = c.Prospection ?? k.Prospection;
+        if (c.Life != null && !c.InFight)
+        {
+            k.Life = c.Life;
+            k.MaxLife = c.MaxLife;
+            k.LifeAt = c.LifeAt;
+            k.RegenMs = c.RegenMs;
+        }
+        _knownDirty = true;
+        if (DateTime.Now - _knownSaved > TimeSpan.FromSeconds(30)) SaveIfDirty();
+    }
+
+    /// <summary>Écrit ce qui reste à enregistrer (appelé à la fermeture de l'application).</summary>
+    public void SaveIfDirty()
+    {
+        if (!_knownDirty) return;
+        _knownDirty = false;
+        _knownSaved = DateTime.Now;
+        Save();
+    }
+
+    /// <summary>Connexion dont le personnage n'est pas encore connu (application lancée après la connexion au jeu).</summary>
+    public bool NeedsName(string stream) => _characters.TryGetValue(stream, out var c) && c.Name.Length == 0;
+
+    /// <summary>
+    /// Personnage de la connexion retrouvé sans le voir à la sélection (sa fenêtre, ou son identifiant) : son dernier état
+    /// connu est repris (identifiant, niveau, initiative, vie…), puis remplacé par ce que le jeu envoie ensuite.
+    /// </summary>
+    public bool Identify(string stream, string name)
+    {
+        if (!_characters.TryGetValue(stream, out var c) || c.Name.Length > 0) return false;
+        // Le personnage est déjà suivi sur une autre connexion encore active : pas de doublon
+        if (_characters.Values.Any(x => x != c && string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase))) return false;
+        c.Name = name;
+        if (KnownOf(name) is { } k)
+        {
+            if (c.Id == 0) c.Id = k.Id;
+            c.Level ??= k.Level;
+            c.Initiative ??= k.Initiative;
+            c.Wisdom ??= k.Wisdom;
+            c.Prospection ??= k.Prospection;
+            if (c.Life == null && k.Life != null)
+            {
+                c.Life = k.Life;
+                c.MaxLife = k.MaxLife;
+                c.LifeAt = k.LifeAt;
+                c.RegenMs = k.RegenMs;
+            }
+        }
+        Log?.Invoke($"Fenêtre reconnue : {name}.");
+        Identified?.Invoke(stream, name);
+        Changed?.Invoke();
+        return true;
+    }
+
+    /// <summary>Identifiant appris en jeu (action, fin de combat) : s'il est celui d'un de vos personnages connus, il est reconnu.</summary>
+    void IdentifyById(HuntCharacter c)
+    {
+        if (c.Name.Length > 0 || c.Id == 0) return;
+        var known = _store.Known.FirstOrDefault(kv => kv.Value.Id == c.Id).Key;
+        if (known != null) Identify(c.Stream, known);
+    }
+
     public void OnCharacterSelected(long id, string name, int level, CharacterLook? look)
     {
         var c = Current;
@@ -291,12 +397,14 @@ public sealed class HuntTracker
             _characters.Remove(old);
             if (Pinned == old) Pinned = c.Stream;
         }
+        Remember(c);
         Changed?.Invoke();
     }
 
     public void OnLevelUp(int level)
     {
         Current.Level = level;
+        Remember(Current);
         Changed?.Invoke();
     }
 
@@ -406,6 +514,7 @@ public sealed class HuntTracker
         c.Wisdom = wisdom ?? c.Wisdom;
         c.Life = hp;
         c.MaxLife = hpMax;
+        Remember(c);
         Changed?.Invoke();
 
         static int? Total(string stat)
@@ -534,9 +643,10 @@ public sealed class HuntTracker
             return;
         }
         // Personnage retrouvé sans l'avoir vu à la sélection : sa ligne donne son identifiant et son nom
-        if (c.Id == 0) c.Id = me;
+        if (c.Id == 0) { c.Id = me; IdentifyById(c); }
         if (c.Name.Length == 0) c.Name = line0[2];
         if (c.Level == null && int.TryParse(line0[3], out var lvl)) c.Level = lvl;
+        Remember(c);
 
         var fight = new FightRecord
         {
@@ -651,7 +761,7 @@ public sealed class HuntTracker
         if (_ownActions.TryGetValue(Stream, out var own) && own.Spell == spell && DateTime.Now - own.Time < TimeSpan.FromSeconds(10))
         {
             _ownActions.Remove(Stream);
-            if (c.Id == 0) c.Id = actor;
+            if (c.Id == 0) { c.Id = actor; IdentifyById(c); }
         }
         // Personnage inconnu (aucune action demandée encore) : on garde les sorts qu'il connaît, faute de mieux
         bool mine = c.Id != 0 ? actor == c.Id : spell != Weapon && SpellsOf(c).Contains(spell);
@@ -676,6 +786,7 @@ public sealed class HuntTracker
         if (c.CurrentLife is { } now) c.Life = now;
         c.LifeAt = DateTime.Now;
         c.RegenMs = intervalMs;
+        Remember(c);
     }
 
     /// <summary>Début d'un tour de jeu (GTS) : combattant et durée du tour en millisecondes (0 si absente).</summary>

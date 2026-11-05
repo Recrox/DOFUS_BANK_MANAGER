@@ -199,6 +199,17 @@ public sealed class DofusTracker
         finally { _exchanges[stream] = _exchangeType; }
     }
 
+    /// <summary>
+    /// Personnage d'une connexion retrouvé sans l'avoir vu à la sélection (application lancée après le jeu) : sa banque
+    /// et son inventaire sauvegardés sont repris, et les messages de cette connexion ne touchent plus que lui.
+    /// </summary>
+    public void AssignStream(string stream, string name)
+    {
+        if (_byStream.ContainsKey(stream) || name.Length == 0) return;
+        _byStream[stream] = State.Character == name ? State
+            : _byStream.Values.FirstOrDefault(s => s.Character == name) ?? LoadSnapshot(name) ?? new Snapshot { Character = name };
+    }
+
     /// <summary>Connexion fermée : son personnage n'est plus en jeu (il reste dans les banques sauvegardées).</summary>
     public void OnStreamClosed(string stream)
     {

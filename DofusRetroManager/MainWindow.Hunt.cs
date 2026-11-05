@@ -77,6 +77,7 @@ public partial class MainWindow
         // Onglet Switcheur : notifications
         _tracker.ExchangeRequested += target => Safe(() => _hunt.OnExchangeRequested(target));
         _tracker.PartyInvited += invited => Safe(() => _hunt.OnPartyInvited(invited));
+        InitReconnect();
         _hunt.Notice += OnGameNotice;
         _hunt.PartyJoined += c => Safe(() => OnPartyJoined(c));
         HuntSound.IsChecked = _hunt.SoundAlert;

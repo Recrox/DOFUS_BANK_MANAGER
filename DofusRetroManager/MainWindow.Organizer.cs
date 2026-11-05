@@ -56,6 +56,7 @@ public partial class MainWindow
         HotkeyMain.Text = _organizer.MainKey;
         OrganizerOptions.IsEnabled = _organizer.Enabled;
         _organizerLoading = false;
+        InitClickSwitch();
 
         SourceInitialized += (_, _) =>
         {
@@ -132,6 +133,12 @@ public partial class MainWindow
     HuntCharacter? CharacterOf(GameWindow w) => w.Name.Length == 0 ? null
         : _hunt?.Characters.FirstOrDefault(c => string.Equals(c.Name, w.Name, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>Dernier état connu du personnage de la fenêtre (lancement précédent), en attendant ce que le jeu envoie.</summary>
+    KnownCharacter? KnownOf(GameWindow w) => _hunt?.KnownOf(w.Name);
+
+    /// <summary>Initiative du personnage : celle reçue du jeu, sinon la dernière connue (application relancée en jeu).</summary>
+    int? InitiativeOf(GameWindow w) => CharacterOf(w)?.Initiative ?? KnownOf(w)?.Initiative;
+
     bool IsMain(GameWindow w) => w.Name.Length > 0 && string.Equals(w.Name, _organizer.MainCharacter, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Raccourci « Principal » : met au premier plan la fenêtre du personnage principal (étoile).</summary>
@@ -160,7 +167,7 @@ public partial class MainWindow
     List<GameWindow> Rotation()
     {
         var byInitiative = _windows.Where(w => !IsExcluded(w))
-            .OrderByDescending(w => CharacterOf(w)?.Initiative ?? int.MinValue).ThenBy(w => w.Name)
+            .OrderByDescending(w => InitiativeOf(w) ?? int.MinValue).ThenBy(w => w.Name)
             // Départage stable : sans nom (sélection du personnage), l'ordre de Windows change à chaque bascule
             .ThenBy(w => w.Handle.ToInt64());
         var order = _pendingOrder ?? (_organizer.Order.Count > 0 ? _organizer.Order : null);
@@ -287,7 +294,7 @@ public partial class MainWindow
                 : c == null ? "Pas encore vu (lancez l'appli avant la connexion ou changez de map)"
                 : c.InFight ? "En combat" : "Hors combat";
             return new OrganizerRow(w.Handle.ToInt64(), rotation.IndexOf(w) + 1, w.Name.Length > 0 ? w.Name : "(sélection du personnage)",
-                c?.Level?.ToString() ?? "?", c?.Initiative, state, IsExcluded(w), w.Handle == foreground, IsMain(w),
+                (c?.Level ?? KnownOf(w)?.Level)?.ToString() ?? "?", InitiativeOf(w), state, IsExcluded(w), w.Handle == foreground, IsMain(w),
                 look?.Text ?? "", look?.Gfx ?? 0, CharacterIcons.Get(look));
         }).ToList();
 
@@ -342,10 +349,12 @@ public partial class MainWindow
         _organizer.SplitMode = OrganizerSplitMode.IsChecked == true;
         _organizer.MaximizeOnStart = OrganizerMaximize.IsChecked == true;
         _organizer.LockOrderOnParty = OrganizerLockOrder.IsChecked == true;
+        _organizer.ClickSwitch = OrganizerClickSwitch.IsChecked == true;
         bool enabledChanged = _organizer.Enabled != (OrganizerEnabled.IsChecked == true);
         _organizer.Enabled = OrganizerEnabled.IsChecked == true;
         _organizer.Save();
         if (enabledChanged) RegisterHotkeys();
+        UpdateClickSwitch();
         OrganizerOptions.IsEnabled = _organizer.Enabled;
     }
 

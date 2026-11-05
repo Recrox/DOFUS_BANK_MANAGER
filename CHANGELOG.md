@@ -2,6 +2,11 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.43.0 — 5 novembre 2026
+
+- **Switcheur** : option « Clic + Ctrl » : cliquez dans le jeu en gardant Ctrl enfoncé (ou Alt, Maj) ; votre clic part normalement, puis la fenêtre suivante dans l’ordre de jeu s’affiche. Pratique pour déplacer vos personnages l’un après l’autre.
+- **Switcheur et Combat** : plus besoin de relancer le jeu après une mise à jour ou si l’application démarre après Dofus : chaque fenêtre retrouve son personnage, avec son ordre de jeu, son niveau et sa vie, dès le premier message du jeu (changement de map, action…).
+
 ## 1.42.0 — 5 novembre 2026
 
 - **Brisage** : filtres plus compacts : un bouton par caractéristique, avec l’icône de sa rune (Vi, Sa, Fo…) ; les champs minimum et maximum n’apparaissent que pour celles choisies.
