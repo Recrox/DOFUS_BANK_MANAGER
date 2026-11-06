@@ -60,14 +60,24 @@ public static partial class GameWindows
     public static void Focus(IntPtr h)
     {
         if (IsIconic(h)) ShowWindow(h, SW_RESTORE);
-        if (SetForegroundWindow(h)) return;
-        uint target = GetWindowThreadProcessId(GetForegroundWindow(), out _), self = GetCurrentThreadId();
-        if (target == self) return;
-        AttachThreadInput(self, target, true);
+        var fg = GetForegroundWindow();
+        if (fg == h) return;
+        // Rattachement d'abord : un SetForegroundWindow refusé fait clignoter la fenêtre dans la barre des tâches
+        // (cas du clic + touche, où l'application n'a pas reçu la dernière entrée)
+        uint target = GetWindowThreadProcessId(fg, out _), self = GetCurrentThreadId();
+        bool attached = target != 0 && target != self && AttachThreadInput(self, target, true);
         try { BringWindowToTop(h); SetForegroundWindow(h); }
-        finally { AttachThreadInput(self, target, false); }
+        finally { if (attached) AttachThreadInput(self, target, false); }
         // Dernier recours (Windows refuse parfois quand l'application n'est pas active) : bascule comme Alt+Tab
         if (GetForegroundWindow() != h) SwitchToThisWindow(h, true);
+        StopFlash(h);
+    }
+
+    /// <summary>Arrête le clignotement de la fenêtre dans la barre des tâches (elle est affichée).</summary>
+    public static void StopFlash(IntPtr h)
+    {
+        var info = new FLASHWINFO { cbSize = (uint)Marshal.SizeOf<FLASHWINFO>(), hwnd = h, dwFlags = 0 };
+        FlashWindowEx(ref info);
     }
 
     /// <summary>

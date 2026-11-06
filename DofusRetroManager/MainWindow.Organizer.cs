@@ -147,7 +147,7 @@ public partial class MainWindow
         _windows = GameWindows.Find();
         if (_windows.FirstOrDefault(IsMain) is { } main)
         {
-            GameWindows.Focus(main.Handle);
+            FocusWindow(main.Handle);
             RefreshWindows();
         }
     }
@@ -267,8 +267,40 @@ public partial class MainWindow
         if (list.Count == 0) return;
         int i = list.FindIndex(w => w.Handle == GameWindows.Foreground);
         int next = i < 0 ? (step > 0 ? 0 : list.Count - 1) : (i + step + list.Count) % list.Count;
-        GameWindows.Focus(list[next].Handle);
+        FocusWindow(list[next].Handle);
         RefreshWindows();
+    }
+
+    /// <summary>Bascule en cours, surveillée contre le rebond : fenêtre demandée, fenêtre quittée, fin de surveillance.</summary>
+    (IntPtr Target, IntPtr Left, DateTime Until, int Fixes) _bounce;
+    DispatcherTimer? _bounceTimer;
+
+    /// <summary>
+    /// Met une fenêtre du jeu au premier plan, à la demande du joueur. Anti-rebond (option) : pendant une demi-seconde,
+    /// si Windows rend le premier plan à la fenêtre quittée, la fenêtre demandée est réaffichée (deux fois au plus).
+    /// Ce n'est que de la gestion de fenêtre : aucun clic ni aucune touche n'est envoyé au jeu (README, règle 3).
+    /// </summary>
+    void FocusWindow(IntPtr h)
+    {
+        var left = GameWindows.Foreground;
+        GameWindows.Focus(h);
+        if (!_organizer.FixWindowBounce || left == h || left == IntPtr.Zero) return;
+        _bounce = (h, left, DateTime.Now.AddMilliseconds(600), 0);
+        if (_bounceTimer == null)
+        {
+            _bounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
+            _bounceTimer.Tick += (_, _) => CheckBounce();
+        }
+        _bounceTimer.Start();
+    }
+
+    void CheckBounce()
+    {
+        if (DateTime.Now > _bounce.Until || _bounce.Fixes >= 2) { _bounceTimer?.Stop(); return; }
+        if (GameWindows.Foreground != _bounce.Left) return;
+        _bounce.Fixes++;
+        GameWindows.Focus(_bounce.Target);
+        AddLog("Switcheur : rebond de fenêtre corrigé.");
     }
 
     /// <summary>Fenêtres du jeu déjà vues (null avant le premier passage : celles déjà ouvertes ne sont pas agrandies).</summary>
@@ -309,7 +341,7 @@ public partial class MainWindow
 
     void OrganizerShow_Click(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is OrganizerRow row) GameWindows.Focus(new IntPtr(row.Handle));
+        if ((sender as FrameworkElement)?.DataContext is OrganizerRow row) FocusWindow(new IntPtr(row.Handle));
     }
 
     /// <summary>Étoile : ce personnage devient le principal (un seul) ; un nouveau clic sur l'étoile pleine l'enlève.</summary>
@@ -350,6 +382,9 @@ public partial class MainWindow
         _organizer.MaximizeOnStart = OrganizerMaximize.IsChecked == true;
         _organizer.LockOrderOnParty = OrganizerLockOrder.IsChecked == true;
         _organizer.ClickSwitch = OrganizerClickSwitch.IsChecked == true;
+        _organizer.ClickSwitchLeft = OrganizerClickLeft.IsChecked == true;
+        _organizer.ClickSwitchRight = OrganizerClickRight.IsChecked == true;
+        _organizer.FixWindowBounce = OrganizerFixBounce.IsChecked == true;
         bool enabledChanged = _organizer.Enabled != (OrganizerEnabled.IsChecked == true);
         _organizer.Enabled = OrganizerEnabled.IsChecked == true;
         _organizer.Save();
@@ -406,7 +441,7 @@ public partial class MainWindow
         };
         if (autoSwitch && window != null && !IsExcluded(window) && window.Handle != GameWindows.Foreground)
         {
-            GameWindows.Focus(window.Handle);
+            FocusWindow(window.Handle);
             RefreshWindows();
         }
 
@@ -427,7 +462,7 @@ public partial class MainWindow
         };
         if (_organizer.ShowToast)
             NoticeToast.Show(window?.Name is { Length: > 0 } n ? n : c.Label, text,
-                window != null ? () => GameWindows.Focus(window.Handle) : null);
+                window != null ? () => FocusWindow(window.Handle) : null);
         if (_organizer.FlashTaskbar && window != null) GameWindows.Flash(window.Handle);
         PlayNoticeSound();
     }

@@ -19,7 +19,8 @@ const TABS = [
     'BrisageLevelMax', 'BrisageCount', 'BrisageStats', 'BrisageGrid', 'BrisageGainColumn', 'BrisageEmpty', 'BrisageDetailTitle',
     'BrisageDetailSub', 'BrisageGoRecipe', 'BrisageBreakCount', 'BrisageBreakMax', 'BrisageDetailTotal', 'BrisageRunes'] },
   { key: 'hdv', label: 'HDV', watch: ['HdvSearch', 'HdvTypeFilter', 'HdvShowAll', 'HdvCount', 'HdvGrid', 'HdvEmpty',
-    'HdvDetailTitle', 'HdvDetailSub', 'HdvChart', 'HdvHistory', 'HdvForget'] },
+    'HdvDetailTitle', 'HdvDetailSub', 'HdvChart', 'HdvHistory', 'HdvForget',
+    'ShareToggle', 'ShareSync', 'SharePanel', 'ShareEnabled', 'ShareUrl', 'ShareKey', 'ShareTest', 'ShareSave', 'ShareStatus'] },
   { key: 'ttg', label: 'TTG', watch: ['TtgSearch', 'TtgRarity', 'TtgCharacter', 'TtgMissing', 'TtgShow', 'TtgShowAll', 'TtgDaysBox', 'TtgCount',
     'TtgCollection', 'TtgGrid', 'TtgBestColumn', 'TtgEmpty', 'TtgDetailTitle', 'TtgDetailSub', 'TtgOffersMode', 'TtgOffersTitle',
     'TtgOffers', 'TtgMerchantChart', 'TtgHdvChart'] },
@@ -29,9 +30,9 @@ const TABS = [
     'OcreDetailSub', 'OcreSouls'] },
   { key: 'combat', label: 'Combat', watch: ['HuntCharacterBox', 'HuntLevel', 'HuntGroupLevel', 'HuntWisdom', 'HuntProspection',
     'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
-    'HuntSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid', 'HuntDropsTitle', 'HuntDropGrid', 'HuntArchiPopup',
+    'HuntSession', 'HuntPauseSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid', 'HuntDropsTitle', 'HuntDropGrid', 'HuntArchiPopup',
     'HuntAlertsToggle', 'HuntAlertMonster', 'HuntAlertCount', 'HuntAlertMin', 'HuntAlertMax', 'HuntAlertStatus', 'HuntAlertList'] },
-  { key: 'windows', label: 'Switcheur', watch: ['OrganizerEnabled', 'HotkeyDebounce', 'OrganizerClickSwitch', 'OrganizerClickKey', 'NotifyAutoSwitchTurn', 'OrganizerSplitMode', 'OrganizerMaximize', 'OrganizerLockOrder', 'HotkeyNext', 'HotkeyPrevious', 'HotkeyMain', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
+  { key: 'windows', label: 'Switcheur', watch: ['OrganizerEnabled', 'HotkeyDebounce', 'OrganizerClickSwitch', 'OrganizerClickKey', 'OrganizerClickLeft', 'OrganizerClickRight', 'OrganizerFixBounce', 'NotifyAutoSwitchTurn', 'OrganizerSplitMode', 'OrganizerMaximize', 'OrganizerLockOrder', 'HotkeyNext', 'HotkeyPrevious', 'HotkeyMain', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
     'NotifyExchange', 'NotifyParty', 'NotifyToast', 'NotifyFlash', 'NotifySound', 'NotifyAutoSwitch', 'OrganizerCount', 'OrganizerGrid', 'OverlayEnabled', 'OverlayEconome', 'OverlayGroups', 'OverlayHarvest',
     'OverlayRotation', 'OverlayOpacity', 'OverlayOpacityText', 'OverlayMove', 'OrganizerSaveOrder', 'OrganizerResetOrder',
     'OrganizerOrderStatus'] },
@@ -39,7 +40,8 @@ const TABS = [
     'FmHistoryGrid', 'FmEmpty', 'FmWeights', 'FmWeightsPanel', 'FmWeightsGrid'] },
   { key: 'arene', label: 'Arène', watch: ['ChronoTime', 'ChronoStart', 'ChronoReset', 'ChronoFights', 'ChronoGains',
     'ChronoRate', 'ChronoGrid', 'AreneChallenges', 'AreneOtherChallenges', 'AreneGroup', 'AreneGroupEdit', 'AreneGroupName', 'AreneGroupStatus', 'AreneGroupMembers'] },
-  { key: 'carte', label: 'Carte', watch: ['CarteHarvestTitle', 'CarteHarvest', 'CarteHarvestList'] },
+  { key: 'carte', label: 'Carte', watch: ['CarteHarvestTitle', 'CarteHarvest', 'CarteHarvestList', 'CarteCellPanel', 'CarteCellTitle',
+    'CarteCellInfo', 'CarteCellHarvest', 'CarteCellList'] },
   { key: 'journal', label: 'Journal', watch: ['LogBox', 'LogPacketsBox'] },
 ];
 post({ type: 'watch', names: COMMON.concat(...TABS.map(t => t.watch || [])) });
@@ -186,14 +188,16 @@ function ttgBook() {
   if (!local.book) return '';
   const B = S._ttgBook;
   if (!B) return `<div class="modal-back" data-act="book-close"><div class="modal glass" data-act="none"><div class="empty">Données des cartes pas encore chargées.</div></div></div>`;
-  const bar = (label, done, total, tip) => `<div class="book-prog" title="${esc(tip)}"><span>${label}</span>
+  const bar = (label, done, total, tip) => `<div class="book-prog" data-tip="${esc(tip)}"><span>${label}</span>
     <i><b style="width:${total ? Math.round(100 * done / total) : 0}%"></b></i><small>${done} / ${total}</small></div>`;
   const stars = n => '★'.repeat(Math.max(1, n));
   const fam = B.Families.find(f => f.Id === local.book.fam) || B.Families.find(f => f.Owned > 0) || B.Families[0];
   const list = fam ? (local.book.shiny ? fam.Shiny : fam.Cards) : [];
-  const card = c => `<div class="book-card s${c.State} ${c.Shiny ? 'shiny' : ''}" title="${esc(c.Tip)}">
+  // Prix court : « 850 », « 125 K », « 1,2 M » (montant exact au survol)
+  const short = n => n == null ? '' : n >= 1e6 ? (n / 1e6).toFixed(1).replace('.', ',').replace(',0', '') + ' M' : n >= 1e4 ? Math.round(n / 1000) + ' K' : fmt(n);
+  const card = c => `<div class="book-card s${c.State} ${c.Shiny ? 'shiny' : ''}" data-tip="${esc(c.Tip)}">
       <small class="muted">#${c.Number}</small>${c.State > 0 && c.ArtItem ? itemImg(c.ArtItem, 'card') : '<div class="book-blank"></div>'}
-      <b>${esc(c.Name)}</b><span class="stars">${stars(c.Rarity)}</span></div>`;
+      <b>${esc(c.Name)}</b><span class="stars">${stars(c.Rarity)}</span><span class="acc strong price">${c.Price != null ? fmt(c.Price) + ' k' : ''}</span></div>`;
   return `<div class="modal-back" data-act="book-close"><div class="modal glass book" data-act="none">
       <div class="row"><h2>Collection de ${esc(B.Owner)}</h2><button class="small ghost right" data-act="book-close">✕</button></div>
       <div class="book-pages">
@@ -206,14 +210,16 @@ function ttgBook() {
           ${B.Rarities.map(r => bar(`<span class="stars">${stars(r.Rarity)}</span>`, r.Done, r.Total, `Rareté ${r.Rarity} : cartes rangées au classeur`)).join('')}
           <p class="section-title">Par familles</p>
           <div class="book-fams">${B.Families.map(f => `<button class="book-fam ${f === fam ? 'on' : ''}" data-act="book-fam" data-id="${f.Id}"
-              title="${esc(`${f.Name} : ${f.Done} / ${f.Total} au classeur` + (f.Owned > f.Done ? `, ${f.Owned} possédée(s)` : '') + (f.ShinyDone ? ` · ${f.ShinyDone} brillante(s)` : ''))}">
-              ${itemImg(f.ItemId)}<i><b style="width:${f.Total ? Math.round(100 * f.Done / f.Total) : 0}%"></b></i></button>`).join('')}</div>
+              data-tip="${esc(f.Tip)}">
+              ${itemImg(f.ItemId)}<i><b style="width:${f.Total ? Math.round(100 * f.Done / f.Total) : 0}%"></b></i><small class="muted">${short(f.PackPrice)}</small></button>`).join('')}</div>
         </section>
         <section class="book-page">
           <div class="row"><h3>${esc(fam?.Name || '')}</h3><span class="muted">${list.filter(c => c.State === 2).length} / ${list.length}</span>
+            ${fam?.PackPrice != null ? `<span class="chip" data-tip="Prix du paquet de la famille">📦 ${short(fam.PackPrice)}</span>` : ''}
+            ${fam?.MissingCost > 0 && !local.book.shiny ? `<span class="chip" data-tip="Prix connu des cartes manquantes">Manquantes ${short(fam.MissingCost)}</span>` : ''}
             <button class="small right ${local.book.shiny ? 'primary' : 'ghost'}" data-act="book-shiny" title="Cartes brillantes de la famille">✨ Brillantes</button></div>
           <div class="book-cards">${list.map(card).join('')}</div>
-          <small class="muted">Couleur : au classeur · pâle : en banque ou inventaire · pointillés : manquante (prix au survol)</small>
+          <small class="muted">Couleur : au classeur · pâle : en banque ou inventaire · pointillés : manquante</small>
         </section>
       </div></div></div>`;
 }
@@ -310,7 +316,14 @@ const views = {
     const sel = rows('HdvGrid')[S.HdvGrid?.sel ?? -1];
     return `<div class="filters">${input('HdvSearch', 'Rechercher un objet…', '260px')}${select('HdvTypeFilter')}
         ${check('HdvShowAll', 'Tous les objets du jeu')}<span class="chip">${esc(T('HdvCount'))}</span>
-        <span class="muted">Partage entre amis : dans l'interface classique</span></div>
+        <span class="right"></span><span title="Partager vos relevés de prix avec votre groupe">${btn('ShareToggle', 'Partage entre amis', 'small')}</span>
+        <span title="Récupère tout de suite les derniers prix du groupe">${btn('ShareSync', 'Synchroniser', 'small')}</span></div>
+      ${shown('SharePanel') ? `<div class="card share-panel" title="Seuls l'objet, ses prix et la date du relevé sont envoyés (aucun nom, personnage ni banque).">
+        <div class="filters">${check('ShareEnabled', 'Activer le partage')}
+          <span class="muted">Serveur</span>${input('ShareUrl', 'https://…', '300px')}
+          <span class="muted">Code de groupe</span>${input('ShareKey', 'code reçu en privé', '160px')}
+          ${btn('ShareTest', 'Tester', 'small')}${btn('ShareSave', 'Enregistrer', 'small primary')}</div>
+        ${T('ShareStatus') ? `<div class="acc strong">${esc(T('ShareStatus'))}</div>` : ''}</div>` : ''}
       <div class="split">
         ${table('HdvGrid', [
           { h: '', f: r => itemImg(r.ItemId) },
@@ -351,6 +364,7 @@ const views = {
           style="--p:${S.HuntVolume?.val ?? 70}%"><span class="muted">${esc(T('HuntVolumeText'))}</span></label>
         <button class="small" data-act="click" data-name="HuntTestSound">Tester le son</button>
         <button class="small" data-act="click" data-name="HuntNewSession">Nouvelle session</button>
+        <span title="Vous vous absentez : le temps ne compte plus dans la rentabilité. Un combat la relance.">${btn('HuntPauseSession', '⏸ Pause', 'small')}</span>
         ${check('HuntArchiPopup', 'Pop-up archi')}${check('HuntAlertsToggle', S.HuntAlertsToggle?.t || 'Alertes monstres')}
       </div>
       ${S.HuntAlertsToggle?.on ? `<div class="glass card"><div class="filters"><span class="lbl">Monstre</span>${input('HuntAlertMonster', 'Craqueleur des plaines', '200px')}
@@ -591,7 +605,8 @@ Object.assign(views, {
           <label class="org-key"><span class="k-ico">⏱</span><span>Anti-rebond</span><span class="unit">${input('HotkeyDebounce', '', '70px')} ms</span></label>
           <div class="org-key click" title="Cliquez dans le jeu en gardant cette touche enfoncée : votre clic arrive au jeu, puis la fenêtre suivante (ordre de jeu) s'affiche. Rien n'est cliqué à votre place.">
             <span class="k-ico">🖱</span><label class="check"><input type="checkbox" data-set="OrganizerClickSwitch" ${on('OrganizerClickSwitch')}>Clic +</label>
-            <span class="unit">${select('OrganizerClickKey')} : suivant</span></div>
+            <span class="unit">${select('OrganizerClickKey')}</span>${pill('OrganizerClickLeft', 'Gauche')}${pill('OrganizerClickRight', 'Droit')}<span class="unit">: suivant</span></div>
+          <div title="Si Windows rend aussitôt la main à la fenêtre quittée, la fenêtre demandée est réaffichée. Rien n'est cliqué ni tapé à votre place.">${check('OrganizerFixBounce', 'Anti-rebond fenêtre')}</div>
           ${T('HotkeyStatus') ? `<div class="bad strong small">${esc(T('HotkeyStatus'))}</div>` : ''}
           <small class="muted">Ils marchent aussi en jeu ; ils ne font qu'afficher la fenêtre.</small></section>
         <section class="card org-card"><h3><span class="ico">🔔</span>Notifications</h3>
@@ -706,6 +721,10 @@ Object.assign(views, {
           <input type="search" data-carte="search" data-fk="carteSearch" value="${esc(carte.search)}" placeholder="Zaap, Temple Iop, Bouftou, [4,-18]…">
           <div class="card harvest"><b>${esc(T('CarteHarvestTitle'))}</b>${T('CarteHarvest') ? `<div class="muted">${esc(T('CarteHarvest'))}</div>` : ''}
             <div class="harvest-chips">${rows('CarteHarvestList').map(h => `<span class="harvest-chip" title="${esc(h.Tooltip)}">${itemImg(h.ItemId)}<span><b>${esc(h.Count)}</b>${h.State ? `<small class="muted">${esc(h.State)}</small>` : ''}</span></span>`).join('')}</div></div>
+          ${shown('CarteCellPanel') ? `<div class="card harvest cell-info"><b class="ellipsis" title="${esc(T('CarteCellTitle'))}">${esc(T('CarteCellTitle'))}</b>
+            ${T('CarteCellInfo') ? `<div class="muted ellipsis" title="${esc(T('CarteCellInfo'))}">${esc(T('CarteCellInfo'))}</div>` : ''}
+            ${T('CarteCellHarvest') ? `<div class="muted">${esc(T('CarteCellHarvest'))}</div>` : ''}
+            <div class="harvest-chips">${rows('CarteCellList').map(h => `<span class="harvest-chip" title="${esc(h.Tooltip)}">${itemImg(h.ItemId)}<span><b>${esc(h.Count)}</b>${h.State ? `<small class="muted">${esc(h.State)}</small>` : ''}</span></span>`).join('')}</div></div>` : ''}
           <div class="muted">${esc(counts)}</div>
           <div class="carte-list">${list.slice(0, 400).map((h, i) => `<div class="carte-row ${carte.sel === h ? 'on' : ''}" data-act="carte-go" data-i="${i}">
             ${h.i ? `<img src="${h.i}" alt="">` : '<span></span>'}<div><b>${esc(h.n)}</b><small>${esc(h.l)}</small></div></div>`).join('')}
@@ -804,9 +823,14 @@ window.addEventListener('mouseup', e => {
   const d = carte.drag;
   carte.drag = null;
   if (!d || d.moved) return;
-  // Clic sans déplacement sur un marqueur : le point est choisi dans la liste
+  // Clic sans déplacement sur un marqueur : le point est choisi dans la liste ; ailleurs sur la carte : infos de la case
   const m = e.target.closest?.('.carte-marker[data-i]');
-  if (m) carteSelect(carte.list[+m.dataset.i], false);
+  if (m) { const h = carte.list[+m.dataset.i]; carteSelect(h, false); if (h) post({ type: 'cell', sa: h.sa, x: h.x, y: h.y }); }
+  else if (carte.el && carte.el.contains(e.target)) {
+    const r = carte.el.getBoundingClientRect();
+    const x = Math.floor((e.clientX - r.left - carte.ox) / carte.s / CW), y = Math.floor((e.clientY - r.top - carte.oy) / carte.s / CH);
+    if (S._carte?.cells[carte.sa]?.[`${x},${y}`]) { carte.sel = { x, y, sa: carte.sa }; carteView(); post({ type: 'cell', sa: carte.sa, x, y }); }
+  }
 });
 
 function carteZoom(px, py, f) {
@@ -973,7 +997,7 @@ document.addEventListener('click', e => {
       schedule();
       break;
     }
-    case 'carte-go': carteSelect(carte.list[+d.i]); break;
+    case 'carte-go': { const h = carte.list[+d.i]; carteSelect(h); if (h) post({ type: 'cell', sa: h.sa, x: h.x, y: h.y }); break; }
     case 'carte-fit': carteFit(); break;
     case 'item-hdv': post({ type: 'show', tab: 'hdv', id: +d.id }); break;
     case 'item-recipe': post({ type: 'show', tab: 'recipe', id: +d.id }); break;
@@ -1099,3 +1123,28 @@ document.addEventListener('change', e => {
 document.addEventListener('error', e => { if (e.target.tagName === 'IMG') e.target.style.visibility = 'hidden'; }, true);
 
 render();
+
+// --- Survol immédiat : éléments [data-tip] (nom, état, prix…), bulle qui suit la souris ---
+(() => {
+  const tip = document.createElement('div');
+  tip.className = 'hover-tip';
+  document.body.appendChild(tip);
+  let cur = null;
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest?.('[data-tip]');
+    if (el === cur) return;
+    cur = el;
+    if (!el || !el.dataset.tip) { tip.style.display = 'none'; return; }
+    tip.textContent = el.dataset.tip;
+    tip.style.display = 'block';
+  });
+  document.addEventListener('mousemove', e => {
+    if (!cur) return;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.min(e.clientX + 14, innerWidth - w - 6) + 'px';
+    tip.style.top = (e.clientY + 18 + h > innerHeight ? e.clientY - h - 10 : e.clientY + 18) + 'px';
+  });
+  // La page est redessinée : l'élément survolé a pu disparaître
+  new MutationObserver(() => { if (cur && !cur.isConnected) { cur = null; tip.style.display = 'none'; } })
+    .observe(document.body, { childList: true, subtree: true });
+})();

@@ -36,6 +36,14 @@ public sealed class OrganizerSettings
     public bool ClickSwitch { get; set; }
     /// <summary>Touche à garder enfoncée pendant le clic : Ctrl, Alt ou Maj.</summary>
     public string ClickSwitchKey { get; set; } = "Ctrl";
+    /// <summary>Boutons qui déclenchent le clic + touche : gauche, droit, ou les deux.</summary>
+    public bool ClickSwitchLeft { get; set; } = true;
+    public bool ClickSwitchRight { get; set; }
+    /// <summary>
+    /// Anti-rebond de fenêtre : si Windows rend aussitôt le premier plan à la fenêtre quittée, la fenêtre demandée est
+    /// réaffichée (gestion de fenêtre seulement : aucun clic ni aucune touche n'est envoyé au jeu).
+    /// </summary>
+    public bool FixWindowBounce { get; set; } = true;
     public bool NotifyFight { get; set; } = true;
     public bool NotifyTurn { get; set; } = true;
     public bool NotifyExchange { get; set; } = true;

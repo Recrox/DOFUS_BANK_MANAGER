@@ -75,7 +75,7 @@ public partial class MainWindow
         NoticeToast.Show("Archi-monstre !",
             $"{_data.GetMonster(a.MonsterId).Name} (niveau {a.Level})\n{MapText(a.MapId)}"
             + (price is { } p ? $"\nPierre ≈ {p:N0} k" : "") + (who != null ? $"\nVu par {who.Label}" : ""),
-            WindowOf(who) is { } h ? () => GameWindows.Focus(h) : null);
+            WindowOf(who) is { } h ? () => FocusWindow(h) : null);
     }
 
     /// <summary>Fenêtre du jeu d'un personnage (par son nom), si elle est ouverte.</summary>
@@ -156,6 +156,6 @@ public partial class MainWindow
         var text = $"{count}× {name} (niv. {alert.MinLevel}–{alert.MaxLevel})\n{MapText(c.MapId)} · {c.Label}";
         HuntStatus.Text = $"🔔 {count}× {name} sur la map";
         AddLog($"Alerte monstre : {count}× {name} ({c.Label}).");
-        NoticeToast.Show("Alerte monstre", text, WindowOf(c) is { } h ? () => GameWindows.Focus(h) : null);
+        NoticeToast.Show("Alerte monstre", text, WindowOf(c) is { } h ? () => FocusWindow(h) : null);
     }
 }

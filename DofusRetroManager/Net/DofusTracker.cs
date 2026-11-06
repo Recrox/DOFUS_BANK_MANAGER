@@ -185,10 +185,27 @@ public sealed class DofusTracker
     string _stream = "";
 
     /// <summary>
-    /// Personnage de la connexion du message en cours : c'est lui que modifient les messages de banque et d'inventaire.
-    /// Connexion inconnue (application lancée après la connexion) : le personnage suivi, comme avant.
+    /// Connexions dont le personnage n'est pas encore reconnu (application lancée après le jeu) : leurs changements sont
+    /// mis de côté, jamais écrits dans un autre personnage, puis repris quand la fenêtre est reconnue.
     /// </summary>
-    Snapshot Cur => _byStream.TryGetValue(_stream, out var s) ? s : State;
+    readonly Dictionary<string, (Snapshot Snap, HashSet<long> Removed)> _pending = new();
+
+    /// <summary>
+    /// Personnage de la connexion du message en cours : c'est lui que modifient les messages de banque et d'inventaire.
+    /// Connexion inconnue : un personnage provisoire, sans nom, qui n'est pas enregistré.
+    /// </summary>
+    Snapshot Cur
+    {
+        get
+        {
+            if (_byStream.TryGetValue(_stream, out var s)) return s;
+            if (!_pending.TryGetValue(_stream, out var p)) _pending[_stream] = p = (new Snapshot(), new HashSet<long>());
+            return p.Snap;
+        }
+    }
+
+    /// <summary>Connexion dont des objets ont été vus sans savoir à quel personnage ils appartiennent.</summary>
+    public bool NeedsName(string stream) => !_byStream.ContainsKey(stream) && _pending.ContainsKey(stream);
 
     /// <summary>Message reçu sur une connexion : il ne touche que le personnage de cette fenêtre de jeu.</summary>
     public void Handle(string stream, string msg)
@@ -206,14 +223,35 @@ public sealed class DofusTracker
     public void AssignStream(string stream, string name)
     {
         if (_byStream.ContainsKey(stream) || name.Length == 0) return;
-        _byStream[stream] = State.Character == name ? State
+        var snap = State.Character == name ? State
             : _byStream.Values.FirstOrDefault(s => s.Character == name) ?? LoadSnapshot(name) ?? new Snapshot { Character = name };
+        _byStream[stream] = snap;
+        if (!_pending.Remove(stream, out var p)) return;
+        // Ce qui a été vu avant la reconnaissance de la fenêtre revient à son personnage
+        foreach (var uid in p.Removed) snap.Inventory.Remove(uid);
+        foreach (var (uid, item) in p.Snap.Inventory) snap.Inventory[uid] = item;
+        if (p.Snap.BankUpdatedAt != default)
+        {
+            snap.Bank = p.Snap.Bank;
+            snap.BankKamas = p.Snap.BankKamas;
+            snap.BankUpdatedAt = p.Snap.BankUpdatedAt;
+        }
+        if (p.Snap.BinderUpdatedAt != default)
+        {
+            snap.Binder = p.Snap.Binder;
+            snap.BinderUpdatedAt = p.Snap.BinderUpdatedAt;
+        }
+        SaveSnapshot(snap);
+        if (State == p.Snap) State = snap;
+        BankChanged?.Invoke();
+        InventoryChanged?.Invoke();
     }
 
     /// <summary>Connexion fermée : son personnage n'est plus en jeu (il reste dans les banques sauvegardées).</summary>
     public void OnStreamClosed(string stream)
     {
         _byStream.Remove(stream);
+        _pending.Remove(stream);
         _exchanges.Remove(stream);
     }
 
@@ -305,6 +343,7 @@ public sealed class DofusTracker
         var snap = State.Character == name ? State
             : _byStream.Values.FirstOrDefault(s => s.Character == name) ?? LoadSnapshot(name) ?? new Snapshot { Character = name };
         _byStream[_stream] = snap;
+        _pending.Remove(_stream);
         if (snap != State)
         {
             State = snap;
@@ -391,6 +430,8 @@ public sealed class DofusTracker
 
     void OnInventoryRemove(long uid)
     {
+        // Fenêtre pas encore reconnue : le retrait sera appliqué à son personnage
+        if (!_byStream.ContainsKey(_stream)) { _ = Cur; _pending[_stream].Removed.Add(uid); }
         if (!Cur.Inventory.Remove(uid, out var old)) return;
         if (InCraft) CraftItemConsumed?.Invoke(uid, old.TemplateId, old.Quantity);
         InventoryEdited();
@@ -473,6 +514,8 @@ public sealed class DofusTracker
 
     void SaveSnapshot(Snapshot s)
     {
+        // Personnage provisoire (fenêtre pas encore reconnue) : rien n'est écrit, pour ne pas mélanger les personnages
+        if (s.Character.Length == 0) return;
         try
         {
             Directory.CreateDirectory(BanksDir);

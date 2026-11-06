@@ -79,7 +79,7 @@ public partial class MainWindow
         _overlay.TurnClicked += handle =>
         {
             if (!_organizer.Enabled) return;
-            GameWindows.Focus(new IntPtr(handle));
+            FocusWindow(new IntPtr(handle));
             RefreshWindows();
         };
         // Position retenue, si elle est encore sur un écran ; sinon en haut à droite

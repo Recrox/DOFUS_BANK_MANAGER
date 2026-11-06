@@ -277,6 +277,10 @@ public partial class MainWindow
                     if (el is Panel panel && panel.Children.OfType<ToggleButton>().ElementAtOrDefault(index) is { } toggle)
                         toggle.IsChecked = toggle.IsChecked != true;
                     break;
+                case "cell":
+                    // Case cliquée sur la carte de la page : mêmes infos que dans l'interface classique
+                    ShowCarteCellInfo(m.GetProperty("sa").GetInt32(), m.GetProperty("x").GetInt32(), m.GetProperty("y").GetInt32());
+                    break;
                 case "row":
                     var handler = m.GetProperty("handler").GetString();
                     if (handler != null && WebRowHandlers.Contains(handler) && el is ItemsControl { ItemsSource: IList list }

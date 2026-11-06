@@ -127,6 +127,8 @@ public partial class MainWindow
 
     void HuntNewSession_Click(object sender, RoutedEventArgs e) => _hunt?.NewSession();
 
+    void HuntPauseSession_Click(object sender, RoutedEventArgs e) => _hunt?.PauseSession(!_hunt.SessionPaused);
+
     bool _huntCharactersUpdating;
 
     void HuntCharacter_Changed(object sender, SelectionChangedEventArgs e)
@@ -374,10 +376,11 @@ public partial class MainWindow
         _huntSessionFights = session;
         ShowHuntDrops();
 
-        var minutes = Math.Max(1, (DateTime.Now - _hunt.SessionStart).TotalMinutes);
+        var minutes = Math.Max(1, _hunt.SessionDuration.TotalMinutes);
+        HuntPauseSession.Content = _hunt.SessionPaused ? "▶ Reprendre" : "⏸ Pause";
         double xpTotal = session.Sum(f => f.Xp), kamasTotal = session.Sum(f => f.Kamas), dropsTotal = session.Sum(Value);
         int unpriced = session.SelectMany(f => f.Drops).Select(d => d.ItemId).Distinct().Count(id => UnitPrice(id) == null);
-        HuntSession.Text = $"Session depuis {_hunt.SessionStart:HH:mm} ({minutes:0} min) · {session.Count} combat(s) · "
+        HuntSession.Text = (_hunt.SessionPaused ? "⏸ En pause · " : "") + $"Session depuis {_hunt.SessionStart:HH:mm} ({minutes:0} min) · {session.Count} combat(s) · "
             + $"{xpTotal:N0} XP · {kamasTotal:N0} kamas · drops {Kamas(dropsTotal)}"
             + (unpriced > 0 ? $" ({unpriced} objet(s) sans prix HDV, comptés 0)" : "")
             + (allSession.Select(f => f.Character).Distinct().Count() > 1

@@ -144,6 +144,9 @@ sealed class HuntData
     public List<ArchiSighting> Archis { get; set; } = new();
     public List<FightRecord> Fights { get; set; } = new();
     public DateTime SessionStart { get; set; } = DateTime.Now;
+    /// <summary>Session en pause depuis (null : en cours) et durée des pauses déjà terminées, en secondes.</summary>
+    public DateTime? SessionPausedAt { get; set; }
+    public double SessionPausedSeconds { get; set; }
     public bool SoundAlert { get; set; } = true;
     /// <summary>Volume de l'alerte archi-monstre, de 0 à 100.</summary>
     public int SoundVolume { get; set; } = 70;
@@ -198,6 +201,28 @@ public sealed class HuntTracker
     public IReadOnlyList<ArchiSighting> Archis => _store.Archis;
     public IReadOnlyList<FightRecord> Fights => _store.Fights;
     public DateTime SessionStart => _store.SessionStart;
+    public bool SessionPaused => _store.SessionPausedAt != null;
+
+    /// <summary>Durée de la session, pauses déduites (absence du joueur).</summary>
+    public TimeSpan SessionDuration =>
+        (_store.SessionPausedAt ?? DateTime.Now) - _store.SessionStart - TimeSpan.FromSeconds(_store.SessionPausedSeconds);
+
+    /// <summary>Met la session en pause (le temps ne compte plus) ou la reprend.</summary>
+    public void PauseSession(bool pause)
+    {
+        if (pause == SessionPaused) return;
+        if (pause) _store.SessionPausedAt = DateTime.Now;
+        else ResumeSession(DateTime.Now);
+        Save();
+        Changed?.Invoke();
+    }
+
+    void ResumeSession(DateTime at)
+    {
+        if (_store.SessionPausedAt is not { } since) return;
+        if (at > since) _store.SessionPausedSeconds += (at - since).TotalSeconds;
+        _store.SessionPausedAt = null;
+    }
 
     public bool SoundAlert
     {
@@ -282,6 +307,8 @@ public sealed class HuntTracker
     public void NewSession()
     {
         _store.SessionStart = DateTime.Now;
+        _store.SessionPausedAt = null;
+        _store.SessionPausedSeconds = 0;
         Save();
         Changed?.Invoke();
     }
@@ -435,6 +462,16 @@ public sealed class HuntTracker
             }
             if (s[0] is not ('+' or '~')) continue;
             var f = s[1..].Split(';');
+            // Personnage de la fenêtre, reconnu par son nom (application relancée après le jeu : identifiant inconnu,
+            // nécessaire pour le début de son tour). Seul son identifiant est gardé ; les autres joueurs sont ignorés.
+            if (c.Id == 0 && c.Name.Length > 0 && f.Length > 5 && f[5] is not ("-3" or "-1" or "-2")
+                && string.Equals(f[4], c.Name, StringComparison.OrdinalIgnoreCase) && long.TryParse(f[3], out var own) && own > 0)
+            {
+                c.Id = own;
+                Remember(c);
+                Log?.Invoke($"Identifiant de {c.Name} retrouvé sur la map.");
+                continue;
+            }
             if (f.Length < 8 || f[5] != "-3" || !long.TryParse(f[3], out var id)) continue;
 
             var ids = f[4].Split(',');
@@ -665,7 +702,13 @@ public sealed class HuntTracker
         // Longue pause depuis le dernier combat (et pas de session ouverte à la main depuis) : nouvelle session
         var last = _store.Fights.LastOrDefault();
         if (last != null && fight.Time - last.Time > SessionGap && _store.SessionStart <= last.Time)
+        {
             _store.SessionStart = fight.Time.AddSeconds(-fight.DurationSeconds);
+            _store.SessionPausedAt = null;
+            _store.SessionPausedSeconds = 0;
+        }
+        // Combat pendant une pause : le joueur est revenu, la session reprend au début du combat
+        else ResumeSession(fight.Time.AddSeconds(-fight.DurationSeconds));
         _store.Fights.Add(fight);
         if (_store.Fights.Count > MaxFights) _store.Fights.RemoveRange(0, _store.Fights.Count - MaxFights);
         Save();

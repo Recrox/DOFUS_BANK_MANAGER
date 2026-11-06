@@ -24,13 +24,17 @@ public partial class MainWindow
     /// <summary>Après chaque message : connexion dont le personnage est inconnu, on cherche sa fenêtre.</summary>
     void TryIdentify(string stream)
     {
-        if (_hunt == null || !_hunt.NeedsName(stream)) return;
+        bool hunt = _hunt?.NeedsName(stream) == true, bank = _tracker.NeedsName(stream);
+        if (!hunt && !bank) return;
         var now = DateTime.Now;
         if (_identifyTries.TryGetValue(stream, out var last) && now - last < TimeSpan.FromSeconds(10)) return;
         _identifyTries[stream] = now;
         try
         {
-            if (WindowNameOf(stream) is { } name) _hunt.Identify(stream, name);
+            if (WindowNameOf(stream) is not { } name) return;
+            if (hunt) _hunt!.Identify(stream, name);
+            // Objets vus avant la reconnaissance (sans message de combat ni de map) : ils reviennent à ce personnage
+            if (_tracker.NeedsName(stream)) _tracker.AssignStream(stream, name);
         }
         catch (Exception ex) { AddLog($"Fenêtre de la connexion introuvable : {ex.Message}"); }
     }

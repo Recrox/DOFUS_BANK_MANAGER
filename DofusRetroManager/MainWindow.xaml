@@ -822,7 +822,7 @@
                                   ToolTip="Affiche aussi les objets dont le prix n'a pas encore été relevé"/>
                         <TextBlock x:Name="HdvCount" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource TextMuted}"/>
                         <Button x:Name="ShareToggle" Content="Partage entre amis" Click="ShareToggle_Click" Margin="14,0,0,0"/>
-                        <Button Content="Synchroniser" Click="ShareSync_Click" ToolTip="Récupère tout de suite les derniers prix du groupe"/>
+                        <Button x:Name="ShareSync" Content="Synchroniser" Click="ShareSync_Click" ToolTip="Récupère tout de suite les derniers prix du groupe"/>
                     </WrapPanel>
 
                     <!-- Partage des prix entre amis (désactivé par défaut) -->
@@ -838,8 +838,8 @@
                                 <TextBox x:Name="ShareUrl" Width="330" ToolTip="Adresse du serveur du groupe, ex. https://dofus-bank-manager-hdv.xxx.workers.dev"/>
                                 <TextBlock Text="Code de groupe" Style="{StaticResource Label}"/>
                                 <TextBox x:Name="ShareKey" Width="160"/>
-                                <Button Content="Tester" Click="ShareTest_Click"/>
-                                <Button Content="Enregistrer" Click="ShareSave_Click" Style="{StaticResource AccentButton}"/>
+                                <Button x:Name="ShareTest" Content="Tester" Click="ShareTest_Click"/>
+                                <Button x:Name="ShareSave" Content="Enregistrer" Click="ShareSave_Click" Style="{StaticResource AccentButton}"/>
                             </WrapPanel>
                             <TextBlock x:Name="ShareStatus" Margin="0,8,0,0" FontWeight="SemiBold" Foreground="{DynamicResource AccentSolid}"/>
                         </StackPanel>
@@ -1401,6 +1401,8 @@
                         <Button x:Name="HuntTestSound" Content="Tester le son" Click="HuntTestSound_Click" Margin="8,0,0,0" Padding="10,3"/>
                         <Button x:Name="HuntNewSession" Content="Nouvelle session" Click="HuntNewSession_Click" Margin="8,0,0,0" Padding="10,3"
                                 ToolTip="Remet à zéro le calcul de rentabilité (les combats restent dans l'historique et servent aux estimations)"/>
+                        <Button x:Name="HuntPauseSession" Content="⏸ Pause" Click="HuntPauseSession_Click" Margin="8,0,0,0" Padding="10,3"
+                                ToolTip="Vous vous absentez : le temps ne compte plus dans la rentabilité. Un combat la relance."/>
                         <CheckBox x:Name="HuntArchiPopup" Content="Pop-up archi-monstre" VerticalAlignment="Center" Margin="14,0,0,0"
                                   Checked="HuntArchiPopup_Changed" Unchecked="HuntArchiPopup_Changed"
                                   ToolTip="Une bulle au premier plan dès qu'un archi-monstre apparaît sur la map (un clic affiche la fenêtre du personnage)"/>
@@ -1839,7 +1841,14 @@
                                   ToolTip="Cliquez dans le jeu en gardant cette touche enfoncée : votre clic arrive au jeu, puis la fenêtre suivante (ordre de jeu) s'affiche. Rien n'est cliqué à votre place."/>
                         <ComboBox x:Name="OrganizerClickKey" Width="70" SelectionChanged="OrganizerClickKey_Changed"
                                   ToolTip="Touche à garder enfoncée pendant le clic"/>
+                        <CheckBox x:Name="OrganizerClickLeft" Content="Gauche" Margin="8,0,0,0" VerticalAlignment="Center"
+                                  Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed" ToolTip="Clic gauche + touche"/>
+                        <CheckBox x:Name="OrganizerClickRight" Content="Droit" Margin="8,0,0,0" VerticalAlignment="Center"
+                                  Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed" ToolTip="Clic droit + touche"/>
                         <TextBlock Text=": suivant" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                        <CheckBox x:Name="OrganizerFixBounce" Content="Anti-rebond fenêtre" Margin="14,0,0,0" VerticalAlignment="Center"
+                                  Checked="OrganizerOption_Changed" Unchecked="OrganizerOption_Changed"
+                                  ToolTip="Si Windows rend aussitôt la main à la fenêtre quittée, la fenêtre demandée est réaffichée. Rien n'est cliqué ni tapé à votre place."/>
                         <TextBlock Text="Les raccourcis marchent aussi en jeu ; ils ne font qu'afficher la fenêtre." Foreground="{DynamicResource TextMuted}"
                                    VerticalAlignment="Center" Margin="14,0,0,0"/>
                         <TextBlock x:Name="HotkeyStatus" Foreground="{DynamicResource Missing}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="14,0,0,0"/>
@@ -2385,6 +2394,31 @@
                                     <TextBlock x:Name="CarteHarvest" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,2,0,0"/>
                                     <!-- Une icône par ressource (objet récolté), nombre et repousse ; nom et détail au survol -->
                                     <ItemsControl x:Name="CarteHarvestList" Margin="0,4,0,0">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,10,4" ToolTip="{Binding Tooltip}" Background="Transparent">
+                                                    <Image Source="{Binding Icon}" Width="24" Height="24" Margin="0,0,4,0"/>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Count}" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="{Binding State}" FontSize="10.5" Foreground="{DynamicResource TextMuted}"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                            <!-- Case cliquée sur la carte : zone, points d'intérêt, ressources des maps visitées -->
+                            <Border x:Name="CarteCellPanel" DockPanel.Dock="Top" Margin="0,8,0,0" Padding="8,6" Background="{DynamicResource Surface}"
+                                    BorderBrush="{DynamicResource AccentBorder}" BorderThickness="1" CornerRadius="{DynamicResource RadiusSm}" Visibility="Collapsed">
+                                <StackPanel>
+                                    <TextBlock x:Name="CarteCellTitle" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="CarteCellInfo" Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                                    <TextBlock x:Name="CarteCellHarvest" Foreground="{DynamicResource TextMuted}" Margin="0,2,0,0"/>
+                                    <ItemsControl x:Name="CarteCellList" Margin="0,4,0,0">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>

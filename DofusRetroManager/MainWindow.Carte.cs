@@ -84,6 +84,7 @@ public partial class MainWindow
         }
 
         CarteMap.CellHovered += ShowCarteCell;
+        CarteMap.CellClicked += (x, y) => { CarteMap.Highlight = (x, y); ShowCarteCellInfo(_carteSuperArea, x, y); };
         CarteMap.HoverLeft += () => CarteHover.Text = "Survolez la carte pour voir les coordonnées.";
         CarteMap.MarkerClicked += tag =>
         {
@@ -202,6 +203,33 @@ public partial class MainWindow
         CarteMap.Highlight = (row.Hint.Map.X, row.Hint.Map.Y);
         CarteMap.CenterOn(CarteCenter(row.Hint.Map));
         ShowCarteCell(row.Hint.Map.X, row.Hint.Map.Y);
+        ShowCarteCellInfo(row.Hint.Map.SuperArea, row.Hint.Map.X, row.Hint.Map.Y);
+    }
+
+    /// <summary>
+    /// Case cliquée sur la carte : zone, points d'intérêt et maisons, puis les ressources des maps de cette case déjà
+    /// visitées (onglet Carte, récolte) avec leur nombre disponible et leur repousse. Les prix des maisons ne sont pas connus.
+    /// </summary>
+    void ShowCarteCellInfo(int superArea, int x, int y)
+    {
+        if (_data == null) return;
+        var maps = _data.Maps.Values.Where(m => m.SuperArea == superArea && m.X == x && m.Y == y).ToList();
+        var zone = maps.GroupBy(m => m.SubArea).MaxBy(g => g.Count())?.First();
+        CarteCellTitle.Text = $"[{x},{y}]" + (zone != null ? " " + zone.Area + (zone.SubArea.Length > 0 && zone.SubArea != zone.Area ? $" ({zone.SubArea})" : "") : "");
+        CarteCellTitle.ToolTip = zone == null ? null : zone.Area + (zone.SubArea.Length > 0 && zone.SubArea != zone.Area ? $" ({zone.SubArea})" : "");
+        var here = _data.Hints.Where(h => h.Map.SuperArea == superArea && h.Map.X == x && h.Map.Y == y).ToList();
+        var houses = here.Count(h => h.Category == GameData.HouseCategory);
+        var names = here.Where(h => h.Category != GameData.HouseCategory).Select(h => h.Name).Distinct().ToList();
+        if (houses > 0) names.Add(houses == 1 ? "1 maison" : $"{houses} maisons");
+        CarteCellInfo.Text = names.Count > 0 ? string.Join(" · ", names) : "";
+        CarteCellInfo.ToolTip = here.Count == 0 ? null : string.Join("\n", here.Select(h => h.Name).Distinct())
+            + (houses > 0 ? "\nPrix des maisons : pas disponible pour l'instant." : "");
+        var lines = _harvest == null ? [] : maps.Where(m => _harvest.Maps.ContainsKey(m.Id)).SelectMany(m => _harvest.Lines(m.Id)).ToList();
+        bool visited = _harvest != null && maps.Any(m => _harvest.Maps.ContainsKey(m.Id));
+        CarteCellHarvest.Text = !visited ? "Ressources : map pas encore visitée" : lines.Count == 0 ? "Aucune ressource" : "";
+        CarteCellHarvest.Visibility = CarteCellHarvest.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        CarteCellList.ItemsSource = lines.Select(Harvest.HarvestTracker.Chip).ToList();
+        CarteCellPanel.Visibility = Visibility.Visible;
     }
 
     void ShowCarteCell(int x, int y)

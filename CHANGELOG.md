@@ -2,6 +2,19 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.45.0 — 6 novembre 2026
+
+- **PDA et Banque** : Correction : quand l'application démarre après le jeu, les objets d'un personnage ne sont plus attribués à un autre (pierres d'âme, archi-monstres affichés chez le mauvais personnage). Reconnectez une fois un personnage dont l'inventaire paraît faux pour le remettre d'aplomb.
+- **Switcheur** : Correction : application relancée pendant que le jeu est ouvert, la bascule au début du tour et le temps du tour marchent sans relancer les fenêtres Dofus (dès le premier changement de map).
+- **Switcheur** : le clic + touche marche aussi avec le clic droit (au choix : gauche, droit ou les deux).
+- **Switcheur** : option « Anti-rebond fenêtre » : si Windows rend la main à la fenêtre quittée, la fenêtre demandée est réaffichée.
+- **Switcheur** : Correction : les fenêtres du jeu ne clignotent plus dans la barre des tâches avec le clic + touche.
+- **Superposition** : l'ordre de jeu est tout en haut et ne bouge plus quand les autres blocs changent.
+- **HDV** : le partage entre amis et « Synchroniser » sont disponibles dans l'interface HTML.
+- **TTG** : le classeur est plus grand et affiche le prix de chaque carte, le prix du paquet de chaque famille et le coût des cartes manquantes ; nom, état et prix dès le survol.
+- **Carte** : un clic sur une case affiche sa zone, ses points d'intérêt, ses maisons et les ressources vues sur ses maps (nombre disponible et repousse).
+- **Combat** : bouton « Pause » pour la rentabilité de la session quand vous vous absentez ; un combat la relance.
+
 ## 1.44.0 — 5 novembre 2026
 
 - **TTG** : nouveau bouton « 📖 Classeur » : votre collection présentée comme le livre du jeu. Avancement par type (classeur, brillantes, familles complètes) et par rareté, une icône par famille avec sa progression, puis les cartes de la famille : en couleur si elles sont rangées au classeur, pâles si elles sont en banque ou dans l’inventaire, en pointillés si elles manquent (prix au survol). Les cartes brillantes ont leur propre page.

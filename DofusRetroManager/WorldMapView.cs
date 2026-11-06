@@ -33,6 +33,8 @@ public sealed class WorldMapView : Canvas
     public event Action? HoverLeft;
     /// <summary>Clic (sans déplacement) sur un marqueur : son Tag.</summary>
     public event Action<object?>? MarkerClicked;
+    /// <summary>Clic sur une case de la carte (hors marqueur, sans déplacement) : coordonnées de map.</summary>
+    public event Action<int, int>? CellClicked;
 
     public WorldMapView()
     {
@@ -225,6 +227,7 @@ public sealed class WorldMapView : Canvas
             while (d != null && d is not Visual) d = LogicalTreeHelper.GetParent(d);
             while (d != null && VisualTreeHelper.GetParent(d) is { } parent && parent != this) d = parent;
             if (d is FrameworkElement el && el != this && Children.Contains(el)) MarkerClicked?.Invoke(el.Tag);
+            else if (_hover is { } cell) CellClicked?.Invoke(cell.Item1, cell.Item2);
         }
         base.OnPreviewMouseLeftButtonUp(e);
     }

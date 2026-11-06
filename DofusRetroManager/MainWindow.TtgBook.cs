@@ -12,10 +12,14 @@ namespace DofusRetroManager;
 /// Carte du livre : State 2 = rangée au classeur, 1 = possédée ailleurs (banque, inventaire), 0 = manquante.
 /// ArtItem : objet dont l'icône est l'image de la carte (celui de la carte normale pour une brillante).
 /// </summary>
-public sealed record BookCard(int Id, int Number, string Name, int Rarity, int ArtItem, bool Shiny, int State, string Tip);
+public sealed record BookCard(int Id, int Number, string Name, int Rarity, int ArtItem, bool Shiny, int State, string Tip, double? Price = null);
 
-/// <summary>Famille du livre : cartes normales et brillantes, et combien sont rangées au classeur.</summary>
-public sealed record BookFamily(int Id, string Name, int ItemId, int Done, int Owned, int Total, int ShinyDone, List<BookCard> Cards, List<BookCard> Shiny);
+/// <summary>
+/// Famille du livre : cartes normales et brillantes, et combien sont rangées au classeur. PackPrice : prix du paquet de la
+/// famille (ItemId) ; MissingCost : prix connu des cartes normales manquantes. Tip : résumé affiché au survol.
+/// </summary>
+public sealed record BookFamily(int Id, string Name, int ItemId, int Done, int Owned, int Total, int ShinyDone, List<BookCard> Cards, List<BookCard> Shiny,
+    double? PackPrice = null, double MissingCost = 0, string Tip = "");
 
 public sealed record BookRarity(int Rarity, int Done, int Total);
 
@@ -45,8 +49,9 @@ public partial class MainWindow
             var stars = new string('★', Math.Max(1, c.Rarity));
             var tip = $"#{c.Number} {c.Name}{(c.Shiny ? " (brillante)" : "")} · {stars}\n"
                 + (state == 2 ? "Rangée au classeur" : state == 1 ? "Possédée (banque ou inventaire), pas au classeur" : "Manquante");
-            if (state < 2 && !c.Shiny && c.ItemId > 0 && BookCardPrice(c.ItemId) is { } price) tip += $" · prix {Kamas(price)}";
-            return new BookCard(c.Id, c.Number, c.Name, c.Rarity, art, c.Shiny, state, tip);
+            double? price = c.ItemId > 0 ? BookCardPrice(c.ItemId) : null;
+            tip += price is { } p ? $"\nPrix : {Kamas(p)}" : "\nPrix inconnu";
+            return new BookCard(c.Id, c.Number, c.Name, c.Rarity, art, c.Shiny, state, tip, price);
         }
 
         var all = _data.TtgCards.Values.OrderBy(c => c.Number).Select(c => (c, b: Card(c))).ToList();
@@ -54,8 +59,15 @@ public partial class MainWindow
         {
             var normal = all.Where(x => x.c.Family == f.Id && !x.c.Shiny).Select(x => x.b).ToList();
             var shiny = all.Where(x => x.c.Family == f.Id && x.c.Shiny).Select(x => x.b).ToList();
-            return new BookFamily(f.Id, f.Name, f.ItemId, normal.Count(b => b.State == 2), normal.Count(b => b.State > 0), normal.Count,
-                shiny.Count(b => b.State == 2), normal, shiny);
+            int done = normal.Count(b => b.State == 2), ownedCount = normal.Count(b => b.State > 0);
+            double? pack = f.ItemId > 0 ? BookCardPrice(f.ItemId) : null;
+            double missing = normal.Where(b => b.State == 0).Sum(b => b.Price ?? 0);
+            var tip = $"{f.Name} : {done} / {normal.Count} au classeur" + (ownedCount > done ? $", {ownedCount} possédée(s)" : "")
+                + (shiny.Count(b => b.State == 2) is > 0 and var sd ? $" · {sd} brillante(s)" : "")
+                + $"\nPaquet : {(pack is { } pk ? Kamas(pk) : "prix inconnu")}"
+                + (missing > 0 ? $"\nCartes manquantes : {Kamas(missing)}" : "");
+            return new BookFamily(f.Id, f.Name, f.ItemId, done, ownedCount, normal.Count,
+                shiny.Count(b => b.State == 2), normal, shiny, pack, missing, tip);
         }).Where(f => f.Total > 0).ToList();
         var normals = all.Where(x => !x.c.Shiny).Select(x => x.b).ToList();
         var shinies = all.Where(x => x.c.Shiny).Select(x => x.b).ToList();
@@ -67,7 +79,7 @@ public partial class MainWindow
             families);
     }
 
-    /// <summary>Prix d'une carte manquante : HDV, sinon meilleur marchand de la période, sinon dernier prix marchand.</summary>
+    /// <summary>Prix d'une carte ou d'un paquet : HDV, sinon meilleur marchand de la période, sinon dernier prix marchand.</summary>
     double? BookCardPrice(int item)
     {
         var m = _merchants?.Prices.GetValueOrDefault(item);
@@ -100,25 +112,30 @@ public sealed class TtgBookWindow : Window
     {
         _book = book;
         Title = $"Collection de {book.Owner} — Dofus Retro Manager";
-        Width = 1180;
-        Height = 760;
+        Width = 1280;
+        Height = 820;
         MinWidth = 800;
         MinHeight = 480;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         SetResourceReference(BackgroundProperty, "Bg");
         SetResourceReference(ForegroundProperty, "Text");
         SetResourceReference(FontFamilyProperty, "AppFont");
-        FontSize = 13;
+        FontSize = 14;
+        // Nom, état et prix au survol, tout de suite
+        ToolTipService.SetInitialShowDelay(this, 0);
         SourceInitialized += (_, _) => ThemeManager.ApplyTitleBar(this);
 
         var grid = new Grid { Margin = new Thickness(14) };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(400) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(440) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.Children.Add(Page(LeftPage(), 0));
         grid.Children.Add(Page(RightPage(), 1));
         Content = grid;
         Select(book.Families.FirstOrDefault(f => f.Owned > 0) ?? book.Families.FirstOrDefault());
     }
+
+    /// <summary>Prix court, en kamas : « 850 », « 125 K » (milliers), « 1,2 M » (millions).</summary>
+    static string ShortKamas(double? v) => v is not { } k ? "" : k >= 1_000_000 ? $"{k / 1_000_000:0.#} M" : k >= 10_000 ? $"{k / 1000:0} K" : $"{k:N0}";
 
     static Border Page(UIElement content, int column)
     {
@@ -176,16 +193,19 @@ public sealed class TtgBookWindow : Window
     /// <summary>Famille : icône de son paquet et petite barre de progression (nom et compte au survol).</summary>
     FrameworkElement FamilyButton(BookFamily f)
     {
-        var box = new StackPanel { Width = 52 };
-        box.Children.Add(new Image { Source = ItemIcons.Get(f.ItemId), Width = 40, Height = 40, HorizontalAlignment = HorizontalAlignment.Center });
+        var box = new StackPanel { Width = 66 };
+        box.Children.Add(new Image { Source = ItemIcons.Get(f.ItemId), Width = 52, Height = 52, HorizontalAlignment = HorizontalAlignment.Center });
         box.Children.Add(new ProgressBar { Maximum = Math.Max(1, f.Total), Value = f.Done, Height = 6, Margin = new Thickness(4, 3, 4, 0) });
+        var pack = new TextBlock { Text = ShortKamas(f.PackPrice), FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 2, 0, 0) };
+        pack.SetResourceReference(TextBlock.ForegroundProperty, "TextMuted");
+        box.Children.Add(pack);
         var button = new ToggleButton
         {
             Content = box, Tag = f, Margin = new Thickness(0, 0, 4, 6), Padding = new Thickness(2), Cursor = Cursors.Hand,
-            ToolTip = $"{f.Name} : {f.Done} / {f.Total} au classeur" + (f.Owned > f.Done ? $", {f.Owned} possédée(s)" : "")
-                + (f.ShinyDone > 0 ? $" · {f.ShinyDone} brillante(s)" : ""),
+            ToolTip = f.Tip,
         };
         button.SetResourceReference(StyleProperty, "PillToggle");
+        ToolTipService.SetInitialShowDelay(button, 0);
         button.Click += (_, _) => Select(f);
         return button;
     }
@@ -224,7 +244,8 @@ public sealed class TtgBookWindow : Window
         if (_family is not { } f) return;
         _familyTitle.Text = f.Name;
         var list = _shiny ? f.Shiny : f.Cards;
-        _familyCount.Text = $"{list.Count(c => c.State == 2)} / {list.Count}";
+        _familyCount.Text = $"{list.Count(c => c.State == 2)} / {list.Count}"
+            + (f.PackPrice is { } p ? $" · paquet {ShortKamas(p)}" : "") + (f.MissingCost > 0 && !_shiny ? $" · manquantes {ShortKamas(f.MissingCost)}" : "");
         _familyCount.SetResourceReference(TextBlock.ForegroundProperty, "TextMuted");
         foreach (var c in list) _cards.Children.Add(Tile(c));
     }
@@ -232,20 +253,24 @@ public sealed class TtgBookWindow : Window
     /// <summary>Carte : image (icône de l'objet carte), numéro, nom et étoiles de rareté ; cadre en pointillés si manquante.</summary>
     static FrameworkElement Tile(BookCard c)
     {
-        var grid = new Grid { Width = 128, Height = 176, Margin = new Thickness(0, 0, 10, 10), ToolTip = c.Tip, Background = Brushes.Transparent };
+        var grid = new Grid { Width = 156, Height = 222, Margin = new Thickness(0, 0, 12, 12), ToolTip = c.Tip, Background = Brushes.Transparent };
+        ToolTipService.SetInitialShowDelay(grid, 0);
         var stack = new StackPanel { Margin = new Thickness(8), VerticalAlignment = VerticalAlignment.Center };
         var number = new TextBlock { Text = $"#{c.Number}", FontSize = 11, HorizontalAlignment = HorizontalAlignment.Right };
         number.SetResourceReference(TextBlock.ForegroundProperty, "TextMuted");
         stack.Children.Add(number);
         if (c.State > 0)
-            stack.Children.Add(new Image { Source = ItemIcons.Get(c.ArtItem), Width = 92, Height = 92, Margin = new Thickness(0, 2, 0, 4) });
+            stack.Children.Add(new Image { Source = ItemIcons.Get(c.ArtItem), Width = 116, Height = 116, Margin = new Thickness(0, 2, 0, 4) });
         else
-            stack.Children.Add(new Border { Height = 70 });
+            stack.Children.Add(new Border { Height = 94 });
         stack.Children.Add(new TextBlock { Text = c.Name, FontWeight = FontWeights.SemiBold, TextAlignment = TextAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis, HorizontalAlignment = HorizontalAlignment.Center });
         var stars = new TextBlock { Text = new string('★', Math.Max(1, c.Rarity)), HorizontalAlignment = HorizontalAlignment.Center };
         stars.SetResourceReference(TextBlock.ForegroundProperty, "Warning");
         stack.Children.Add(stars);
+        var price = new TextBlock { Text = c.Price is { } p ? $"{p:N0} k" : "", FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
+        price.SetResourceReference(TextBlock.ForegroundProperty, "AccentSolid");
+        stack.Children.Add(price);
 
         if (c.State == 0)
         {
