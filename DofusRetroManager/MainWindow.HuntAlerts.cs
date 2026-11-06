@@ -112,7 +112,7 @@ public partial class MainWindow
                 : $"Plusieurs monstres : {string.Join(", ", distinct.Take(6))}{(distinct.Count > 6 ? "…" : "")}. Précisez le nom.";
             return;
         }
-        int Parse(TextBox t, int fallback) => int.TryParse(t.Text, out var v) && v > 0 ? v : fallback;
+        int Parse(WebTextBox t, int fallback) => int.TryParse(t.Text, out var v) && v > 0 ? v : fallback;
         int min = Parse(HuntAlertMin, 1), max = Parse(HuntAlertMax, 9999);
         // Un même nom peut couvrir plusieurs identifiants (versions du monstre) : une alerte pour chacun
         foreach (var m in found.Where(m => string.Equals(m.Name, distinct[0], StringComparison.OrdinalIgnoreCase)))

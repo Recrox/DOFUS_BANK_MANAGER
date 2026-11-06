@@ -161,7 +161,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Fond : trois halos qui dérivent lentement */
+/* Fond : trois halos, fixes. Pas d'animation : un calque flouté plein écran animé, sous les panneaux en verre, faisait
+   recalculer tous les flous à chaque image (un cœur du processeur occupé en permanence). */
 .aurora { position: fixed; inset: -20%; z-index: 0; filter: blur(70px); pointer-events: none; }
 .aurora {
   background:
@@ -169,8 +170,6 @@ body {
     radial-gradient(38% 40% at 90% 85%, var(--aurora-2), transparent 70%),
     radial-gradient(30% 35% at 70% 20%, var(--aurora-3), transparent 70%);
 }
-.aurora { animation: drift 24s ease-in-out infinite alternate; }
-@keyframes drift { to { transform: translate3d(3%, -2%, 0) rotate(4deg) scale(1.05); } }
 
 #app {
   position: relative; z-index: 1; height: 100%;

@@ -28,7 +28,12 @@ public partial class MainWindow
     const string WebOrigin = "https://app.local/";
 
     WebView2? _web;
-    readonly DispatcherTimer _webTimer = new() { Interval = TimeSpan.FromMilliseconds(400) };
+    readonly DispatcherTimer _webTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
+    /// <summary>Dernier état envoyé : compteur de changements des contrôles, heure du dernier envoi complet.</summary>
+    long _webVersion = -1;
+    DateTime _webFullAt;
+    /// <summary>Envoi complet demandé (thème changé, liste suivie changée) même si aucun contrôle n'a bougé.</summary>
+    bool _webForce;
     /// <summary>Contrôles WPF suivis par la page (noms x:Name), envoyés quand leur état change.</summary>
     HashSet<string> _webWatched = new();
     readonly Dictionary<string, string> _webSent = new();
@@ -39,19 +44,19 @@ public partial class MainWindow
     static readonly HashSet<string> WebRowHandlers =
         ["HuntDropsToggle_Click", "HuntAlertToggle_Click", "HuntAlertDelete_Click", "BankRecipes_Click", "OrganizerShow_Click", "OrganizerExclude_Click", "OrganizerMain_Click", "FmWeightReset_Click"];
 
-    void WebUiButton_Click(object sender, RoutedEventArgs e) => _ = ShowWebUiAsync();
-
     async Task ShowWebUiAsync()
     {
         try
         {
-            // Le contrôle WebView2 ne s'initialise qu'une fois affiché : le conteneur doit être visible avant l'attente
-            // (sinon, au lancement avec l'interface HTML retenue, l'initialisation ne se terminait jamais)
-            WpfRoot.Visibility = Visibility.Collapsed;
-            WebHost.Visibility = Visibility.Visible;
+            // Le contrôle WebView2 ne s'initialise qu'une fois affiché : le conteneur est visible dès le départ
             if (_web == null)
             {
-                var env = await CoreWebView2Environment.CreateAsync(null, System.IO.Path.Combine(GameData.AppDir, "WebView2"));
+                var dataDir = System.IO.Path.Combine(GameData.AppDir, "WebView2");
+#if DEBUG
+                // Tests : un dossier à part, pour tourner à côté de l'application installée déjà ouverte
+                if (Environment.GetEnvironmentVariable("DRM_WEBVIEW2_DIR") is { Length: > 0 } testDir) dataDir = testDir;
+#endif
+                var env = await CoreWebView2Environment.CreateAsync(null, dataDir);
                 _web = new WebView2 { DefaultBackgroundColor = System.Drawing.Color.FromArgb(255, 11, 10, 24) };
                 WebHost.Content = _web;
                 await _web.EnsureCoreWebView2Async(env);
@@ -75,33 +80,34 @@ public partial class MainWindow
                 _webTimer.Tick += (_, _) => PushWebState();
                 core.Navigate(WebOrigin + "index.html");
             }
-            WpfRoot.Visibility = Visibility.Collapsed;
-            WebHost.Visibility = Visibility.Visible;
             _webSent.Clear(); // la page reçoit tout l'état à nouveau
+            _webForce = true;
+            ThemeManager.Changed += () => _webForce = true;
             _webTimer.Start();
-            ThemeManager.SetHtmlUi(true);
         }
         catch (WebView2RuntimeNotFoundException)
         {
-            ShowWpfUi();
-            AddLog("Interface HTML indisponible : le runtime Microsoft Edge WebView2 n'est pas installé.");
-            MessageBox.Show(this, "L'interface HTML a besoin de Microsoft Edge WebView2 Runtime, absent de ce PC.\n"
-                + "Il est fourni avec Windows 11 ; sous Windows 10, installez-le depuis le site de Microsoft.",
-                "Dofus Retro Manager", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Sans WebView2, l'application n'a pas d'interface : le joueur est invité à l'installer
+            if (MessageBox.Show(this, "Dofus Retro Manager a besoin de Microsoft Edge WebView2 Runtime, absent de ce PC.\n"
+                + "Il est fourni avec Windows 11 ; sous Windows 10, installez-le depuis le site de Microsoft, puis relancez l'application.\n\n"
+                + "Ouvrir la page de téléchargement ?",
+                "Dofus Retro Manager", MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
+                OpenUrl(WebView2DownloadUrl);
+            Application.Current.Shutdown();
         }
         catch (Exception ex)
         {
-            ShowWpfUi();
-            AddLog("Interface HTML indisponible : " + ex.Message);
+            MessageBox.Show(this, "L'interface n'a pas pu s'ouvrir : " + ex.Message, "Dofus Retro Manager", MessageBoxButton.OK, MessageBoxImage.Error);
+            Application.Current.Shutdown();
         }
     }
 
-    void ShowWpfUi()
+    const string WebView2DownloadUrl = "https://developer.microsoft.com/microsoft-edge/webview2/";
+
+    static void OpenUrl(string url)
     {
-        _webTimer.Stop();
-        WebHost.Visibility = Visibility.Collapsed;
-        WpfRoot.Visibility = Visibility.Visible;
-        ThemeManager.SetHtmlUi(false);
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
+        catch { }
     }
 
     // --- Fichiers servis à la page ---
@@ -191,6 +197,20 @@ public partial class MainWindow
     /// <summary>Action en cours confirmée par la page : les gestionnaires sautent leur propre confirmation (MessageBox).</summary>
     bool _webConfirmed;
 
+    Dictionary<string, WebControl>? _webControls;
+
+    /// <summary>Contrôle (sans affichage) par son nom : les champs WebControl de la fenêtre (MainWindow.Controls.cs).</summary>
+    WebControl? Control(string name)
+    {
+        _webControls ??= GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
+            .Where(f => typeof(WebControl).IsAssignableFrom(f.FieldType))
+            .ToDictionary(f => f.Name, f => (WebControl)f.GetValue(this)!);
+        return _webControls.GetValueOrDefault(name);
+    }
+
+    /// <summary>Lignes d'un tableau, dans l'ordre envoyé à la page.</summary>
+    static IList? RowsOf(WebList list) => list.ItemsSource as IList ?? list.ItemsSource?.Cast<object>().ToList();
+
     void OnWebMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         try
@@ -198,17 +218,15 @@ public partial class MainWindow
             using var doc = JsonDocument.Parse(e.WebMessageAsJson);
             var m = doc.RootElement;
             var name = m.TryGetProperty("name", out var n) ? n.GetString() : null;
-            var el = name != null ? FindName(name) : null;
+            var el = name != null ? Control(name) : null;
             int index = m.TryGetProperty("index", out var ix) ? ix.GetInt32() : -1;
             switch (m.GetProperty("type").GetString())
             {
                 case "watch":
+                    // La page ne suit que l'onglet affiché : nouvelle liste à chaque changement d'onglet
                     _webWatched = m.GetProperty("names").EnumerateArray().Select(x => x.GetString()!).ToHashSet();
-                    _webSent.Clear();
+                    _webForce = true;
                     break;
-                case "ui":
-                    ShowWpfUi();
-                    return;
                 case "theme":
                     ThemeManager.Apply(m.GetProperty("value").GetString() ?? ThemeManager.Crepuscule);
                     break;
@@ -219,19 +237,19 @@ public partial class MainWindow
                     var value = m.GetProperty("value");
                     switch (el)
                     {
-                        case TextBox tb: tb.Text = value.GetString() ?? ""; break;
-                        case ComboBox cb: cb.SelectedIndex = value.GetInt32(); break;
-                        case TabControl tc: tc.SelectedIndex = value.GetInt32(); break;
-                        case ToggleButton tg: tg.IsChecked = value.GetBoolean(); break;
-                        case RangeBase range: range.Value = value.GetDouble(); break;
+                        case WebTextBox tb: tb.Text = value.GetString() ?? ""; break;
+                        case WebCombo cb: cb.SelectedIndex = value.GetInt32(); break;
+                        case WebTabs tc: tc.SelectedIndex = value.GetInt32(); break;
+                        case WebToggle tg: tg.IsChecked = value.GetBoolean(); break;
+                        case WebSlider range: range.Value = value.GetDouble(); break;
                     }
                     break;
                 case "click":
-                    if (el is ButtonBase { IsEnabled: true } button)
+                    if (el is WebButton { IsEnabled: true } button)
                     {
                         // Déjà confirmé dans la page (ex. « Oublier l'objet » de l'onglet FM) : pas de seconde confirmation Windows
                         _webConfirmed = m.TryGetProperty("confirmed", out var c) && c.GetBoolean();
-                        try { button.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); }
+                        try { button.RaiseClick(); }
                         finally { _webConfirmed = false; }
                     }
                     break;
@@ -251,7 +269,7 @@ public partial class MainWindow
                     SetFmWeight(index, m.GetProperty("value").GetString() ?? "");
                     break;
                 case "select":
-                    if (el is Selector { ItemsSource: IList rows } grid && index >= 0 && index < rows.Count) grid.SelectedItem = rows[index];
+                    if (el is WebList grid && RowsOf(grid) is { } rows && index >= 0 && index < rows.Count) grid.SelectedItem = rows[index];
                     break;
                 case "stat":
                     // Seuil du Brisage : field = on (case), min ou max
@@ -274,16 +292,16 @@ public partial class MainWindow
                         MoveInOrder(organizerRows[index], organizerRows[to]);
                     break;
                 case "toggle":
-                    if (el is Panel panel && panel.Children.OfType<ToggleButton>().ElementAtOrDefault(index) is { } toggle)
+                    if (el is WebPanel panel && panel.Children.OfType<ToggleButton>().ElementAtOrDefault(index) is { } toggle)
                         toggle.IsChecked = toggle.IsChecked != true;
                     break;
                 case "cell":
-                    // Case cliquée sur la carte de la page : mêmes infos que dans l'interface classique
+                    // Case cliquée sur la carte de la page : zone, points d'intérêt, ressources
                     ShowCarteCellInfo(m.GetProperty("sa").GetInt32(), m.GetProperty("x").GetInt32(), m.GetProperty("y").GetInt32());
                     break;
                 case "row":
                     var handler = m.GetProperty("handler").GetString();
-                    if (handler != null && WebRowHandlers.Contains(handler) && el is ItemsControl { ItemsSource: IList list }
+                    if (handler != null && WebRowHandlers.Contains(handler) && el is WebList rowList && RowsOf(rowList) is { } list
                         && index >= 0 && index < list.Count)
                         GetType().GetMethod(handler, BindingFlags.Instance | BindingFlags.NonPublic)?
                             .Invoke(this, [new FrameworkElement { DataContext = list[index] }, new RoutedEventArgs()]);
@@ -299,12 +317,19 @@ public partial class MainWindow
     void PushWebState()
     {
         if (_web?.CoreWebView2 == null || WebHost.Visibility != Visibility.Visible) return;
+        // Rien n'a changé : rien n'est relu ni envoyé (sauf une vérification toutes les 5 s, pour ce que le code modifie
+        // sans passer par un contrôle, ex. une ligne de tableau modifiée sur place)
+        var now = DateTime.Now;
+        if (!_webForce && WebControl.Version == _webVersion && now - _webFullAt < TimeSpan.FromSeconds(5)) return;
+        _webForce = false;
+        _webVersion = WebControl.Version;
+        _webFullAt = now;
         var changed = new StringBuilder();
         // La carte (données lourdes) n'est envoyée que si la page affiche l'onglet Carte
-        // Le livre TTG (toute la collection) n'est envoyé que si la page affiche l'onglet TTG
-        var extra = MainTabs.SelectedItem == CarteTab ? new[] { "_theme", "_style", "_carte", "_cartePos", "_carteRes" }
-            : MainTabs.SelectedItem == TtgTab ? ["_theme", "_style", "_ttgBook"] : ["_theme", "_style"];
-        foreach (var name in _webWatched.Concat(extra))
+        // Le livre TTG (toute la collection) n'est calculé que si la page l'affiche (« _ttgBook » dans sa liste suivie)
+        var extra = MainTabs.SelectedItem == CarteTab ? new[] { "_theme", "_style", "_changelog", "_carte", "_cartePos", "_carteRes" }
+            : ["_theme", "_style", "_changelog"];
+        foreach (var name in _webWatched.Concat(extra).Distinct())
         {
             string json;
             try
@@ -313,6 +338,7 @@ public partial class MainWindow
                 {
                     "_theme" => JsonSerializer.Serialize(ThemeManager.Current),
                     "_style" => JsonSerializer.Serialize(ThemeManager.Style),
+                    "_changelog" => _changelogAsk.ToString(),
                     "_carte" => CarteWebJson(),
                     "_cartePos" => CartePlayersJson(),
                     "_carteRes" => CarteResourcesJson(),
@@ -334,12 +360,12 @@ public partial class MainWindow
     /// </summary>
     string ElementJson(string name)
     {
-        var el = FindName(name);
+        var el = Control(name);
         using var ms = new MemoryStream();
         using (var w = new Utf8JsonWriter(ms))
         {
             w.WriteStartObject();
-            if (el is UIElement ui) w.WriteBoolean("v", ui.Visibility == Visibility.Visible);
+            if (el != null) w.WriteBoolean("v", el.Visibility == Visibility.Visible);
             if (el == BrisageStats)
             {
                 // Seuils du Brisage (contrôles créés dans le code) : caractéristique, cochée, minimum, maximum
@@ -360,49 +386,47 @@ public partial class MainWindow
             }
             switch (el)
             {
-                case RangeBase range:
+                case WebSlider range:
                     w.WriteNumber("val", range.Value);
                     w.WriteNumber("min", range.Minimum);
                     w.WriteNumber("max", range.Maximum);
                     break;
-                case DataGridColumn column:
+                case WebColumn column:
                     w.WriteString("t", column.Header as string);
                     break;
-                case ComboBox cb:
+                case WebCombo cb:
                     w.WriteStartArray("items");
                     foreach (var item in cb.Items) w.WriteStringValue(item is ContentControl cc ? cc.Content?.ToString() : item?.ToString());
                     w.WriteEndArray();
                     w.WriteNumber("i", cb.SelectedIndex);
                     break;
-                case TabControl tc:
+                case WebTabs tc:
                     w.WriteNumber("i", tc.SelectedIndex);
                     break;
-                case ItemsControl ic:
-                    var source = ic.ItemsSource;
-                    if (source != null && !(source is IList))
-                        source = source.Cast<object>().ToList();
-                    if (source == null || !_webRows.TryGetValue(name, out var cached) || !ReferenceEquals(cached.Source, ic.ItemsSource))
-                        _webRows[name] = cached = (ic.ItemsSource!, RowsJson(source));
+                case WebList ic:
+                    // Lignes reconverties seulement si la liste a été remplacée
+                    if (ic.ItemsSource == null || !_webRows.TryGetValue(name, out var cached) || !ReferenceEquals(cached.Source, ic.ItemsSource))
+                        _webRows[name] = cached = (ic.ItemsSource!, RowsJson(RowsOf(ic)));
                     w.WritePropertyName("rows");
                     w.WriteRawValue(cached.Json, skipInputValidation: true);
-                    if (ic is Selector sel && source is IList rows) w.WriteNumber("sel", sel.SelectedItem == null ? -1 : rows.IndexOf(sel.SelectedItem));
+                    if (ic.SelectedItem != null && RowsOf(ic) is { } rows) w.WriteNumber("sel", rows.IndexOf(ic.SelectedItem));
                     break;
-                case TextBox tb:
+                case WebTextBox tb:
                     w.WriteString("t", tb.Text);
                     break;
-                case TextBlock tbk:
+                case WebText tbk:
                     w.WriteString("t", tbk.Text);
                     w.WriteString("c", BrushCss(tbk.Foreground));
                     break;
-                case ToggleButton tg:
+                case WebToggle tg:
                     w.WriteBoolean("on", tg.IsChecked == true);
                     w.WriteString("t", tg.Content as string);
                     break;
-                case ButtonBase button:
+                case WebButton button:
                     w.WriteString("t", button.Content as string);
                     w.WriteBoolean("e", button.IsEnabled);
                     break;
-                case PriceChart chart:
+                case WebChart chart:
                     w.WriteStartArray("pts");
                     foreach (var (time, price) in chart.Points)
                     {
@@ -413,7 +437,7 @@ public partial class MainWindow
                     }
                     w.WriteEndArray();
                     break;
-                case Panel panel:
+                case WebPanel panel:
                     // Groupe de boutons à cocher (ex. nombre de cases des recettes)
                     w.WriteStartArray("items");
                     foreach (var t in panel.Children.OfType<ToggleButton>())
@@ -425,7 +449,7 @@ public partial class MainWindow
                     }
                     w.WriteEndArray();
                     break;
-                case Shape shape:
+                case WebShape shape:
                     w.WriteString("c", BrushCss(shape.Fill));
                     break;
             }

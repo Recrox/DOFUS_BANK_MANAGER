@@ -42,7 +42,7 @@ public partial class MainWindow
     /// Liste « Personnage » (PDA, TTG, Ocre) : « Tous les personnages » puis ceux dont une banque est connue ; la sélection
     /// est gardée. Rend le personnage choisi, null pour tous.
     /// </summary>
-    string? CharacterChoice(ComboBox box, ref bool updating)
+    string? CharacterChoice(WebCombo box, ref bool updating)
     {
         var chars = _tracker.AllSnapshots().Select(x => x.Character).Where(n => n.Length > 0).Distinct().Order()
             .Prepend(AllCharacters).ToList();
@@ -178,7 +178,6 @@ public partial class MainWindow
         if (_data == null || _pda == null || PdaGrid.SelectedItem is not PdaRow row) return;
         var m = _data.GetMonster(row.MonsterId);
         var price = _pda.Prices.GetValueOrDefault(row.Key);
-        PdaDetailIcon.Source = ItemIcons.Get(row.StoneTemplate);
         PdaDetailTitle.Text = m.Name;
         PdaDetailSub.Text = $"{m.Race} · niveau {LevelText(m)} · {row.Category}\n" + (price?.Price is { } p
             ? $"Pierre la moins chère : {Kamas(p)} · moyen : {Kamas(price.Average)}\n{price.Offers} offre(s) au dernier relevé ({Ago(price.SeenAt)})"

@@ -2,6 +2,13 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.46.0 — 6 novembre 2026
+
+- **Interface** : l'application s'ouvre toujours dans l'interface moderne (HTML) ; l'ancienne interface et le bouton « Interface classique » sont retirés, ce qui rend l'application plus légère. Les styles Classique et Moderne et les trois thèmes restent au choix en haut de la page.
+- **Carte** : la carte se charge en arrière-plan, sans figer l'application.
+- **Performance** : au repos, l'application n'occupe plus le processeur (un fond animé du style Moderne en occupait un cœur entier en permanence) ; la page n'est mise à jour que quand quelque chose change, et seulement pour l'onglet affiché, sans recharger les images.
+- **Installation** : sans Microsoft Edge WebView2 (fourni avec Windows 11), un message propose d'ouvrir sa page de téléchargement.
+
 ## 1.45.0 — 6 novembre 2026
 
 - **PDA et Banque** : Correction : quand l'application démarre après le jeu, les objets d'un personnage ne sont plus attribués à un autre (pierres d'âme, archi-monstres affichés chez le mauvais personnage). Reconnectez une fois un personnage dont l'inventaire paraît faux pour le remettre d'aplomb.

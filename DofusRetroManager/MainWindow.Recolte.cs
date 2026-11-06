@@ -34,10 +34,6 @@ public partial class MainWindow
         _sniffer.StreamClosed += stream => Ui(() => _harvest.OnStreamClosed(stream));
         _hunt!.Changed += RefreshHarvest;
 
-        // Métiers de récolte, puis leurs ressources
-        var jobs = data.Resources.Values.SelectMany(r => r.Skills).Select(s => s.Job).Distinct().Order().ToList();
-        CarteJob.ItemsSource = jobs.Prepend("Aucune").ToList();
-        CarteJob.SelectedIndex = 0;
         _harvestTimer.Tick += (_, _) => { RefreshHarvest(); UpdateOverlay(); };
         _harvestTimer.Start();
         RebuildResourceHints();
@@ -46,11 +42,7 @@ public partial class MainWindow
 
     void OnHarvestChanged()
     {
-        if (_harvest != null && _harvest.Maps.Count != _carteResourceMaps)
-        {
-            RebuildResourceHints();
-            if (_carteSuperArea >= 0 && _carteShown.Any(IsResourceFilter)) ApplyCarteFilters();
-        }
+        if (_harvest != null && _harvest.Maps.Count != _carteResourceMaps) RebuildResourceHints();
         RefreshHarvest();
         UpdateOverlay();
     }
@@ -68,38 +60,6 @@ public partial class MainWindow
                 return new MapHint($"{r.Name} ×{g.Count()}", ResourceFilterBase + r.Id, r.ItemId, _data.Maps[m.Key]);
             }))
             .ToList();
-        CarteResourceInfo.Text = _harvest.Maps.Count == 0 ? "aucune map lue pour l'instant"
-            : $"{_harvest.Maps.Count} map(s) lue(s)";
-    }
-
-    /// <summary>Métier choisi : ses ressources deviennent des boutons à cocher (icône de l'objet obtenu).</summary>
-    void CarteJob_Changed(object sender, SelectionChangedEventArgs e)
-    {
-        if (_data == null) return;
-        CarteResourceFilters.Children.Clear();
-        var job = CarteJob.SelectedIndex > 0 ? CarteJob.SelectedItem as string : null;
-        if (job == null) return;
-        foreach (var r in _data.Resources.Values.Where(r => r.Skills.Any(s => s.Job == job))
-                     .OrderBy(r => _data.GetItem(r.Skills.First(s => s.Job == job).ItemId).Level).ThenBy(r => r.Name))
-        {
-            int key = ResourceFilterBase + r.Id;
-            var item = r.Skills.First(s => s.Job == job).ItemId;
-            var content = new StackPanel { Orientation = Orientation.Horizontal };
-            if (ItemIcons.Get(item) is { } icon)
-                content.Children.Add(new Image { Source = icon, Width = 18, Height = 18, Margin = new Thickness(0, 0, 6, 0) });
-            content.Children.Add(new TextBlock { Text = r.Name, VerticalAlignment = VerticalAlignment.Center });
-            int maps = _carteResourceHints.Count(h => h.Category == key);
-            var toggle = new ToggleButton
-            {
-                Content = content, Tag = key, Style = (Style)FindResource("PillToggle"), Margin = new Thickness(0, 0, 4, 4),
-                IsChecked = _carteShown.Contains(key),
-                ToolTip = $"{r.Name} : {string.Join(", ", r.Skills.Select(s => _data.GetItem(s.ItemId).Name + " (" + s.Job + ")"))}\n"
-                          + (maps == 0 ? "Pas encore vue sur une map visitée." : $"Vue sur {maps} map(s) visitée(s)."),
-            };
-            toggle.Checked += CarteFilter_Changed;
-            toggle.Unchecked += CarteFilter_Changed;
-            CarteResourceFilters.Children.Add(toggle);
-        }
     }
 
     /// <summary>Ressources de la map du personnage affiché (onglet Combat) : texte du bloc « Récolte sur la map ».</summary>

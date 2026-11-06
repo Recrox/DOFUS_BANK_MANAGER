@@ -152,7 +152,6 @@ public partial class MainWindow
         var hdv = _hdv?.Prices.GetValueOrDefault(row.ItemId);
 
         TtgDetailTitle.Text = row.Name;
-        TtgDetailIcon.Source = ItemIcons.Get(row.ItemId);
         int days = TtgDays;
         var lines = new List<string> { $"{row.Rarity} · {row.Owned} possédé(s)" + (row.InBinder ? " · dans le classeur" : "") };
         lines.Add(m?.Last is { } last

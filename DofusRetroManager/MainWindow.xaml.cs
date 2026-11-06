@@ -77,7 +77,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        KeepColumnWidths(this);
+        WireControls();
         InitOrganizer();
         InitOverlay();
         _isAdmin = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
@@ -98,7 +98,6 @@ public partial class MainWindow : Window
         Closed += (_, _) => { _sniffer.Dispose(); ThemeManager.Changed -= OnThemeChanged; };
         SourceInitialized += (_, _) => ThemeManager.ApplyTitleBar(this);
         ThemeManager.Changed += OnThemeChanged;
-        UpdateThemeUi();
         VersionText.Text = "v" + UpdateChecker.CurrentText;
     }
 
@@ -153,7 +152,6 @@ public partial class MainWindow : Window
             // Nouvelle version (éventuellement plus récente que celle déjà signalée) : bandeau remis à zéro
             _update = update;
             _installerPath = null;
-            UpdateProgress.Visibility = Visibility.Collapsed;
             UpdateText.Text = "L'application télécharge l'installateur puis le lance : il remplace cette version en gardant vos banques et vos prix.";
             UpdateActionButton.Content = "Télécharger et installer";
             UpdateTitle.Text = $"Nouvelle version {_update.Latest} disponible (vous avez la {UpdateChecker.CurrentText})";
@@ -195,17 +193,14 @@ public partial class MainWindow : Window
         _download = new CancellationTokenSource();
         UpdateActionButton.IsEnabled = false;
         UpdateLaterButton.Content = "Annuler";
-        UpdateProgress.Visibility = Visibility.Visible;
         UpdateText.Text = "Téléchargement de l'installateur…";
         var progress = new Progress<double>(p =>
         {
-            UpdateProgressFill.Width = UpdateProgress.ActualWidth * p;
             UpdateText.Text = $"Téléchargement de l'installateur… {p:P0}";
         });
         try
         {
             _installerPath = await UpdateChecker.DownloadAsync(_update, progress, _download.Token);
-            UpdateProgressFill.Width = UpdateProgress.ActualWidth;
             AddLog($"Installateur {_update.Latest} téléchargé : {_installerPath}");
             if (UpdateChecker.CanUpdateSilently) { InstallUpdate(); return; }
             // Application lancée hors installation (ex. dossier de développement) : l'assistant demande où installer
@@ -216,12 +211,10 @@ public partial class MainWindow : Window
         catch (OperationCanceledException)
         {
             UpdateText.Text = "Téléchargement annulé.";
-            UpdateProgress.Visibility = Visibility.Collapsed;
         }
         catch (Exception ex)
         {
             UpdateText.Text = "Téléchargement impossible : " + ex.Message + " Réessayez, ou passez par « Nouveautés » pour le télécharger depuis GitHub.";
-            UpdateProgress.Visibility = Visibility.Collapsed;
             AddLog("Téléchargement de la mise à jour impossible : " + ex.Message);
         }
         finally
@@ -283,14 +276,10 @@ public partial class MainWindow : Window
             "Mise à jour", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
-    void Changelog_Click(object sender, RoutedEventArgs e) => ShowChangelog();
+    /// <summary>Demandes d'ouverture des nouveautés : la page ouvre sa fenêtre « Nouveautés » à chaque nouvelle demande.</summary>
+    int _changelogAsk;
 
-    void ShowChangelog()
-    {
-        var open = OwnedWindows.OfType<ChangelogWindow>().FirstOrDefault();
-        if (open != null) { open.Activate(); return; }
-        new ChangelogWindow { Owner = this }.Show();
-    }
+    void ShowChangelog() { _changelogAsk++; _webForce = true; }
 
     void UpdateLater_Click(object sender, RoutedEventArgs e)
     {
@@ -344,7 +333,6 @@ public partial class MainWindow : Window
         if (item == null)
         {
             FmItemName.Text = "Aucun objet";
-            FmItemIcon.Source = null;
             FmReliquat.Text = "0";
             FmStats.ItemsSource = null;
             FmHistoryGrid.ItemsSource = null;
@@ -352,7 +340,6 @@ public partial class MainWindow : Window
         }
 
         FmItemName.Text = _data.GetItem(item.TemplateId).Name;
-        FmItemIcon.Source = ItemIcons.Get(item.TemplateId);
         FmReliquat.Text = item.Reliquat.ToString("0.##");
         FmStats.ItemsSource = _fm.ParseStats(item.Effects)
             .Where(kv => kv.Value != 0)
@@ -474,42 +461,18 @@ public partial class MainWindow : Window
 
     // --- Thème ---
 
-    void ThemeButton_Click(object sender, RoutedEventArgs e) => ThemePopup.IsOpen = !ThemePopup.IsOpen;
-
-    void StyleButton_Click(object sender, RoutedEventArgs e) =>
-        ThemeManager.ApplyStyle(ThemeManager.Style == ThemeManager.Moderne ? ThemeManager.Classique : ThemeManager.Moderne);
-
-    void ThemeOption_Click(object sender, RoutedEventArgs e)
-    {
-        ThemePopup.IsOpen = false;
-        ThemeManager.Apply(sender == ThemeJour ? ThemeManager.Jour
-            : sender == ThemeNuit ? ThemeManager.Nuit : ThemeManager.Crepuscule);
-    }
-
     void OnThemeChanged()
     {
-        UpdateThemeUi();
         RefreshFm();
         // Les couleurs des ingrédients sont calculées à l'affichage : on les recalcule
         RecipeGrid_SelectionChanged(RecipeGrid, null!);
     }
 
-    void UpdateThemeUi()
-    {
-        var current = ThemeManager.Current;
-        ThemeJour.Tag = current == ThemeManager.Jour ? "selected" : "";
-        ThemeCrepuscule.Tag = current == ThemeManager.Crepuscule ? "selected" : "";
-        ThemeNuit.Tag = current == ThemeManager.Nuit ? "selected" : "";
-        ThemeButtonIcon.Data = (System.Windows.Media.Geometry)FindResource("Icon" + current);
-        // Le bouton propose l'autre style
-        StyleButtonText.Text = ThemeManager.Style == ThemeManager.Moderne ? "Classique" : "Moderne";
-    }
-
     async Task InitAsync()
     {
         UpdateCaptureUi();
-        // Interface HTML choisie au lancement précédent
-        if (ThemeManager.HtmlUi) _ = ShowWebUiAsync();
+        // Interface HTML : la seule interface de l'application
+        _ = ShowWebUiAsync();
         StartUpdateChecks();
         _ = Dispatcher.BeginInvoke(ShowUpdateResult, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         try
@@ -533,7 +496,6 @@ public partial class MainWindow : Window
         InitHunt(_data);
         InitHarvest(_data);
         InitOcre(_data);
-        InitCarte(_data);
         InitArene();
         InitHdv(_data);
         _usage = _data.Recipes.SelectMany(r => r.Ingredients.Select(i => i.ItemId).Distinct())
@@ -777,7 +739,7 @@ public partial class MainWindow : Window
             _bankTypesUpdating = false;
         }
         var shown = BankCharacter.SelectedIndex > 0
-            ? snapshots.Skip(1).FirstOrDefault(x => x.Character == (string)BankCharacter.SelectedItem) ?? current
+            ? snapshots.Skip(1).FirstOrDefault(x => x.Character == BankCharacter.SelectedItem as string) ?? current
             : current;
 
         var all = shown.Bank.Values
@@ -925,7 +887,6 @@ public partial class MainWindow : Window
         if (_hdv == null || _data == null || HdvGrid.SelectedItem is not HdvRow row) return;
         var price = _hdv.Prices.GetValueOrDefault(row.ItemId);
         HdvDetailTitle.Text = row.Name;
-        HdvDetailIcon.Source = ItemIcons.Get(row.ItemId);
         HdvDetailSub.Text = price == null
             ? "Pas encore de prix relevé : consultez cet objet dans un hôtel de vente en jeu."
             : $"Prix unitaire : {Kamas(price.UnitPrice)} · moyen : {Kamas(price.Average)}\n{price.Offers} lot(s) en vente au dernier relevé ({Ago(price.SeenAt)})";
@@ -957,7 +918,6 @@ public partial class MainWindow : Window
         if (RecipeGrid.SelectedItem is not RecipeRow row || _data == null) return;
 
         DetailTitle.Text = row.Name;
-        DetailIcon.Source = ItemIcons.Get(row.Recipe.ResultId);
         DetailSub.Text = $"Niveau {row.Level} · {row.Type} · {row.Jobs}"
             + (row.Craftable > 0 ? $"\nFaisable {row.Craftable} fois" : $"\nIl manque {row.MissingKinds} ingrédient(s)");
 
@@ -1027,7 +987,7 @@ public partial class MainWindow : Window
         SetProfit(DetailProfitOwned, "Hors ressources possédées", known && toBuy < total ? sell - toBuy : null, toBuy);
     }
 
-    void SetProfit(TextBlock target, string label, double? profit, double cost)
+    void SetProfit(WebText target, string label, double? profit, double cost)
     {
         target.Text = profit is { } p
             ? $"{label} : {(p >= 0 ? "+" : "")}{Kamas(p)}" + (cost > 0 ? $" ({p / cost:+0%;-0%;0%})" : "")
@@ -1125,13 +1085,6 @@ public partial class MainWindow : Window
         if ((sender as FrameworkElement)?.DataContext is BankRow row) ShowRecipesUsing(row.ItemId);
     }
 
-    void BankGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
-    {
-        // Double-clic sur une ligne seulement (pas sur un en-tête de colonne)
-        if (ItemsControl.ContainerFromElement(BankGrid, e.OriginalSource as DependencyObject) is DataGridRow { Item: BankRow { UsedIn: > 0 } row })
-            ShowRecipesUsing(row.ItemId);
-    }
-
     /// <summary>Ouvre l'onglet Recettes sur toutes les recettes qui utilisent cet objet, les autres filtres remis à zéro.</summary>
     void ShowRecipesUsing(int itemId)
     {
@@ -1169,29 +1122,8 @@ public partial class MainWindow : Window
     /// Remplace les lignes d'une grille en conservant le tri choisi par l'utilisateur (clic sur un en-tête) :
     /// WPF l'efface à chaque changement d'ItemsSource, par exemple à chaque nouveau prix HDV.
     /// </summary>
-    static void SetRows(DataGrid grid, System.Collections.IEnumerable rows)
-    {
-        var sorts = grid.Items.SortDescriptions.ToList();
-        var directions = grid.Columns.Select(c => c.SortDirection).ToList();
-        grid.ItemsSource = rows;
-        foreach (var s in sorts) grid.Items.SortDescriptions.Add(s);
-        for (int i = 0; i < directions.Count; i++) grid.Columns[i].SortDirection = directions[i];
-    }
-
-    /// <summary>
-    /// Quand la place manque, une grille avec une colonne étoile rétrécit aussi les colonnes à largeur fixe jusqu'à
-    /// leur MinWidth (20 px), ce qui coupe les prix. Leur largeur devient donc un minimum : la grille défile à la place.
-    /// </summary>
-    static void KeepColumnWidths(DependencyObject root)
-    {
-        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
-        {
-            if (child is DataGrid grid)
-                foreach (var c in grid.Columns.Where(c => c.Width.IsAbsolute && c.MinWidth < c.Width.Value))
-                    c.MinWidth = c.Width.Value;
-            KeepColumnWidths(child);
-        }
-    }
+    /// <summary>Lignes d'un tableau : le tri et la pagination sont faits par la page.</summary>
+    static void SetRows(WebList grid, System.Collections.IEnumerable rows) => grid.ItemsSource = rows;
 
     void AddLog(string msg)
     {

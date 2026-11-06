@@ -21,22 +21,12 @@ public static class ThemeManager
 
     public static string Current { get; private set; } = Crepuscule;
     public static string Style { get; private set; } = Classique;
-    /// <summary>Interface HTML/CSS (WebView2) au lieu de l'interface WPF, retenue d'un lancement à l'autre.</summary>
-    public static bool HtmlUi { get; private set; }
-
-    public static void SetHtmlUi(bool html)
-    {
-        HtmlUi = html;
-        Save();
-    }
-
     public static event Action? Changed;
 
     public static void LoadSaved()
     {
-        // Premier lancement (aucun réglage enregistré) : interface HTML, style Moderne. Ensuite, le choix de l'utilisateur
-        // est retenu ; un settings.json d'une ancienne version sans ces champs garde l'interface classique.
-        var settings = new Settings { Style = Moderne, HtmlUi = true };
+        // Premier lancement (aucun réglage enregistré) : style Moderne. Ensuite, le choix de l'utilisateur est retenu.
+        var settings = new Settings { Style = Moderne };
         try
         {
             if (File.Exists(SettingsPath))
@@ -44,7 +34,6 @@ public static class ThemeManager
         }
         catch { settings = new Settings(); }
         Style = settings.Style == Moderne ? Moderne : Classique;
-        HtmlUi = settings.HtmlUi;
         Apply(settings.Theme, save: false);
     }
 
@@ -84,7 +73,7 @@ public static class ThemeManager
         try
         {
             Directory.CreateDirectory(GameData.AppDir);
-            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(new Settings { Theme = Current, Style = Style, HtmlUi = HtmlUi }));
+            File.WriteAllText(SettingsPath, JsonSerializer.Serialize(new Settings { Theme = Current, Style = Style }));
         }
         catch { }
     }
@@ -93,7 +82,6 @@ public static class ThemeManager
     {
         public string Theme { get; set; } = Crepuscule;
         public string Style { get; set; } = Classique;
-        public bool HtmlUi { get; set; }
     }
 
     [DllImport("dwmapi.dll")]

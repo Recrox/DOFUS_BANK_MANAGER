@@ -89,13 +89,3 @@ public static class SpellIcons
         return img;
     }
 }
-
-/// <summary>Convertit un identifiant d'objet en icône (chargée à l'affichage de la ligne).</summary>
-public sealed class ItemIconConverter : IValueConverter
-{
-    public object? Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
-        value is int id ? ItemIcons.Get(id) : null;
-
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
-        throw new NotSupportedException();
-}

@@ -55,7 +55,7 @@ public partial class MainWindow
             };
             var min = new TextBox { Width = 46, Padding = new Thickness(2, 0, 2, 0), HorizontalContentAlignment = HorizontalAlignment.Center, ToolTip = $"{stat.Name} minimum", Margin = new Thickness(4, 0, 0, 0) };
             var max = new TextBox { Width = 46, Padding = new Thickness(2, 0, 2, 0), HorizontalContentAlignment = HorizontalAlignment.Center, ToolTip = $"{stat.Name} maximum (vide = pas de limite)" };
-            var to = new TextBlock { Text = "à", Style = (Style)FindResource("Label"), Margin = new Thickness(4, 0, 4, 0) };
+            var to = new TextBlock { Text = "à", Margin = new Thickness(4, 0, 4, 0) };
             var filter = new StatFilter(stat, shortName, rune, box, min, max);
             void ShowBounds()
             {
@@ -128,7 +128,6 @@ public partial class MainWindow
             return;
         }
         int n = int.TryParse(BrisageBreakCount.Text, out var c) && c > 0 ? Math.Min(c, 100_000) : 1;
-        BrisageDetailIcon.Source = ItemIcons.Get(row.ItemId);
         BrisageDetailTitle.Text = row.Name;
         BrisageGoRecipe.Visibility = _rows.Any(r => r.Recipe.ResultId == row.ItemId) ? Visibility.Visible : Visibility.Collapsed;
         BrisageDetailSub.Text = $"Niveau {row.Level} · {row.Type}" + (row.Owned > 0 ? $" · {row.Owned} possédé(s)" : "") + $"\n{row.Stats}";

@@ -156,9 +156,6 @@ public partial class MainWindow
 
     /// <summary>Ordre déplacé par glisser-déposer, pas encore enregistré (il s'applique déjà).</summary>
     List<string>? _pendingOrder;
-    bool _dragging;
-    Point _dragStart;
-    OrganizerRow? _dragRow;
 
     /// <summary>
     /// Ordre de jeu : celui choisi par glisser-déposer s'il y en a un (les personnages qui n'y sont pas suivent, par
@@ -179,42 +176,7 @@ public partial class MainWindow
         }).ToList();
     }
 
-    // --- Glisser-déposer : réorganiser l'ordre de jeu ---
-
-    void OrganizerGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        _dragRow = null;
-        // Pas depuis un bouton ou une case (étoile, Exclure, Afficher)
-        for (var d = e.OriginalSource as DependencyObject; d != null && d != OrganizerGrid; d = System.Windows.Media.VisualTreeHelper.GetParent(d))
-            if (d is System.Windows.Controls.Primitives.ButtonBase) return;
-        if (ItemsControl.ContainerFromElement(OrganizerGrid, e.OriginalSource as DependencyObject) is DataGridRow { Item: OrganizerRow row }
-            && !row.Excluded && WindowName(row).Length > 0)
-        {
-            _dragRow = row;
-            _dragStart = e.GetPosition(OrganizerGrid);
-        }
-    }
-
-    void OrganizerGrid_PreviewMouseMove(object sender, MouseEventArgs e)
-    {
-        if (_dragRow == null || e.LeftButton != MouseButtonState.Pressed) return;
-        var p = e.GetPosition(OrganizerGrid);
-        if (Math.Abs(p.X - _dragStart.X) < SystemParameters.MinimumHorizontalDragDistance
-            && Math.Abs(p.Y - _dragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
-        var row = _dragRow;
-        _dragRow = null;
-        _dragging = true; // la liste n'est pas rafraîchie pendant le déplacement
-        try { DragDrop.DoDragDrop(OrganizerGrid, row, DragDropEffects.Move); }
-        finally { _dragging = false; }
-        RefreshWindows();
-    }
-
-    void OrganizerGrid_Drop(object sender, DragEventArgs e)
-    {
-        if (e.Data.GetData(typeof(OrganizerRow)) is OrganizerRow source
-            && ItemsControl.ContainerFromElement(OrganizerGrid, e.OriginalSource as DependencyObject) is DataGridRow { Item: OrganizerRow target })
-            MoveInOrder(source, target);
-    }
+    // --- Ordre de jeu réorganisé par glisser-déposer dans la page (message « reorder ») ---
 
     /// <summary>Place le personnage de la ligne « source » à la place de celui de « target » (ordre en attente).</summary>
     void MoveInOrder(OrganizerRow source, OrganizerRow target)
@@ -308,7 +270,6 @@ public partial class MainWindow
 
     void RefreshWindows()
     {
-        if (_dragging) return;
         _windows = GameWindows.Find();
         // « Agrandir au démarrage » : une fenêtre du jeu qui vient d'apparaître est agrandie, une seule fois
         var handles = _windows.Select(w => w.Handle).ToHashSet();
@@ -391,17 +352,6 @@ public partial class MainWindow
         if (enabledChanged) RegisterHotkeys();
         UpdateClickSwitch();
         OrganizerOptions.IsEnabled = _organizer.Enabled;
-    }
-
-    /// <summary>Saisie d'un raccourci : la combinaison pressée remplace le texte ; Suppr ou Retour arrière l'efface.</summary>
-    void Hotkey_PreviewKeyDown(object sender, KeyEventArgs e)
-    {
-        if (sender is not TextBox box) return;
-        e.Handled = true;
-        var key = e.Key == Key.System ? e.SystemKey : e.Key;
-        if (key is Key.Delete or Key.Back) { box.Text = ""; return; }
-        var text = GlobalHotkeys.Format(Keyboard.Modifiers, key);
-        if (text.Length > 0) box.Text = text;
     }
 
     void Hotkey_Changed(object sender, TextChangedEventArgs e)

@@ -44,7 +44,17 @@ const TABS = [
     'CarteCellInfo', 'CarteCellHarvest', 'CarteCellList'] },
   { key: 'journal', label: 'Journal', watch: ['LogBox', 'LogPacketsBox'] },
 ];
-post({ type: 'watch', names: COMMON.concat(...TABS.map(t => t.watch || [])) });
+// Contrôles suivis : l'en-tête et l'onglet affiché seulement (et le livre TTG quand il est ouvert) ; l'application ne
+// relit et n'envoie que ceux-là. La liste est renvoyée à chaque changement d'onglet.
+let watching = '';
+function watchTab(active) {
+  const names = COMMON.concat(TABS[active]?.watch || [], local.book ? ['_ttgBook'] : []);
+  const key = names.join(',');
+  if (key === watching) return;
+  watching = key;
+  post({ type: 'watch', names });
+}
+watchTab(0);
 
 // --- Utilitaires ---
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -162,7 +172,6 @@ function header() {
       ${btn('AdminButton', 'Relancer en administrateur')}
       ${btn('CaptureButton', 'Démarrer la capture', 'primary')}
       <button data-act="changelog" title="Les changements de chaque version">Nouveautés</button>
-      <button data-act="ui">Interface classique</button>
     </div>
   </header>`;
 }
@@ -934,6 +943,40 @@ function carteGoto() {
   requestAnimationFrame(() => { carteCenter(g.x, g.y, 1.5); carteHover(g.x, g.y); });
 }
 
+// Mise à jour de la page : seuls les éléments qui ont changé sont modifiés (texte, attributs, lignes ajoutées ou retirées).
+// Les images déjà chargées, la saisie en cours, le défilement et la carte restent en place.
+function morphHtml(root, html) {
+  const next = document.createElement('div');
+  next.innerHTML = html;
+  morphChildren(root, next);
+}
+
+function morphChildren(a, b) {
+  if (a.id === 'carte-host') return; // vue de la carte, posée par carteMount
+  const live = a.childNodes, wanted = [...b.childNodes];
+  for (let i = 0; i < wanted.length; i++) {
+    const x = live[i], y = wanted[i];
+    if (!x) a.appendChild(y);
+    else if (x.nodeType !== y.nodeType || x.nodeName !== y.nodeName) a.replaceChild(y, x);
+    else if (x.nodeType !== 1) { if (x.nodeValue !== y.nodeValue) x.nodeValue = y.nodeValue; }
+    // Bloc identique (comparaison native, rapide) : rien à faire, sauf pour les champs dont la valeur saisie diffère
+    else if (x.isEqualNode(y) && !x.querySelector?.('input, select') && x.tagName !== 'INPUT') { }
+    else morphElement(x, y);
+  }
+  while (live.length > wanted.length) a.removeChild(a.lastChild);
+}
+
+function morphElement(a, b) {
+  for (const { name } of [...a.attributes]) if (!b.hasAttribute(name)) a.removeAttribute(name);
+  for (const { name, value } of b.attributes) if (a.getAttribute(name) !== value) a.setAttribute(name, value);
+  // État des champs : la valeur affichée n'est pas un attribut (sauf pour le champ en cours de saisie)
+  if (a.tagName === 'INPUT') {
+    if (a !== document.activeElement && a.value !== b.value) a.value = b.value;
+    if (a.checked !== b.checked) a.checked = b.checked;
+  } else if (a.tagName === 'OPTION') { if (a.selected !== b.selected) a.selected = b.selected; }
+  morphChildren(a, b);
+}
+
 let pending = false;
 function render() {
   pending = false;
@@ -941,14 +984,17 @@ function render() {
   document.documentElement.dataset.style = (S._style || 'Moderne').toLowerCase();
   const active = S.MainTabs?.i ?? 0;
   const tab = TABS[active] || TABS[0];
+  watchTab(active);
 
   // Garder la saisie en cours et le défilement des tableaux pendant le rendu
   const focus = document.activeElement?.dataset?.fk ? { key: document.activeElement.dataset.fk, value: document.activeElement.value,
     start: document.activeElement.selectionStart, end: document.activeElement.selectionEnd } : null;
   const scroll = [...document.querySelectorAll('.table-wrap, .detail, .modal-body')].map(e => e.scrollTop);
 
-  document.getElementById('app').innerHTML = header() + banner() + tabs(active)
+  const html = header() + banner() + tabs(active)
     + `<main class="glass">${views[tab.key]()}</main>` + changelog() + confirmBox() + ttgBook();
+  const app = document.getElementById('app');
+  if (local.noMorph) app.innerHTML = html; else morphHtml(app, html);
 
   if (tab.key === 'carte') carteMount();
   document.querySelectorAll('.table-wrap, .detail, .modal-body').forEach((e, i) => { if (scroll[i]) e.scrollTop = scroll[i]; });
@@ -970,6 +1016,8 @@ const schedule = () => { if (!pending) { pending = true; requestAnimationFrame(r
 window.chrome.webview.addEventListener('message', e => {
   if (e.data?.type !== 'update') return;
   Object.assign(S, e.data.data);
+  // Nouveautés demandées par l'application (après une mise à jour) : la fenêtre s'ouvre une fois par demande
+  if ((S._changelog || 0) > (local.changelogSeen || 0)) { local.changelogSeen = S._changelog; local.changelog = true; }
   schedule();
 });
 
@@ -980,7 +1028,6 @@ document.addEventListener('click', e => {
   switch (d.act) {
     case 'click': post({ type: 'click', name: d.name }); break;
     case 'tab': post({ type: 'set', name: 'MainTabs', value: +d.i }); S.MainTabs = { i: +d.i }; schedule(); break;
-    case 'ui': post({ type: 'ui' }); break;
     case 'changelog': local.changelog = true; schedule(); break;
     case 'changelog-close': local.changelog = false; schedule(); break;
     case 'book': local.book = { fam: null, shiny: false }; schedule(); break;

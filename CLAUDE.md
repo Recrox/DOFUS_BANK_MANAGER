@@ -28,9 +28,17 @@ L'utilisateur pousse souvent entre deux demandes, et chaque push sur `main` publ
 
 ## Interface : peu de texte, des images du jeu
 
-L'utilisateur veut une interface compacte, sans longs textes. À chaque ajout ou modification d'affichage (interface classique **et** HTML) :
+L'utilisateur veut une interface compacte, sans longs textes. À chaque ajout ou modification d'affichage (interface HTML, la seule affichée) :
 
 1. **Une image du jeu plutôt qu'un texte** quand elle existe : icône de l'objet (`ItemIcons.Get(id)` en classique, `icon/item/{id}.png` / `itemImg(id)` en HTML), du sort (`icon/spell/{id}.png`), tête du personnage (`CharacterIcons`), icônes de la carte. Ex. : les ingrédients d'une recette, les objets du brisage, les drops, les pierres d'âme s'affichent avec leur icône, le nom à côté ou au survol.
 2. **Textes courts** : libellés de quelques mots, chiffres plutôt que phrases. Les explications vont dans l'infobulle (`ToolTip` en classique, `title` en HTML), pas dans la page.
 3. **Colonnes étroites** (panneaux latéraux, petits tableaux) : raccourcir la donnée (position « [12,11] Amakna » au lieu du nom complet de la sous-zone, date « 01/11 », niveau sous le nom plutôt que dans sa propre colonne), et couper le reste avec des points de suspension, texte complet au survol. Aucun tableau ne doit déborder de son cadre.
-4. **Vérifier les deux interfaces** : ce qui tient dans l'interface classique doit aussi tenir dans l'interface HTML, à la taille de fenêtre par défaut.
+4. **Vérifier la tenue** dans la page HTML, à la taille de fenêtre par défaut.
+
+## Interface : la page HTML seulement
+
+L'interface WPF est supprimée ([MainWindow.xaml](DofusRetroManager/MainWindow.xaml) ne contient plus que la page). La logique des onglets écrit dans des contrôles sans affichage ([WebControls.cs](DofusRetroManager/WebControls.cs)), déclarés dans [MainWindow.Controls.cs](DofusRetroManager/MainWindow.Controls.cs), que la page lit par leur nom ([MainWindow.WebUi.cs](DofusRetroManager/MainWindow.WebUi.cs), `watch` de [Web/app.js](DofusRetroManager/Web/app.js)).
+
+1. Nouvel élément affiché : un contrôle de `WebControls.cs` déclaré dans `MainWindow.Controls.cs` (branché dans `WireControls`), son nom ajouté au `watch` de l'onglet dans `app.js`, et son rendu dans la page. Pour des données lourdes ou structurées, un état sérialisé envoyé directement (comme `_ttgBook`, `_carte` dans `PushWebState`).
+2. Ne jamais recréer de contrôle WPF affiché, ni de fenêtre WPF, sauf pour ce qui se pose sur le jeu (superposition, bulles de notification).
+3. **Performance** : toute modification d'un contrôle doit passer par ses propriétés (elles signalent le changement à la page ; une liste modifiée sur place n'est vue qu'au bout de 5 s : réassigner `ItemsSource`). Pas d'animation CSS continue (`infinite`) sur un grand élément ou sous des panneaux floutés (`backdrop-filter`) : elle occupe le processeur en permanence.
