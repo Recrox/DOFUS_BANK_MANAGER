@@ -72,6 +72,7 @@ public partial class MainWindow
         _tracker.TurnStarted += _hunt.OnTurnStarted;
         _tracker.LifeRegen += _hunt.OnLifeRegen;
         _tracker.GameAction += s => Safe(() => _hunt.OnGameAction(s));
+        _tracker.OwnTurnAction += () => Safe(() => _hunt.OnOwnTurnAction());
         _tracker.FightersUpdate += s => Safe(() => _hunt.OnFightersUpdate(s));
         _tracker.Challenge += s => Safe(() => _hunt.OnChallenge(s));
         // Onglet Switcheur : notifications

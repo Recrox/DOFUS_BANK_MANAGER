@@ -295,6 +295,10 @@ public partial class MainWindow
                     if (el is WebPanel panel && panel.Children.OfType<ToggleButton>().ElementAtOrDefault(index) is { } toggle)
                         toggle.IsChecked = toggle.IsChecked != true;
                     break;
+                case "trade-del":
+                    // « Mes échanges » : ligne oubliée (rapprochement erroné)
+                    ForgetTrade(index);
+                    break;
                 case "cell":
                     // Case cliquée sur la carte de la page : zone, points d'intérêt, ressources
                     ShowCarteCellInfo(m.GetProperty("sa").GetInt32(), m.GetProperty("x").GetInt32(), m.GetProperty("y").GetInt32());
@@ -343,6 +347,7 @@ public partial class MainWindow
                     "_cartePos" => CartePlayersJson(),
                     "_carteRes" => CarteResourcesJson(),
                     "_ttgBook" => JsonSerializer.Serialize(BuildTtgBook()),
+                    "_trades" => TradesJson(),
                     _ => ElementJson(name),
                 };
             }

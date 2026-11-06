@@ -48,6 +48,7 @@ public sealed record OwnedItem(int TemplateId, int Quantity, string Effects = ""
 ///   PM+…|PM~…|PM-id / PV          membres du groupe : seuls le niveau et la prospection sont lus
 ///   SL… / GJK / GA;300;… / GA;303;…   sorts du personnage, entrée en combat, sorts lancés et attaques à l'arme (partie Économe)
 ///   GA300{sort};{case} / GA303{case}  envoyés par le client : action du personnage de cette fenêtre (son identifiant)
+///   GA001… / Gt                   envoyés par le client : déplacement, fin de tour (seul le fait est lu : qui joue)
 ///   GTS{id}|…                     début du tour d'un combattant (multi-compte : affiche le personnage qui joue)
 ///   GTM|id;0;pv;PA;PM;case;;pvmax|…   état des combattants : seuls les points de vie du personnage sont lus
 ///   Gd{id};… / GdO{id} / GdK{id}  challenge du combat annoncé, réussi, raté (onglet Arène) : seul son identifiant est lu
@@ -63,6 +64,8 @@ public sealed class DofusTracker
     const int CraftExchangeType = 3;
     /// <summary>Boutique d'un joueur en mode marchand.</summary>
     const int ShopExchangeType = 4;
+    /// <summary>Hôtel de vente : mode vente (vos offres), mode achat.</summary>
+    const int HdvSellExchangeType = 10, HdvBuyExchangeType = 11;
     int _exchangeType = -1;
 
     public Snapshot State { get; private set; } = new();
@@ -104,6 +107,17 @@ public sealed class DofusTracker
     /// <summary>Boutique d'un marchand ouverte : identifiant de son sprite sur la map.</summary>
     public event Action<long>? ShopOpened;
 
+    // --- Achats et ventes du personnage (onglet HDV, « Mes échanges ») : objets, quantités et prix seulement ---
+
+    /// <summary>Échange ouvert ou fermé (-1) sur la connexion : (personnage, type, paramètres « ECK10|… »).</summary>
+    public event Action<string, int, string>? ExchangeChanged;
+    /// <summary>Vos offres en cours, listées à l'ouverture du mode vente de l'HDV (message EL sans le préfixe).</summary>
+    public event Action<string, string>? HdvSellList;
+    /// <summary>Offre mise en vente ou retirée en mode vente de l'HDV (message EmK sans le préfixe : « +id|qté|objet|effets|prix|heures », « -id »).</summary>
+    public event Action<string, string>? HdvSellMove;
+    /// <summary>Quantité d'un objet gagnée (positive) ou perdue (négative) dans l'inventaire : (personnage, objet, quantité).</summary>
+    public event Action<string, int, int>? InventoryDelta;
+
     /// <summary>Nouvelle map (identifiant).</summary>
     public event Action<string>? MapChanged;
     /// <summary>Nouvelle map, avec la version de son fichier et sa clé de lecture : « id|date|clé » (onglet Récolte).</summary>
@@ -137,6 +151,11 @@ public sealed class DofusTracker
     public event Action<string>? Challenge;
     /// <summary>Action de combat (message GA sans le préfixe) : "id;type;acteur;paramètres".</summary>
     public event Action<string>? GameAction;
+    /// <summary>
+    /// Le client de la fenêtre joue son tour sans lancer de sort : déplacement (« GA001… », envoyé par le client) ou fin de
+    /// tour (« Gt »). Seul le fait est lu, pas le chemin : il dit quelle fenêtre joue (Switcheur, temps du tour).
+    /// </summary>
+    public event Action? OwnTurnAction;
     /// <summary>Demande d'échange (message ERK) : identifiant du personnage à qui elle est adressée.</summary>
     public event Action<long>? ExchangeRequested;
     /// <summary>Invitation de groupe (message PIK) : nom du personnage invité (celui de l'invitant n'est pas lu).</summary>
@@ -259,7 +278,9 @@ public sealed class DofusTracker
     {
         if (msg.StartsWith("ASK|")) OnCharacter(msg);
         else if (msg.StartsWith("ECK")) OnExchangeCreate(msg);
-        else if (msg == "EV" || msg.StartsWith("EVa")) _exchangeType = -1;
+        else if (msg == "EV" || msg.StartsWith("EVa")) { _exchangeType = -1; ExchangeChanged?.Invoke(Cur.Character, -1, ""); }
+        else if (msg.StartsWith("EL") && _exchangeType == HdvSellExchangeType) HdvSellList?.Invoke(Cur.Character, msg[2..]);
+        else if (msg.StartsWith("EmK") && _exchangeType == HdvSellExchangeType) HdvSellMove?.Invoke(Cur.Character, msg[3..]);
         else if (msg.StartsWith("EL") && _exchangeType == BankExchangeType) OnBankList(msg[2..]);
         else if (msg.StartsWith("EL") && _exchangeType == ShopExchangeType) ShopList?.Invoke(msg[2..]);
         else if (msg.StartsWith("EsK") && _exchangeType == BankExchangeType) OnBankMove(msg[3..]);
@@ -295,6 +316,7 @@ public sealed class DofusTracker
             TurnStarted?.Invoke(fighter, turn.Length > 1 && int.TryParse(turn[1], out var turnMs) ? turnMs : 0);
         else if (msg.StartsWith("ILS") && int.TryParse(msg.AsSpan(3), out var regen)) LifeRegen?.Invoke(regen);
         else if (msg.StartsWith("GA") && (msg.Contains(';') || msg.StartsWith("GA303"))) GameAction?.Invoke(msg[2..]);
+        else if (msg.StartsWith("GA001") || msg == "Gt") OwnTurnAction?.Invoke();
         else if (msg.StartsWith("GTM|")) FightersUpdate?.Invoke(msg[4..]);
         else if (msg.StartsWith("Gd") && msg.Length > 2 && (char.IsDigit(msg[2]) || msg[2] is 'O' or 'K')) Challenge?.Invoke(msg[2..]);
         // Switcheur : notifications d'échange et d'invitation de groupe
@@ -329,7 +351,9 @@ public sealed class DofusTracker
     {
         if (InCraft && Cur.Inventory.TryGetValue(uid, out var old) && item.Quantity < old.Quantity)
             CraftItemConsumed?.Invoke(uid, item.TemplateId, old.Quantity - item.Quantity);
+        int before = Cur.Inventory.TryGetValue(uid, out var known) && known.TemplateId == item.TemplateId ? known.Quantity : 0;
         Cur.Inventory[uid] = item;
+        if (item.Quantity != before) InventoryDelta?.Invoke(Cur.Character, item.TemplateId, item.Quantity - before);
         if (InCraft && item.Effects.Length > 0)
             CraftItemSeen?.Invoke(uid, item.TemplateId, item.Effects);
     }
@@ -385,6 +409,7 @@ public sealed class DofusTracker
         if (_exchangeType == ShopExchangeType && end >= 0 && long.TryParse(msg.AsSpan(3 + end + 1), out var seller))
             ShopOpened?.Invoke(seller);
         Log?.Invoke($"Échange ouvert (type {_exchangeType}){(_exchangeType == BankExchangeType ? " : banque" : "")}.");
+        ExchangeChanged?.Invoke(Cur.Character, _exchangeType, end >= 0 ? msg[(3 + end + 1)..] : "");
         if (InCraft) CraftOpened?.Invoke();
     }
 
@@ -434,6 +459,7 @@ public sealed class DofusTracker
         if (!_byStream.ContainsKey(_stream)) { _ = Cur; _pending[_stream].Removed.Add(uid); }
         if (!Cur.Inventory.Remove(uid, out var old)) return;
         if (InCraft) CraftItemConsumed?.Invoke(uid, old.TemplateId, old.Quantity);
+        InventoryDelta?.Invoke(Cur.Character, old.TemplateId, -old.Quantity);
         InventoryEdited();
     }
 

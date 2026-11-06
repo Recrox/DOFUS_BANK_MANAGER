@@ -115,6 +115,10 @@ public sealed class GameData
     /// </summary>
     static string ResolveAppDir()
     {
+#if DEBUG
+        // Tests : données à part (copie), pour ne jamais toucher à celles du joueur
+        if (Environment.GetEnvironmentVariable("DRM_APPDIR") is { Length: > 0 } testDir) return testDir;
+#endif
         var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var dir = Path.Combine(local, "DofusRetroManager");
         var legacy = Path.Combine(local, "DofusBankManager");

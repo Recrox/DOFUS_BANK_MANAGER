@@ -31,6 +31,7 @@ L'utilisateur pousse souvent entre deux demandes, et chaque push sur `main` publ
 L'utilisateur veut une interface compacte, sans longs textes. À chaque ajout ou modification d'affichage (interface HTML, la seule affichée) :
 
 1. **Une image du jeu plutôt qu'un texte** quand elle existe : icône de l'objet (`ItemIcons.Get(id)` en classique, `icon/item/{id}.png` / `itemImg(id)` en HTML), du sort (`icon/spell/{id}.png`), tête du personnage (`CharacterIcons`), icônes de la carte. Ex. : les ingrédients d'une recette, les objets du brisage, les drops, les pierres d'âme s'affichent avec leur icône, le nom à côté ou au survol.
+   Caractéristiques d'un objet (Brisage et ailleurs) : icône de la rune de la caractéristique, abréviation courte (Vi, Sa, % Ter…) et valeur, en pastilles compactes (`StatChip`, `.stat-chip`) ; nom complet, fourchette et explication au survol. À reprendre partout où des caractéristiques s'affichent.
 2. **Textes courts** : libellés de quelques mots, chiffres plutôt que phrases. Les explications vont dans l'infobulle (`ToolTip` en classique, `title` en HTML), pas dans la page.
 3. **Colonnes étroites** (panneaux latéraux, petits tableaux) : raccourcir la donnée (position « [12,11] Amakna » au lieu du nom complet de la sous-zone, date « 01/11 », niveau sous le nom plutôt que dans sa propre colonne), et couper le reste avec des points de suspension, texte complet au survol. Aucun tableau ne doit déborder de son cadre.
 4. **Vérifier la tenue** dans la page HTML, à la taille de fenêtre par défaut.

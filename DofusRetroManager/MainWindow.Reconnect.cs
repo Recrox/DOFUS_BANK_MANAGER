@@ -14,6 +14,7 @@ public partial class MainWindow
 {
     /// <summary>Dernière tentative par connexion : la table n'est relue qu'une fois toutes les 10 s pour une même connexion.</summary>
     readonly Dictionary<string, DateTime> _identifyTries = new();
+    readonly HashSet<string> _identifyMissed = new();
 
     void InitReconnect()
     {
@@ -31,7 +32,12 @@ public partial class MainWindow
         _identifyTries[stream] = now;
         try
         {
-            if (WindowNameOf(stream) is not { } name) return;
+            if (WindowNameOf(stream) is not { } name)
+            {
+                if (_identifyMissed.Add(stream))
+                    AddLog("Fenêtre de jeu d'une connexion non retrouvée : son personnage sera reconnu à sa première action pendant son tour de combat.");
+                return;
+            }
             if (hunt) _hunt!.Identify(stream, name);
             // Objets vus avant la reconnaissance (sans message de combat ni de map) : ils reviennent à ce personnage
             if (_tracker.NeedsName(stream)) _tracker.AssignStream(stream, name);

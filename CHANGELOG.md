@@ -2,6 +2,15 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.47.0 — 6 novembre 2026
+
+- **HDV** : nouveau bouton « 📊 Mes échanges » : vos achats (HDV et boutiques de marchands), vos mises en vente, vos ventes (y compris celles faites hors connexion, constatées à la réouverture du mode vente) et vos retraits, avec les totaux sur la période, la taxe payée, le bilan et les objets les plus échangés. Filtre par personnage.
+- **Brisage** : les caractéristiques s'affichent en icônes de runes avec leur valeur, plus compactes et lisibles ; le détail au survol.
+- **Brisage** : pour les objets du jeu, la fourchette (ex. Vitalité 351–400) s'affiche dès qu'un exemplaire a été vu à l'HDV ou dans vos banques : le jeu ne donne que le maximum.
+- **Brisage** : filtres % résistance neutre, terre, feu, eau et air.
+- **Recettes** : nombre de cases de chaque recette dans la liste.
+- **Switcheur** : Correction : application relancée pendant le jeu, le personnage est aussi reconnu dès qu'il joue en combat (déplacement, sort, fin de tour) : le temps du tour s'affiche sans relancer les fenêtres Dofus.
+
 ## 1.46.0 — 6 novembre 2026
 
 - **Interface** : l'application s'ouvre toujours dans l'interface moderne (HTML) ; l'ancienne interface et le bouton « Interface classique » sont retirés, ce qui rend l'application plus légère. Les styles Classique et Moderne et les trois thèmes restent au choix en haut de la page.

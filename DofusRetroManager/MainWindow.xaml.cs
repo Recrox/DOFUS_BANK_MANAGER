@@ -498,6 +498,7 @@ public partial class MainWindow : Window
         InitOcre(_data);
         InitArene();
         InitHdv(_data);
+        InitTrades(_data);
         _usage = _data.Recipes.SelectMany(r => r.Ingredients.Select(i => i.ItemId).Distinct())
             .GroupBy(id => id).ToDictionary(g => g.Key, g => g.Count());
         _recipeByResult = _data.Recipes.GroupBy(r => r.ResultId).ToDictionary(g => g.Key, g => g.First());
@@ -526,7 +527,31 @@ public partial class MainWindow : Window
         UpdateInventoryHint();
 
         if (_isAdmin) StartCapture();
+#if DEBUG
+        _ = ReplayAsync();
+#endif
     }
+
+#if DEBUG
+    /// <summary>
+    /// Tests : rejoue un fichier de messages (une ligne par message, « connexion&lt;TAB&gt;message », ou « #wait ms ») comme
+    /// s'ils venaient du jeu. Version de développement seulement, avec DRM_REPLAY (et DRM_APPDIR, pour ne jamais toucher
+    /// aux données du joueur).
+    /// </summary>
+    async Task ReplayAsync()
+    {
+        if (Environment.GetEnvironmentVariable("DRM_REPLAY") is not { Length: > 0 } path || !File.Exists(path)) return;
+        foreach (var line in File.ReadAllLines(path))
+        {
+            if (line.StartsWith("#wait")) { await Task.Delay(int.Parse(line[5..].Trim())); continue; }
+            var tab = line.IndexOf('\t');
+            if (tab <= 0) continue;
+            OnMessage(line[..tab], line[(tab + 1)..]);
+            await Task.Delay(30);
+        }
+        AddLog("Relecture terminée.");
+    }
+#endif
 
     // --- Capture réseau ---
 
@@ -546,6 +571,7 @@ public partial class MainWindow : Window
             // Multi-compte : chasse et marchands sont suivis par fenêtre de jeu
             if (_hunt != null) _hunt.Stream = stream;
             if (_merchants != null) _merchants.Stream = stream;
+            if (_trades != null) _trades.Stream = stream;
             if (_harvest != null) _harvest.Stream = stream;
             try { _tracker.Handle(stream, msg); TryIdentify(stream); }
             catch (Exception ex) { AddLog($"Paquet ignoré ({ex.Message}) : {msg[..Math.Min(80, msg.Length)]}"); }

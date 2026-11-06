@@ -9,12 +9,20 @@ public sealed record BrisageRow(int ItemId, string Name, int Level, string Type,
     int Owned, int? Craftable, string Missing, double? CraftCost, double? HdvPrice, int Score,
     List<RuneYield> Runes, string RunesText, double? RunesValue, double? Reference, double? Gain)
 {
+    /// <summary>Caractéristiques à afficher en icônes (rune de la caractéristique + valeur ou fourchette, détail au survol).</summary>
+    public List<StatChip> Chips { get; init; } = [];
     public int Index { get; init; }
     public int GainSign => Gain is { } g ? Math.Sign(g) : 0;
     /// <summary>Colonne « Faisable » : « ×3 », sinon les ingrédients manquants.</summary>
     public bool CanCraft => Craftable > 0;
     public string CraftText => Craftable > 0 ? $"×{Craftable}" : Missing;
 }
+
+/// <summary>
+/// Caractéristique d'un objet, en compact : icône de la rune (sinon l'abréviation), valeur (« 400 », « 351–400 »,
+/// « -20 »), texte complet au survol. On : caractéristique filtrée ; Neg : malus.
+/// </summary>
+public sealed record StatChip(int? Rune, string Short, string Value, string Tip, bool On, bool Neg);
 
 /// <summary>Rune du détail : quantité estimée, prix unitaire HDV et total.</summary>
 public sealed record RuneRow(int ItemId, string Name, string Quantity, double? UnitPrice, double? Total);
@@ -35,7 +43,69 @@ public partial class MainWindow
     {
         [11] = "Vi", [12] = "Sa", [10] = "Fo", [15] = "Int", [13] = "Cha", [14] = "Agi", [1] = "PA", [23] = "PM",
         [19] = "PO", [26] = "Invo", [18] = "CC", [17] = "% Do", [80] = "Do", [49] = "Soins", [44] = "Ini", [48] = "PP",
+        [37] = "% Neu", [33] = "% Ter", [34] = "% Feu", [35] = "% Eau", [36] = "% Air",
+        [87] = "Ré Neu", [83] = "Ré Ter", [84] = "Ré Feu", [85] = "Ré Eau", [86] = "Ré Air",
+        [70] = "Pi", [69] = "% Pi", [76] = "% DoF", [50] = "Renvoi", [27] = "Esq PA", [28] = "Esq PM", [96] = "Pods",
     };
+
+    readonly ItemRolls _rolls = new();
+    readonly Dictionary<int, int?> _statRunes = new();
+
+    int? StatRune(int characteristic) => _statRunes.TryGetValue(characteristic, out var r) ? r
+        : _statRunes[characteristic] = _data == null ? null : RuneBreaking.SmallestRuneId(_data, characteristic);
+
+    /// <summary>
+    /// Caractéristiques en icônes. Objet possédé : sa valeur réelle. Modèle d'objet : le maximum du jeu, précédé du plus
+    /// petit jet vu (HDV, banques) quand il est connu : « 351–400 ».
+    /// </summary>
+    List<StatChip> StatChips(ItemInfo item, IEnumerable<KeyValuePair<int, int>> stats, bool real, ICollection<int> active) =>
+        stats.Select(kv =>
+        {
+            var name = ItemStats.Name(kv.Key);
+            var roll = _rolls.Of(item.Id, kv.Key);
+            int max = item.MaxStats.GetValueOrDefault(kv.Key);
+            string value, tip;
+            if (real)
+            {
+                value = $"{kv.Value:+0;-0}";
+                tip = $"{name} : {kv.Value:+0;-0}" + (max > 0 ? $" (jet de l'objet : {(roll != null && roll.Min < max ? roll.Min + " à " : "jusqu'à ")}{max})" : "");
+            }
+            else if (roll != null && roll.Min < kv.Value)
+            {
+                value = $"{roll.Min}–{kv.Value}";
+                tip = $"{name} : {roll.Min} à {kv.Value}\nMaximum : fichier du jeu ; minimum : le plus bas vu sur {roll.Seen} exemplaire(s) (HDV, banques)";
+            }
+            else
+            {
+                value = kv.Value.ToString("+0;-0");
+                tip = $"{name} : jusqu'à {kv.Value:+0;-0}\nLe jeu ne donne que le maximum ; le minimum s'apprend en consultant cet objet à l'HDV";
+            }
+            return new StatChip(StatRune(kv.Key), StatShort.GetValueOrDefault(kv.Key, name), value, tip, active.Contains(kv.Key), kv.Value < 0);
+        }).ToList();
+
+    /// <summary>Offres consultées à l'HDV : leurs caractéristiques réelles nourrissent les jets observés.</summary>
+    void ObserveHdvRolls(string body)
+    {
+        if (_data == null || _fm == null) return;
+        var parts = body.Split('|');
+        if (!int.TryParse(parts[0], out var tpl) || !_data.Items.TryGetValue(tpl, out var item) || item.MaxStats.Count == 0) return;
+        foreach (var line in parts.Skip(1))
+        {
+            var f = line.Split(';');
+            if (f.Length >= 2 && long.TryParse(f[0], out var id) && f[1].Length > 0)
+                _rolls.Observe(item, -id, ItemStats.FromParsed(_fm.ParseStats(f[1])));
+        }
+    }
+
+    /// <summary>Objets de vos banques et inventaires : leurs caractéristiques nourrissent aussi les jets observés.</summary>
+    void ObserveOwnedRolls()
+    {
+        if (_data == null || _fm == null) return;
+        foreach (var s in _tracker.AllSnapshots())
+            foreach (var (uid, it) in s.Bank.Concat(s.Inventory))
+                if (it.Effects.Length > 0 && _data.Items.TryGetValue(it.TemplateId, out var item) && item.MaxStats.Count > 0)
+                    _rolls.Observe(item, uid, ItemStats.FromParsed(_fm.ParseStats(it.Effects)));
+    }
 
     void InitBrisage(GameData data)
     {
@@ -81,6 +151,11 @@ public partial class MainWindow
             panel.Children.Add(max);
             BrisageStats.Children.Add(panel);
         }
+
+        _tracker.HdvOffers += body => Safe(() => ObserveHdvRolls(body));
+        _tracker.BankChanged += () => Ui(ObserveOwnedRolls);
+        Closed += (_, _) => _rolls.Save();
+        ObserveOwnedRolls();
 
         BrisageTypeFilter.Items.Add(AllTypes);
         foreach (var t in data.Items.Values.Where(i => i.MaxStats.Count > 0).Select(i => i.TypeName).Distinct().Order())
@@ -227,13 +302,14 @@ public partial class MainWindow
                 // À comparer : son prix de vente pour un objet possédé, son coût de fabrication sinon
                 double? reference = mine ? hdvPrice : craftCost ?? hdvPrice;
 
+                var chips = StatChips(x.Item, ordered, mine, active.Select(f => f.Characteristic).ToList());
                 return new BrisageRow(x.Item.Id, x.Item.Name, x.Item.Level, x.Item.TypeName,
                     string.Join(" · ", ordered.Select(kv => ItemStats.Format(kv.Key, kv.Value))),
                     x.Where, x.Count, recipe?.Craftable, recipe?.MissingText ?? "",
                     craftCost, hdvPrice,
                     active.Sum(f => x.Stats.GetValueOrDefault(f.Characteristic)),
                     runes, string.Join(", ", runes.Select(r => $"{RuneQuantity(r.Quantity)} {r.Name[5..]}")),
-                    value, reference, value - reference);
+                    value, reference, value - reference) { Chips = chips };
             })
             .OrderByDescending(r => r.Score).ThenByDescending(r => r.Level).ThenBy(r => r.Name)
             .Take(2000) // « Tous les objets du jeu » sans filtre : la liste reste fluide

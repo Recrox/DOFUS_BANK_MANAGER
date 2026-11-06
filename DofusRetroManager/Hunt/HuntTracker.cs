@@ -836,6 +836,7 @@ public sealed class HuntTracker
     public void OnTurnStarted(long fighter, int durationMs)
     {
         var c = Current;
+        _turns[Stream] = (fighter, DateTime.Now, durationMs);
         // Tour d'un autre combattant : celui du personnage est fini
         if (c.Id == 0 || c.Id != fighter)
         {
@@ -860,9 +861,40 @@ public sealed class HuntTracker
         var stream = Reverse(Stream);
         _ownActions[stream] = (spell, DateTime.Now);
         if (!_characters.TryGetValue(stream, out var c)) return;
+        LearnFromTurn(c);
         c.InFight = true;
         c.LastMove = DateTime.Now;
         if (Pinned != null) Pinned = stream;
+        Changed?.Invoke();
+    }
+
+    /// <summary>Dernier début de tour vu sur chaque connexion : combattant, heure, durée (ms).</summary>
+    readonly Dictionary<string, (long Fighter, DateTime Time, int Ms)> _turns = new();
+
+    /// <summary>Le client de cette fenêtre se déplace ou passe son tour : c'est le tour de son personnage.</summary>
+    public void OnOwnTurnAction()
+    {
+        var stream = Reverse(Stream);
+        if (!_characters.TryGetValue(stream, out var c)) return;
+        LearnFromTurn(c);
+    }
+
+    /// <summary>
+    /// Seul le combattant dont c'est le tour peut agir : si cette fenêtre agit pendant un tour, son personnage est ce
+    /// combattant. Application relancée pendant le jeu : son identifiant est ainsi appris sans relancer la fenêtre, et le
+    /// temps de son tour s'affiche aussitôt.
+    /// </summary>
+    void LearnFromTurn(HuntCharacter c)
+    {
+        if (c.Id != 0 || !_turns.TryGetValue(c.Stream, out var turn)) return;
+        if (DateTime.Now - turn.Time > TimeSpan.FromMilliseconds(Math.Max(turn.Ms, 30_000) + 2000)) return;
+        c.Id = turn.Fighter;
+        c.InFight = true;
+        c.TurnStart = turn.Time;
+        c.TurnMs = turn.Ms;
+        Log?.Invoke($"Personnage de la {c.Label} reconnu à son tour de jeu.");
+        IdentifyById(c);
+        Remember(c);
         Changed?.Invoke();
     }
 

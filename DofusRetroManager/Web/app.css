@@ -520,7 +520,7 @@ tr.drop-target td { box-shadow: inset 0 3px 0 var(--accent-solid); }
 .stat-filter input[type="text"] { width: 44px; }
 .stats-wrap { display: block; min-width: 160px; max-width: 340px; white-space: normal; }
 .runes-text { font-size: 11px; max-width: 150px; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.craft-miss { max-width: 130px; }
+.craft-miss { display: inline-block; vertical-align: middle; max-width: 130px; }
 
 /* Switcheur : touche + clic (case, touche et libellé sur une ligne) */
 .org-key.click { display: flex; flex-wrap: wrap; gap: 6px 8px; }
@@ -560,3 +560,25 @@ tr.drop-target td { box-shadow: inset 0 3px 0 var(--accent-solid); }
   background: var(--glass-strong); backdrop-filter: blur(10px); color: var(--text); border: 1px solid var(--line-strong); box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
   font-size: 12.5px; white-space: pre-line; }
 .cell-info .ellipsis { max-width: 100%; display: block; }
+
+/* Caractéristiques en icônes (Brisage) : icône de la rune et valeur ; nom et fourchette au survol */
+.stat-chips { display: flex; flex-wrap: wrap; gap: 3px; min-width: 200px; max-width: 290px; white-space: normal; }
+.stat-chip { display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px 1px 2px; border-radius: 99px; background: var(--hover);
+  font-weight: 700; font-size: 12px; font-variant-numeric: tabular-nums; line-height: 20px; cursor: default; }
+.stat-chip .ico.xs { width: 18px; height: 18px; }
+.stat-chip i { font-style: normal; font-size: 10.5px; font-weight: 600; color: var(--muted); padding-left: 3px; }
+.stat-chip.on { background: var(--accent); color: #fff; }
+.stat-chip.on i { color: #fff; }
+.stat-chip.neg { color: var(--bad, #e5484d); }
+
+/* « Mes échanges » (HDV) : chiffres clés puis journal */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 6px 0 10px; }
+.kpi { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; }
+.kpi b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.trades .item-cell { display: inline-flex; align-items: center; gap: 6px; max-width: 220px; }
+.trades td.ellipsis { max-width: 110px; }
+.trades .detail .ing .name { max-width: 180px; }
+.trades { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.trades .top-item { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.trades .top-item .name { font-weight: 700; display: block; }
+.trades .top-item .price { font-size: 12px; display: flex; flex-wrap: wrap; gap: 2px 8px; }
