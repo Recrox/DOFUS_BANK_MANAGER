@@ -143,13 +143,15 @@ public partial class MainWindow
         var rotation = Rotation().Select((w, i) =>
         {
             var c = CharacterOf(w);
-            // Son tour : temps écoulé sur la durée annoncée par le jeu (« 12 / 30 s ») ; en mode split, la ligne clignote
+            // Son tour : secondes restantes sur la durée annoncée par le jeu (« 29 s », « 28 s »…) ; en mode split, la ligne clignote
             string timer = "";
             bool turn = c?.TurnStart is { } start && (c.TurnMs <= 0 || DateTime.Now - start < TimeSpan.FromMilliseconds(c.TurnMs + 2000));
             if (turn)
             {
-                int elapsed = (int)Math.Min(999, (DateTime.Now - c!.TurnStart!.Value).TotalSeconds);
-                timer = c.TurnMs > 0 ? $"{Math.Min(elapsed, c.TurnMs / 1000)} / {c.TurnMs / 1000} s" : $"{elapsed} s";
+                double elapsed = (DateTime.Now - c!.TurnStart!.Value).TotalSeconds;
+                timer = c.TurnMs > 0
+                    ? $"{Math.Max(0, (int)Math.Ceiling(c.TurnMs / 1000.0 - elapsed))} s"
+                    : $"{(int)Math.Min(999, elapsed)} s";
             }
             return new OverlayTurn(i + 1, (IsMain(w) ? "★ " : "") + (w.Name.Length > 0 ? w.Name : "(sélection du personnage)"),
                 InitiativeOf(w)?.ToString("N0") ?? "?", w.Handle == fg, c?.LifePercent ?? (c == null ? KnownOf(w)?.LifePercent : null), Data.CharacterIcons.Get(LookOf(w)),

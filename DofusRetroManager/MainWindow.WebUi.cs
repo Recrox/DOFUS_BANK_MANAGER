@@ -142,6 +142,14 @@ public partial class MainWindow
             }
             return (png, "image/png");
         }
+        // Caractéristiques de la fiche du personnage (sagesse, prospection…), lues dans l'interface du client
+        var stat = Regex.Match(path, @"^icon/stat/(Wisdom|PP|Init|Vita)\.png$");
+        if (stat.Success)
+        {
+            if (!_webIcons.TryGetValue(path, out var png))
+                _webIcons[path] = png = Png(StatIcons.Get(stat.Groups[1].Value), 64);
+            return (png, "image/png");
+        }
         // Carte : tuiles et icônes rendues depuis les fichiers du client installé (rien n'est livré avec l'application)
         if (path.StartsWith("carte/")) return (CarteWebFile(path), "image/png");
         if (Regex.IsMatch(path, @"^fonts/PlusJakartaSans-\w+\.ttf$"))

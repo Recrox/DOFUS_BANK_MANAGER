@@ -296,7 +296,7 @@ public partial class MainWindow
         int wisdom = me?.Wisdom ?? 0;
         // Prospection inconnue (pas encore envoyée par le jeu) : celle de base d'un personnage
         int prospection = me?.GroupProspection ?? 100;
-        HuntIcons.Text = $"{(me != null ? _hunt.LookOf(me.Name)?.Gfx ?? 0 : 0)}|{RuneBreaking.SmallestRuneId(_data, 12) ?? 0}|{RuneBreaking.SmallestRuneId(_data, 48) ?? 0}";
+        HuntIcons.Text = $"{(me != null ? _hunt.LookOf(me.Name)?.Gfx ?? 0 : 0)}";
         HuntLevel.Text = me?.Level?.ToString() ?? "?";
         HuntGroupLevel.Text = me?.GroupLevel?.ToString() ?? "?";
         HuntGroupLevel.ToolTip = me?.Party.Count > 0

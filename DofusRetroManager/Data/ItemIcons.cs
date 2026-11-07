@@ -74,6 +74,39 @@ public static class ChallengeIcons
 }
 
 /// <summary>
+/// Icônes des caractéristiques de la fiche du personnage, comme dans le jeu : symboles « Icon&lt;nom&gt; » de
+/// modules/core.swf du client installé (Wisdom : sagesse, PP : prospection, Init : initiative, Vita : vitalité).
+/// Lecture seule : le jeu n'est jamais modifié.
+/// </summary>
+public static class StatIcons
+{
+    static readonly string CorePath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "Ankama", "Retro", "resources", "app", "retroclient", "modules", "core.swf");
+
+    static readonly Dictionary<string, ImageSource?> Cache = new();
+    static SwfRenderer? _core;
+
+    public static ImageSource? Get(string name)
+    {
+        if (Cache.TryGetValue(name, out var img)) return img;
+        img = null;
+        try
+        {
+            _core ??= File.Exists(CorePath) ? SwfRenderer.Load(File.ReadAllBytes(CorePath)) : null;
+            if (_core?.RenderSymbol("Icon" + name) is { } drawing)
+            {
+                var di = new DrawingImage(drawing);
+                di.Freeze();
+                img = di;
+            }
+        }
+        catch { } // icône illisible : l'abréviation reste affichée
+        return Cache[name] = img;
+    }
+}
+
+/// <summary>
 /// Icônes des sorts, comme dans le jeu, rendues depuis les fichiers du client installé : le fond
 /// (clips/spells/icons/back/&lt;b&gt;.swf : « _spellBackground » et « _spellFrame ») puis le symbole
 /// (icons/up/&lt;up&gt;.swf : « _spellPrint »), colorés selon le fichier de langue des sorts.

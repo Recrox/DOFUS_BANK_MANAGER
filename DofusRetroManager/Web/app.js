@@ -431,12 +431,13 @@ const views = {
     const spells = rows('EconomeSpells').map(s => `<div class="spell ${s.State === 0 ? 'used' : s.State < 0 ? 'twice' : ''}" title="${esc(s.Name + ' — ' + s.Status)}">
       <img src="icon/spell/${s.Id}.png" alt=""><span class="fallback">${esc(s.Name)}</span></div>`).join('');
     const char = S.HuntCharacterBox;
-    // Caractéristiques en icônes du jeu (tête du personnage, runes Sa et Prospe) ; le libellé et le détail au survol
-    const [head, sa, pp] = T('HuntIcons').split('|').map(Number);
+    // Caractéristiques en icônes du jeu (tête du personnage, sagesse et prospection de sa fiche) ; le libellé et le détail au survol
+    const head = Number(T('HuntIcons').split('|')[0]);
     const headImg = head ? `<img class="ico" src="icon/head/${head}.png" alt="">` : '<span class="glyph">Niv</span>';
     const group = img => `<span class="grp">${img}<i>👥</i></span>`;
     const ist = (img, name, label, cls = '') => `<div class="istat" data-tip="${esc(label + (S[name]?.tt ? ' — ' + S[name].tt : ''))}">${img}<b class="${cls}">${esc(T(name))}</b></div>`;
-    const saImg = sa ? itemImg(sa) : '<span class="glyph">Sa</span>', ppImg = pp ? itemImg(pp) : '<span class="glyph">PP</span>';
+    const statImg = n => `<img class="ico" src="icon/stat/${n}.png" alt="">`;
+    const saImg = statImg('Wisdom'), ppImg = statImg('PP');
     // Cases et boutons en icônes : le texte au survol
     const icheck = (name, icon, label) => `<label class="icheck" data-tip="${esc(S[name]?.t || label)}"><input type="checkbox" data-set="${name}" ${S[name]?.on ? 'checked' : ''}><span>${icon}</span></label>`;
     const ibtn = (name, icon, label) => `<button class="small ibtn" data-act="click" data-name="${name}" data-tip="${esc(label)}">${icon}</button>`;

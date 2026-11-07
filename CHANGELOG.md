@@ -2,6 +2,11 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.51.0 — 7 novembre 2026
+
+- **Superposition en jeu** : le temps du tour s'affiche en compte à rebours (29 s, 28 s, 27 s…) au lieu du temps écoulé.
+- **Combat** : la sagesse et la prospection s'affichent avec leurs icônes de la fiche du personnage, à la place des icônes de runes.
+
 ## 1.50.0 — 7 novembre 2026
 
 - **Combat** : le haut de l'onglet passe en icônes du jeu : tête du personnage pour le niveau, runes de sagesse et de prospection, avec un petit 👥 pour les valeurs du groupe ; les réglages (alerte sonore, pop-up, alertes monstres, session) deviennent des boutons-icônes. Le libellé et le détail s'affichent au survol.
