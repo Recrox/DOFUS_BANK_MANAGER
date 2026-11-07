@@ -2,6 +2,10 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.59.0 — 7 novembre 2026
+
+- **Combat** : correction : l'onglet ne s'étire plus sur une immense hauteur ; il tient dans la fenêtre et chaque liste défile dans son cadre.
+
 ## 1.58.0 — 7 novembre 2026
 
 - **Superposition** : aides aux challenges annoncés en combat : Économe, Versatile, Barbare, Mystique, Borné et Intouchable (sorts déjà lancés, interdits ou à relancer, points de vie perdus).
