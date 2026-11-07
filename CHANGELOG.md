@@ -2,6 +2,11 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.53.0 — 7 novembre 2026
+
+- **Démarrage** : correction : l'état de la capture et des droits administrateur s'affiche de nouveau au lancement (la capture démarrait sans que l'en-tête le montre, et le bouton « Relancer en administrateur » restait affiché).
+- **Démarrage** : la page s'ouvre plus vite.
+
 ## 1.51.0 — 7 novembre 2026
 
 - **Superposition en jeu** : le temps du tour s'affiche en compte à rebours (29 s, 28 s, 27 s…) au lieu du temps écoulé.

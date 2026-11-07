@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Reflection;
@@ -77,6 +77,9 @@ public partial class MainWindow
                 core.NavigationStarting += (_, e) => { if (!e.Uri.StartsWith(WebOrigin)) e.Cancel = true; };
                 core.NewWindowRequested += (_, e) => e.Handled = true;
                 core.WebMessageReceived += OnWebMessage;
+                // Page chargée (ou rechargée) : tout son état lui est renvoyé. Un message envoyé pendant son chargement
+                // peut être perdu, et seuls les changements sont envoyés ensuite : sans cela, l'en-tête restait vide.
+                core.NavigationCompleted += (_, _) => { _webSent.Clear(); _webForce = true; };
                 _webTimer.Tick += (_, _) => PushWebState();
                 core.Navigate(WebOrigin + "index.html");
             }
@@ -164,7 +167,11 @@ public partial class MainWindow
                 current = UpdateChecker.CurrentText,
                 entries = Changelog.Entries.Select(e => new { version = e.Version, date = e.Date, items = e.Items }),
             }) + ";"), "text/javascript; charset=utf-8");
-        // Page : Web/index.html, app.css, app.js intégrés à l'exe
+        // Styles et scripts de la page, regroupés en un fichier chacun : deux requêtes au lieu d'une par fichier source
+        // (chaque requête passe par le fil de l'interface, occupé au démarrage)
+        if (path == "bundle.css") return (_webCss ??= Bundle(WebCssFiles), "text/css; charset=utf-8");
+        if (path == "bundle.js") return (_webJs ??= Bundle(WebJsFiles), "text/javascript; charset=utf-8");
+        // Page : Web/index.html, logo… intégrés à l'exe
         using var res = typeof(MainWindow).Assembly.GetManifestResourceStream("web/" + path);
         var mime = System.IO.Path.GetExtension(path) switch
         {
@@ -175,6 +182,31 @@ public partial class MainWindow
             _ => "application/octet-stream",
         };
         return (res == null ? null : ReadAll(res), mime);
+    }
+
+    /// <summary>
+    /// Fichiers de la page (Web/), dans leur ordre de chargement : couleurs et thèmes, styles communs, puis un fichier par onglet ;
+    /// pour les scripts, le cœur (état, utilitaires), un fichier par onglet, puis le rendu et les événements (app.js).
+    /// Un nouveau fichier de Web/ s'ajoute ici.
+    /// </summary>
+    static readonly string[] WebCssFiles =
+        ["theme", "app", "recettes", "hdv", "combat", "brisage", "ttg", "fm", "switcheur", "carte"];
+    static readonly string[] WebJsFiles =
+        ["core", "banque", "recettes", "hdv", "combat", "brisage", "ttg", "pda", "ocre", "fm", "switcheur", "carte", "app"];
+    static byte[]? _webCss, _webJs;
+
+    static byte[] Bundle(string[] names)
+    {
+        var ext = names == WebCssFiles ? ".css" : ".js";
+        using var ms = new MemoryStream();
+        foreach (var name in names)
+        {
+            using var res = typeof(MainWindow).Assembly.GetManifestResourceStream("web/" + name + ext)
+                ?? throw new FileNotFoundException("Fichier de la page absent de l'exe : " + name + ext);
+            res.CopyTo(ms);
+            ms.WriteByte((byte)'\n');
+        }
+        return ms.ToArray();
     }
 
     static byte[] ReadAll(Stream s)

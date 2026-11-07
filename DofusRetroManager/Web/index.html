@@ -7,35 +7,14 @@
         content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dofus Retro Manager</title>
-  <!-- Couleurs et thèmes, styles communs, puis un fichier par onglet -->
-  <link rel="stylesheet" href="theme.css">
-  <link rel="stylesheet" href="app.css">
-  <link rel="stylesheet" href="recettes.css">
-  <link rel="stylesheet" href="hdv.css">
-  <link rel="stylesheet" href="combat.css">
-  <link rel="stylesheet" href="brisage.css">
-  <link rel="stylesheet" href="ttg.css">
-  <link rel="stylesheet" href="fm.css">
-  <link rel="stylesheet" href="switcheur.css">
-  <link rel="stylesheet" href="carte.css">
+  <!-- Styles et scripts regroupés par l'application (WebCssFiles et WebJsFiles de MainWindow.WebUi.cs) : theme.css, app.css,
+       un fichier par onglet ; core.js, un fichier par onglet, app.js -->
+  <link rel="stylesheet" href="bundle.css">
 </head>
 <body>
   <div class="aurora" aria-hidden="true"></div>
   <div id="app"></div>
   <script src="changelog.js"></script>
-  <!-- Cœur (état, utilitaires), puis un fichier par onglet, puis le rendu et les événements -->
-  <script src="core.js"></script>
-  <script src="banque.js"></script>
-  <script src="recettes.js"></script>
-  <script src="hdv.js"></script>
-  <script src="combat.js"></script>
-  <script src="brisage.js"></script>
-  <script src="ttg.js"></script>
-  <script src="pda.js"></script>
-  <script src="ocre.js"></script>
-  <script src="fm.js"></script>
-  <script src="switcheur.js"></script>
-  <script src="carte.js"></script>
-  <script src="app.js"></script>
+  <script src="bundle.js"></script>
 </body>
 </html>
