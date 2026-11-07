@@ -42,7 +42,7 @@ public sealed class PdaPrice
 /// Une même liste mélange les catégories : la liste d'un Bulbuisson contient des pierres de monstre, mais aussi
 /// des pierres d'archi-monstre où il accompagne l'archi. Les prix sont donc tenus par monstre ET par catégorie,
 /// et une pierre d'archi-monstre ne compte que pour un monstre de la race Archi-monstres.
-/// Comme pour l'HDV, aucune requête n'est envoyée au serveur (README, règles 1 et 3).
+/// Comme pour l'HDV, aucune requête n'est envoyée au serveur (REGLES.md, règles 1 et 3).
 /// </summary>
 public sealed class PdaTracker
 {

@@ -108,7 +108,7 @@ public sealed class OrganizerSettings
 
 /// <summary>
 /// Raccourcis clavier globaux (RegisterHotKey) : ils marchent même quand le jeu a le focus. La touche est prise par
-/// l'application et n'est pas transmise au jeu ; elle ne fait que changer de fenêtre (README, règle 3).
+/// l'application et n'est pas transmise au jeu ; elle ne fait que changer de fenêtre (REGLES.md, règle 3).
 /// </summary>
 public sealed class GlobalHotkeys : IDisposable
 {

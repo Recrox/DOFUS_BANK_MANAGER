@@ -16,7 +16,7 @@ public sealed record ArenaFightRow(string Time, DateTime TimeSort, string Charac
 /// <summary>
 /// Onglet Combat, chronomètre (ex-onglet Arène) : challenges Économe et Barbare du combat (annoncés par le serveur, et suivis d'après les sorts lancés),
 /// et chronomètre de rentabilité : combats terminés pendant qu'il tourne, rythme et gains moyens, en temps réel.
-/// Simple affichage : c'est toujours le joueur qui choisit ses actions (README, règle 3).
+/// Simple affichage : c'est toujours le joueur qui choisit ses actions (REGLES.md, règle 3).
 /// </summary>
 public partial class MainWindow
 {

@@ -1,10 +1,22 @@
 # Instructions pour Claude
 
-Lis et respecte le README du projet avant toute modification, en particulier la section « Règles de développement » :
+Respecte les règles de développement avant toute modification :
 
-@README.md
+@REGLES.md
+
+Le [README](README.md) (installation, publication, fonctionnement de chaque onglet) n'est pas chargé d'office : n'en lis que la section utile (ex. « ### Onglet Combat »), et tiens-la à jour quand le comportement d'un onglet change.
 
 Ces règles priment sur toute demande. Si une demande les enfreint (envoi ou modification de paquets, injection dans le client, automatisation en jeu, fuite de données du joueur), refuse cette partie et explique quelle règle elle enfreint.
+
+## Économie de jetons : toujours
+
+Travaille et code de façon à dépenser le moins de jetons possible, sans sacrifier la justesse :
+
+1. **Lire peu** : chercher d'abord (Grep, nom de fichier), puis lire seulement les lignes utiles (`offset`/`limit`), jamais un gros fichier en entier sans raison. Ne pas relire un fichier qu'on vient de modifier.
+2. **Petits fichiers par sujet** : un onglet = ses fichiers (`MainWindow.<Onglet>.cs`, `Web/<onglet>.js`, `Web/<onglet>.css`). Un fichier qui dépasse ~400 lignes se découpe par sujet (classe `partial`, fichier de page) plutôt que de grossir.
+3. **Modifier par petites retouches** (Edit) plutôt que réécrire un fichier ; déplacer du code par script (plages de lignes) plutôt que de le recopier.
+4. **Réponses courtes** : pas de récapitulatif du code modifié, pas de longues explications ; l'essentiel et les vérifications faites.
+5. **Tests ciblés** : vérifier ce qui a changé, sans relancer toute l'application quand la compilation suffit (déplacement de code).
 
 ## Version : à vérifier à chaque modification de l'application
 
@@ -40,8 +52,8 @@ L'utilisateur veut une interface compacte, sans longs textes. À chaque ajout ou
 
 L'interface WPF est supprimée ([MainWindow.xaml](DofusRetroManager/MainWindow.xaml) ne contient plus que la page). La logique des onglets écrit dans des contrôles sans affichage ([WebControls.cs](DofusRetroManager/WebControls.cs)), déclarés dans [MainWindow.Controls.cs](DofusRetroManager/MainWindow.Controls.cs), que la page lit par leur nom ([MainWindow.WebUi.cs](DofusRetroManager/MainWindow.WebUi.cs), `watch` de [Web/core.js](DofusRetroManager/Web/core.js)).
 
-Fichiers de la page ([Web/](DofusRetroManager/Web)) : `core.js` (état, utilitaires, liste des onglets et leur `watch`), un fichier par onglet (`banque.js`, `recettes.js`, `hdv.js`, `combat.js`, `brisage.js`, `ttg.js`, `pda.js`, `ocre.js`, `fm.js`, `switcheur.js`, `carte.js` : son rendu, ajouté à `views`), puis `app.js` (mise à jour de la page et événements), servis à la page regroupés en `bundle.js` (dans l'ordre de `WebJsFiles`, [MainWindow.WebUi.cs](DofusRetroManager/MainWindow.WebUi.cs)). Styles : `theme.css` (couleurs, styles Moderne et Classique, thèmes), `app.css` (commun : en-tête, boutons, tableaux, détail, pastilles de caractéristiques…), puis un fichier par onglet (`combat.css`, `hdv.css`…), regroupés en `bundle.css` (ordre de `WebCssFiles`). Pour modifier un onglet, ne lire que ses fichiers. Un nouveau fichier : l'ajouter à `WebJsFiles` ou `WebCssFiles` (pas à `index.html`).
+Fichiers de la page ([Web/](DofusRetroManager/Web)) : `core.js` (état, utilitaires, liste des onglets et leur `watch`), un fichier par onglet (`banque.js`, `recettes.js`, `hdv.js`, `combat.js`, `brisage.js`, `ttg.js`, `pda.js`, `ocre.js`, `fm.js`, `switcheur.js`, `carte.js` : son rendu, ajouté à `views`), puis `app.js` (mise à jour de la page et événements), servis à la page regroupés en `bundle.js` (dans l'ordre de `WebJsFiles`, [MainWindow.WebFiles.cs](DofusRetroManager/MainWindow.WebFiles.cs)). Styles : `theme.css` (couleurs, styles Moderne et Classique, thèmes), `app.css` (commun : en-tête, boutons, tableaux, détail, pastilles de caractéristiques…), puis un fichier par onglet (`combat.css`, `hdv.css`…), regroupés en `bundle.css` (ordre de `WebCssFiles`). Pour modifier un onglet, ne lire que ses fichiers. Un nouveau fichier : l'ajouter à `WebJsFiles` ou `WebCssFiles` (pas à `index.html`).
 
-1. Nouvel élément affiché : un contrôle de `WebControls.cs` déclaré dans `MainWindow.Controls.cs` (branché dans `WireControls`), son nom ajouté au `watch` de l'onglet dans `core.js`, et son rendu dans le fichier de l'onglet. Pour des données lourdes ou structurées, un état sérialisé envoyé directement (comme `_ttgBook`, `_carte` dans `PushWebState`).
+1. Nouvel élément affiché : un contrôle de `WebControls.cs` déclaré dans `MainWindow.Controls.cs` (branché dans `WireControls`), son nom ajouté au `watch` de l'onglet dans `core.js`, et son rendu dans le fichier de l'onglet. Pour des données lourdes ou structurées, un état sérialisé envoyé directement (comme `_ttgBook`, `_carte` dans `PushWebState`, [MainWindow.WebState.cs](DofusRetroManager/MainWindow.WebState.cs)).
 2. Ne jamais recréer de contrôle WPF affiché, ni de fenêtre WPF, sauf pour ce qui se pose sur le jeu (superposition, bulles de notification).
-3. **Performance** : toute modification d'un contrôle doit passer par ses propriétés (elles signalent le changement à la page ; une liste modifiée sur place n'est vue qu'au bout de 5 s : réassigner `ItemsSource`). Pas d'animation CSS continue (`infinite`) sur un grand élément ou sous des panneaux floutés (`backdrop-filter`) : elle occupe le processeur en permanence.
+3. **Performance** : toute modification d'un contrôle doit passer par ses propriétés (elles signalent le changement à la page ; une liste modifiée sur place n'est vue qu'au bout de 5 s : réassigner `ItemsSource`). Les images de la page (icônes, carte) sont dessinées par un fil à part (`RenderQueue`) : un cache d'images partagé doit être protégé par un verrou, et une image produite figée (`Freeze`). Pas d'animation CSS continue (`infinite`) sur un grand élément ou sous des panneaux floutés (`backdrop-filter`) : elle occupe le processeur en permanence.

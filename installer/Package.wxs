@@ -41,6 +41,10 @@
         <Component Id="Readme">
           <File Id="Readme" Source="..\README.md" Name="LISEZMOI.md" KeyPath="yes" />
         </Component>
+        <!-- Règles de développement, liées depuis le README -->
+        <Component Id="Rules">
+          <File Id="Rules" Source="..\REGLES.md" Name="REGLES.md" KeyPath="yes" />
+        </Component>
       </Directory>
     </StandardDirectory>
 
@@ -90,6 +94,7 @@
     <Feature Id="Main" Title="Dofus Retro Manager">
       <ComponentRef Id="AppExe" />
       <ComponentRef Id="Readme" />
+      <ComponentRef Id="Rules" />
       <ComponentRef Id="StartMenuShortcuts" />
       <ComponentRef Id="DesktopShortcut" />
     </Feature>

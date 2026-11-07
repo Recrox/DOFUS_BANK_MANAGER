@@ -7,7 +7,7 @@ namespace DofusRetroManager;
 /// Onglet Switcheur, mode Sadida : un raccourci affiche le Sadida transformé en arbre (Puissance Sylvestre, lue dans ses
 /// sorts lancés) dont c'est le tour et qui a le moins de temps restant ; le joueur passe lui-même son tour, puis, à la fin
 /// de ce tour (annoncée par le jeu), la fenêtre affichée avant le raccourci revient. Ce n'est que de la gestion de
-/// fenêtre : rien n'est envoyé au jeu, ni touche ni clic (README, règles 1 et 3).
+/// fenêtre : rien n'est envoyé au jeu, ni touche ni clic (REGLES.md, règles 1 et 3).
 /// </summary>
 public partial class MainWindow
 {

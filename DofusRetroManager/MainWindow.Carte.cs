@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
@@ -83,8 +83,8 @@ public partial class MainWindow
 
     // --- Interface HTML : la page dessine la carte avec les tuiles et icônes servies par l'application ---
 
-    readonly Dictionary<int, List<MapTile>> _carteTiles = new();
-    readonly Dictionary<string, byte[]?> _carteWebFiles = new();
+    readonly System.Collections.Concurrent.ConcurrentDictionary<int, List<MapTile>> _carteTiles = new(); // lu aussi par le fil de rendu des images
+    readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte[]?> _carteWebFiles = new();
     string? _carteWebJson;
 
     List<MapTile> CarteTiles(int superArea)

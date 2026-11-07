@@ -410,7 +410,7 @@ public partial class MainWindow
 
     /// <summary>
     /// Économe (challenge : chaque sort une seule fois par combat) : sorts encore disponibles et sorts déjà lancés.
-    /// Simple affichage : c'est toujours le joueur qui choisit et lance ses sorts (README, règle 3).
+    /// Simple affichage : c'est toujours le joueur qui choisit et lance ses sorts (REGLES.md, règle 3).
     /// </summary>
     void ShowEconome(HuntCharacter? me)
     {

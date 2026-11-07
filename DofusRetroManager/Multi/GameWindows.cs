@@ -11,7 +11,7 @@ public sealed record GameWindow(IntPtr Handle, string Name);
 /// <summary>
 /// Fenêtres du jeu : détection par leur titre, mise au premier plan et clignotement dans la barre des tâches.
 /// L'application ne lit que le titre des fenêtres et ne fait que les afficher : elle n'envoie jamais de touche ni de
-/// clic au jeu (README, règles 2 et 3).
+/// clic au jeu (REGLES.md, règles 2 et 3).
 /// </summary>
 public static partial class GameWindows
 {

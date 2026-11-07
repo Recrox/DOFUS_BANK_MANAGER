@@ -41,7 +41,7 @@ sealed record MapMerchant(string Name, int Cell);
 
 /// <summary>
 /// Prix des cartes et paquets de cartes TTG, relevés passivement quand le joueur consulte la boutique
-/// d'un marchand en jeu. Aucune requête n'est envoyée (README, règles 1 et 3) : seules les boutiques
+/// d'un marchand en jeu. Aucune requête n'est envoyée (REGLES.md, règles 1 et 3) : seules les boutiques
 /// consultées donnent un prix. Le pseudo et la position du marchand (lus sur la map, message GM de type -5)
 /// sont gardés sur ce PC pour retrouver la boutique ; ils ne sont jamais partagés.
 /// </summary>

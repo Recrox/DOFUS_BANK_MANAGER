@@ -2,6 +2,10 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.54.0 — 7 novembre 2026
+
+- **Interface** : l'application ne se fige plus à la première ouverture d'un onglet plein d'icônes ou de la carte : les images arrivent au fur et à mesure, et les raccourcis du Switcheur restent réactifs pendant ce temps.
+
 ## 1.53.0 — 7 novembre 2026
 
 - **Démarrage** : correction : l'état de la capture et des droits administrateur s'affiche de nouveau au lancement (la capture démarrait sans que l'en-tête le montre, et le bouton « Relancer en administrateur » restait affiché).

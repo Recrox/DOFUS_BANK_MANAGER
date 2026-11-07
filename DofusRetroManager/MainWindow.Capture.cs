@@ -15,7 +15,7 @@ public partial class MainWindow
 
     void OnMessage(string stream, string msg)
     {
-        // Seuls les messages de banque/inventaire sont journalisés (voir README, règle 4)
+        // Seuls les messages de banque/inventaire sont journalisés (voir REGLES.md, règle 4)
         if (LogPacketsEnabled && DofusTracker.IsLoggable(msg))
         {
             try { File.AppendAllText(PacketLogPath, $"{DateTime.Now:HH:mm:ss.fff} {(msg.Length > 2000 ? msg[..2000] + "…" : msg)}\n"); }

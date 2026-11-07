@@ -38,7 +38,7 @@ public sealed class HdvPrice
 
 /// <summary>
 /// Prix de l'hôtel de vente, relevés passivement quand le joueur consulte un HDV en jeu.
-/// Aucune requête n'est envoyée au serveur (README, règles 1 et 3) : seuls les objets consultés ont un prix.
+/// Aucune requête n'est envoyée au serveur (REGLES.md, règles 1 et 3) : seuls les objets consultés ont un prix.
 ///
 /// Formats observés sur Retro (prix écrits "547,0") :
 ///   EHl{tpl}|{offre}|{offre}…           offres d'un objet, offre = "id;effets;×1;×10;×100;tpl"

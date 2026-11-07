@@ -19,7 +19,13 @@ public static class ItemIcons
 
     public static GameData? Data { get; set; }
 
+    /// <summary>Appelé par la page (fil de rendu des images) et par l'interface : le cache est protégé par un verrou.</summary>
     public static ImageSource? Get(int itemId)
+    {
+        lock (Cache) return Build(itemId);
+    }
+
+    static ImageSource? Build(int itemId)
     {
         if (Cache.TryGetValue(itemId, out var img)) return img;
         img = null;
@@ -56,6 +62,11 @@ public static class ChallengeIcons
 
     public static ImageSource? Get(int gfx)
     {
+        lock (Cache) return Build(gfx);
+    }
+
+    static ImageSource? Build(int gfx)
+    {
         if (Cache.TryGetValue(gfx, out var img)) return img;
         img = null;
         var path = Path.Combine(Dir, gfx + ".swf");
@@ -88,6 +99,11 @@ public static class StatIcons
     static SwfRenderer? _core;
 
     public static ImageSource? Get(string name)
+    {
+        lock (Cache) return Build(name);
+    }
+
+    static ImageSource? Build(string name)
     {
         if (Cache.TryGetValue(name, out var img)) return img;
         img = null;
@@ -129,6 +145,11 @@ public static class SpellIcons
     }
 
     public static ImageSource? Get(int spellId, SpellLook? look)
+    {
+        lock (Cache) return Build(spellId, look);
+    }
+
+    static ImageSource? Build(int spellId, SpellLook? look)
     {
         if (Cache.TryGetValue(spellId, out var img)) return img;
         img = null;

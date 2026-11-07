@@ -42,7 +42,7 @@ sealed class TradeData
 ///   disparaît sans revenir, ou n'est plus listée à l'ouverture suivante du mode vente (vente faite hors connexion).
 ///   Le jeu annonce aussi les ventes (INFOS_65, et INFOS_73 pour celles faites hors jeu, à la connexion) et les ventes
 ///   expirées (INFOS_67) : kamas, objet et quantité suffisent à retrouver l'offre.
-/// Tout reste sur ce PC (echanges.json), rien n'est partagé (README, règle 4).
+/// Tout reste sur ce PC (echanges.json), rien n'est partagé (REGLES.md, règle 4).
 /// </summary>
 public sealed class TradeTracker
 {

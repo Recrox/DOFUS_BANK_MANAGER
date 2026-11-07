@@ -7,7 +7,7 @@ namespace DofusRetroManager;
 /// <summary>
 /// Onglet HDV, « Mes échanges » : tableau de bord des achats et ventes de vos personnages (HDV et marchands). Les
 /// données viennent de TradeTracker ; la page fait les totaux et les filtres (personnage, période).
-/// Simple affichage : c'est toujours le joueur qui achète et qui vend (README, règle 3).
+/// Simple affichage : c'est toujours le joueur qui achète et qui vend (REGLES.md, règle 3).
 /// </summary>
 public partial class MainWindow
 {

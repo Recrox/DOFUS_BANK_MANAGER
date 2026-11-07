@@ -20,7 +20,7 @@ public sealed record HuntAlertRow(MonsterAlert Alert, string Text)
 /// <summary>
 /// Onglet Combat : détail des objets obtenus (session ou combat choisi), pop-up quand un archi-monstre apparaît, et
 /// alertes monstres du joueur (un monstre précis, en nombre et à un niveau précis, dans un groupe de la map).
-/// Simple affichage : c'est toujours le joueur qui se déplace et qui combat (README, règle 3).
+/// Simple affichage : c'est toujours le joueur qui se déplace et qui combat (REGLES.md, règle 3).
 /// </summary>
 public partial class MainWindow
 {

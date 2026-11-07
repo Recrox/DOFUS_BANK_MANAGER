@@ -8,7 +8,7 @@ namespace DofusRetroManager;
 /// <summary>
 /// Superposition en jeu (onglet Switcheur) : personnage, Économe, groupes de la map et ordre de jeu, dans une petite
 /// fenêtre au-dessus du jeu. Elle n'apparaît que quand une fenêtre de jeu est au premier plan et laisse passer les clics :
-/// c'est une fenêtre de l'application, rien n'est injecté ni dessiné dans le client (README, règles 2 et 3).
+/// c'est une fenêtre de l'application, rien n'est injecté ni dessiné dans le client (REGLES.md, règles 2 et 3).
 /// </summary>
 public partial class MainWindow
 {

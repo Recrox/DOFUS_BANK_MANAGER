@@ -21,7 +21,7 @@ public sealed class SyncSettings
 /// <summary>
 /// Partage des prix entre amis via le serveur du projet (dossier server/) : prix HDV des objets, prix des
 /// cartes TTG chez les marchands, prix des pierres d'âme par monstre. Désactivé par défaut. N'envoie que
-/// l'objet (ou le monstre), ses prix et la date du relevé, jamais le joueur ni le marchand (README, règle 4).
+/// l'objet (ou le monstre), ses prix et la date du relevé, jamais le joueur ni le marchand (REGLES.md, règle 4).
 /// </summary>
 public sealed class HdvSync
 {

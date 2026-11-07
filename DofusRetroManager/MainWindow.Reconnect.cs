@@ -8,7 +8,7 @@ namespace DofusRetroManager;
 /// Chaque connexion est rattachée à sa fenêtre grâce à la table des connexions de Windows (processus propriétaire,
 /// comme netstat -o) et à la liste des processus : la connexion est ouverte par un processus enfant de celui de la
 /// fenêtre, dont le titre donne le nom du personnage. Son dernier état connu (chasse.json) est alors repris.
-/// Rien n'est lu dans la mémoire du jeu ni envoyé au jeu (README, règles 1 et 2).
+/// Rien n'est lu dans la mémoire du jeu ni envoyé au jeu (REGLES.md, règles 1 et 2).
 /// </summary>
 public partial class MainWindow
 {

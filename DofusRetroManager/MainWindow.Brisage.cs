@@ -30,7 +30,7 @@ public sealed record RuneRow(int ItemId, string Name, string Quantity, double? U
 /// <summary>
 /// Onglet Brisage : cherche les objets dont les caractéristiques atteignent des seuils (ex. 104 en vitalité
 /// pour générer une rune), parmi ses objets, les recettes faisables avec sa banque ou tout le jeu.
-/// Simple affichage : le brisage se fait toujours à la main, en jeu (README, règle 3).
+/// Simple affichage : le brisage se fait toujours à la main, en jeu (REGLES.md, règle 3).
 /// </summary>
 public partial class MainWindow
 {

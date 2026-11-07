@@ -15,7 +15,7 @@ public sealed record UpdateInfo(Version Latest, string PageUrl, string? Installe
 
 /// <summary>
 /// Vérifie si une version plus récente est publiée dans les Releases GitHub du projet, et télécharge son
-/// installateur. Seules requêtes faites à GitHub : aucune donnée du joueur n'est envoyée (voir README, règle 4).
+/// installateur. Seules requêtes faites à GitHub : aucune donnée du joueur n'est envoyée (voir REGLES.md, règle 4).
 /// </summary>
 public static class UpdateChecker
 {

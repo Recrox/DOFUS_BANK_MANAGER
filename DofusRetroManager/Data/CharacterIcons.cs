@@ -33,7 +33,13 @@ public static class CharacterIcons
 
     public static ImageSource? Get(CharacterLook? look) => look is { IsKnown: true } ? Get(look.Gfx) : null;
 
+    /// <summary>Appelé par la page (fil de rendu des images) et par l'interface : le cache est protégé par un verrou.</summary>
     public static ImageSource? Get(int gfx)
+    {
+        lock (Cache) return Build(gfx);
+    }
+
+    static ImageSource? Build(int gfx)
     {
         if (Cache.TryGetValue(gfx, out var img)) return img;
         img = null;

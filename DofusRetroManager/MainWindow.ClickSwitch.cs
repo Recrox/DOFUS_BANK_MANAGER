@@ -11,7 +11,7 @@ namespace DofusRetroManager;
 /// défaut ; bouton gauche, droit ou les deux), la fenêtre suivante de l'ordre de jeu passe au premier plan au relâchement du clic, comme avec le raccourci
 /// « Personnage suivant ». Le clic du joueur arrive au jeu normalement : il n'est ni bloqué, ni modifié, ni rejoué.
 /// Pas de hook : l'application relit seulement l'état du bouton de la souris et de la touche (GetAsyncKeyState).
-/// Aucun clic ni aucune touche n'est envoyé au jeu (README, règles 2 et 3).
+/// Aucun clic ni aucune touche n'est envoyé au jeu (REGLES.md, règles 2 et 3).
 /// </summary>
 public partial class MainWindow
 {

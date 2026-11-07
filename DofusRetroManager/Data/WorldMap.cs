@@ -50,7 +50,13 @@ public static class WorldMap
     }
 
     /// <summary>Icône d'un point d'intérêt (gfx du fichier de langue « hints ») ; null si absente.</summary>
+    /// <summary>Appelé par le fil de rendu des images de la page : le cache est protégé par un verrou.</summary>
     public static ImageSource? HintIcon(int gfx)
+    {
+        lock (HintCache) return BuildHintIcon(gfx);
+    }
+
+    static ImageSource? BuildHintIcon(int gfx)
     {
         if (HintCache.TryGetValue(gfx, out var img)) return img;
         img = null;

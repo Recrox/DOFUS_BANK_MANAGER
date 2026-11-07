@@ -23,7 +23,7 @@ public sealed record OrganizerRow(long Handle, int Order, string Name, string Le
 /// Onglet Switcheur : fenêtres du jeu détectées, ordre de jeu par initiative, raccourcis personnage suivant / précédent,
 /// personnages exclus (compte métier) et notifications (début de combat, de tour, échange, invitation de groupe).
 /// L'application ne fait que mettre une fenêtre au premier plan quand le joueur le demande : aucune touche ni aucun clic
-/// n'est envoyé au jeu (README, règle 3).
+/// n'est envoyé au jeu (REGLES.md, règle 3).
 /// </summary>
 public partial class MainWindow
 {
@@ -243,7 +243,7 @@ public partial class MainWindow
     /// <summary>
     /// Met une fenêtre du jeu au premier plan, à la demande du joueur. Anti-rebond (option) : pendant une demi-seconde,
     /// si Windows rend le premier plan à la fenêtre quittée, la fenêtre demandée est réaffichée (deux fois au plus).
-    /// Ce n'est que de la gestion de fenêtre : aucun clic ni aucune touche n'est envoyé au jeu (README, règle 3).
+    /// Ce n'est que de la gestion de fenêtre : aucun clic ni aucune touche n'est envoyé au jeu (REGLES.md, règle 3).
     /// </summary>
     void FocusWindow(IntPtr h)
     {
