@@ -9,10 +9,15 @@ using DofusRetroManager.Hunt;
 
 namespace DofusRetroManager;
 
+/// <summary>Monstre affiché par son illustration (nom et niveau au survol) ; Count : nombre de ce monstre.</summary>
+public sealed record MonsterChip(int Id, string Name, int Level, int Count = 1);
+
 public sealed record HuntGroupRow(long Id, string Monsters, int Count, int TotalLevel, string Stars, double? Xp,
     string XpText, string Drops, string OfficialDrops, IReadOnlyList<DropDetailRow> DropDetails, bool Expanded,
     double? DropValue, bool HasArchi, string Archi, long? ArchiPrice)
 {
+    /// <summary>Monstres du groupe, un par monstre (illustration, nom et niveau au survol).</summary>
+    public IReadOnlyList<MonsterChip> Mobs { get; init; } = [];
     public bool HasDropDetails => DropDetails.Count > 0;
 }
 
@@ -40,7 +45,11 @@ public sealed record ArchiRow(string Time, DateTime TimeSort, string Name, int L
 
 /// <summary>Combat de la session (vue Groupe : totaux de vos personnages du même combat, Characters et Count).</summary>
 public sealed record FightRow(string Time, DateTime TimeSort, string Duration, string Monsters, long Xp, long Kamas,
-    string Drops, double DropValue, string Characters = "", int Count = 1);
+    string Drops, double DropValue, string Characters = "", int Count = 1)
+{
+    /// <summary>Monstres affrontés, un par modèle avec leur nombre (illustration, nom et niveaux au survol).</summary>
+    public IReadOnlyList<MonsterChip> Mobs { get; init; } = [];
+}
 
 public sealed record ProjectionRow(string Span, double Xp, double Kamas, double Drops, double Total);
 
@@ -388,7 +397,8 @@ public partial class MainWindow
             return new HuntGroupRow(g.SpriteId, names, g.Monsters.Count, g.Monsters.Sum(m => m.Level),
                 g.Bonus > 0 ? $"+{g.Bonus} %" : "", xp, xpText, dropText, officialText,
                 official.Select(DetailRow).ToList(), _expandedGroups.Contains(g.SpriteId), dropValue,
-                archi != null, archi != null ? _data.GetMonster(archi.Id).Name : "", archiPrice);
+                archi != null, archi != null ? _data.GetMonster(archi.Id).Name : "", archiPrice)
+            { Mobs = g.Monsters.Select(m => new MonsterChip(m.Id, _data.GetMonster(m.Id).Name, m.Level)).ToList() };
         }).ToList();
         SetRows(HuntGroupGrid, groups);
         HuntMap.Text = me?.MapId.Length > 0
@@ -396,6 +406,7 @@ public partial class MainWindow
             : "Map inconnue : changez de map en jeu";
         HuntEmpty.Visibility = groups.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         if (!groups.Any(g => g.HasArchi)) HuntStatus.Text = "";
+        ClearAlertBannerIfGone(_hunt.Characters.SelectMany(c => c.Groups.Values));
 
         // Archi-monstres aperçus, avec leur dernier prix de pierre relevé
         SetRows(HuntArchiGrid, _hunt.Archis.Select(a =>
@@ -424,7 +435,11 @@ public partial class MainWindow
             return new FightRow(f.Time.ToString("HH:mm"), f.Time, $"{f.DurationSeconds / 60}:{f.DurationSeconds % 60:00}",
                 string.Join(", ", f.Monsters.GroupBy(m => m.Id).Select(x => (x.Count() > 1 ? $"{x.Count()}× " : "") + _data.GetMonster(x.Key).Name)),
                 g.Sum(x => x.Xp), g.Sum(x => x.Kamas), string.Join(", ", drops), g.Sum(Value),
-                string.Join(", ", g.Select(x => x.Character)), g.Count);
+                string.Join(", ", g.Select(x => x.Character)), g.Count)
+            {
+                Mobs = f.Monsters.GroupBy(m => m.Id).Select(x => new MonsterChip(x.Key,
+                    $"{_data.GetMonster(x.Key).Name} (niv. {string.Join(", ", x.Select(m => m.Level))})", x.Max(m => m.Level), x.Count())).ToList(),
+            };
         }).ToList();
         // Combat choisi (détail de ses drops) : gardé d'un rafraîchissement à l'autre
         _huntFightsUpdating = true;

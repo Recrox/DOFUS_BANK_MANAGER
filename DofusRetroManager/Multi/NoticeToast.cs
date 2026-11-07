@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Controls;
@@ -23,7 +23,7 @@ public sealed class NoticeToast : Window
     /// <summary>Bulle permanente (archi-monstre) : elle ne disparaît qu'avec sa croix.</summary>
     readonly bool _sticky;
 
-    NoticeToast(string title, string text, Action? onClick, bool sticky)
+    NoticeToast(string title, string text, Action? onClick, bool sticky, ImageSource? icon)
     {
         _sticky = sticky;
         WindowStyle = WindowStyle.None;
@@ -56,6 +56,13 @@ public sealed class NoticeToast : Window
         close.MouseLeftButtonUp += (_, e) => { e.Handled = true; Close(); };
         DockPanel.SetDock(close, Dock.Right);
         row.Children.Add(close);
+        // Illustration du monstre (archi-monstre, alerte monstre), à gauche du texte
+        if (icon != null)
+        {
+            var image = new Image { Source = icon, Width = 46, Height = 46, Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center };
+            DockPanel.SetDock(image, Dock.Left);
+            row.Children.Add(image);
+        }
         row.Children.Add(stack);
 
         var card = new Border
@@ -86,12 +93,13 @@ public sealed class NoticeToast : Window
 
     /// <param name="screenOf">Fenêtre de jeu concernée : la bulle s'affiche sur son écran (sinon celui de la fenêtre au premier plan).</param>
     /// <param name="sticky">Bulle permanente : pas de disparition automatique, seulement sa croix.</param>
-    public static void Show(string title, string text, Action? onClick, IntPtr screenOf = default, bool sticky = false)
+    /// <param name="icon">Image à gauche du texte (ex. illustration du monstre), facultative.</param>
+    public static void Show(string title, string text, Action? onClick, IntPtr screenOf = default, bool sticky = false, ImageSource? icon = null)
     {
         _screenOf = screenOf != IntPtr.Zero ? screenOf : GetForegroundWindow();
         // Pas plus de 4 bulles passagères à la fois : la plus ancienne laisse sa place (les permanentes restent)
         if (Open.Where(t => !t._sticky).ToList() is { Count: >= 4 } passing) passing[0].Close();
-        var toast = new NoticeToast(title, text, onClick, sticky);
+        var toast = new NoticeToast(title, text, onClick, sticky, icon);
         Open.Add(toast);
         toast.Show();
     }

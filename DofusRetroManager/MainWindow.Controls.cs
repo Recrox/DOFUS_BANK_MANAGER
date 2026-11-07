@@ -158,6 +158,8 @@ public partial class MainWindow
     internal readonly WebToggle HuntArchiPopup = new() { ToolTip = "Une bulle au premier plan dès qu'un archi-monstre apparaît sur la map (un clic affiche la fenêtre du personnage)", Content = "Pop-up archi-monstre" };
     internal readonly WebToggle HuntAlertsToggle = new() { ToolTip = "Être prévenu (son différent de l'archi, et bulle) quand un groupe de la map contient un monstre précis, à un niveau précis", Content = "Alertes monstres" };
     internal readonly WebText HuntStatus = new() { ForegroundKey = "Missing" };
+    /// <summary>Bandeau des alertes monstres (distinct de celui des archi-monstres).</summary>
+    internal readonly WebText HuntAlertBanner = new();
     internal readonly WebControl HuntAlertsPanel = new() { Visibility = Visibility.Collapsed };
     internal readonly WebTextBox HuntAlertMonster = new() { ToolTip = "Nom du monstre, ex. Craqueleur des plaines" };
     /// <summary>Noms de monstres proposés pendant la saisie (séparés par « | »).</summary>

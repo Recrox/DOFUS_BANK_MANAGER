@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using DofusRetroManager.Hunt;
 using DofusRetroManager.Multi;
@@ -15,6 +15,10 @@ public sealed record HuntDropRow(int ItemId, string Name, int Quantity, double? 
 public sealed record HuntAlertRow(MonsterAlert Alert, string Text)
 {
     public bool Enabled => Alert.Enabled;
+    /// <summary>Monstre de l'alerte : son illustration dans la page, le texte au survol.</summary>
+    public int MonsterId => Alert.MonsterId;
+    /// <summary>Résumé court sous l'illustration : « ≥3 · 1–49 ».</summary>
+    public string Short => $"{(Alert.MinCount > 1 ? $"≥{Alert.MinCount} · " : "")}{Alert.MinLevel}–{Alert.MaxLevel}";
 }
 
 /// <summary>
@@ -83,7 +87,7 @@ public partial class MainWindow
             var pos = System.Text.RegularExpressions.Regex.Replace(MapText(a.MapId), @"\s*\(.*\)\s*$", "");
             NoticeToast.Show(_data.GetMonster(a.MonsterId).Name,
                 (price is { } p ? $"💎 {p:N0} k" : "💎 prix inconnu") + $"\n📍 {pos}",
-                window is { } h ? () => FocusWindow(h) : null, window ?? default, sticky: true);
+                window is { } h ? () => FocusWindow(h) : null, window ?? default, sticky: true, icon: Data.MonsterIcons.Get(a.MonsterId));
         }
         catch (Exception ex) { AddLog($"Pop-up archi-monstre impossible ({ex.GetType().Name} : {ex.Message})."); }
     }
@@ -178,10 +182,26 @@ public partial class MainWindow
         if (_data == null) return;
         try { ArchiSound.PlayMonster(_hunt?.SoundVolume ?? 70); } catch { }
         var name = _data.GetMonster(alert.MonsterId).Name;
-        var text = $"{count}× {name} (niv. {alert.MinLevel}–{alert.MaxLevel})\n{MapText(c.MapId)} · {c.Label}";
-        HuntStatus.Text = $"🔔 {count}× {name} sur la map";
+        var pos = System.Text.RegularExpressions.Regex.Replace(MapText(c.MapId), @"\s*\(.*\)\s*$", "");
+        var text = $"🎯 {count}× {name} (niv. {alert.MinLevel}–{alert.MaxLevel})\n📍 {pos} · {c.Label}";
+        // Bandeau propre aux alertes monstres (celui des archi-monstres reste pour les archi-monstres)
+        HuntAlertBanner.Text = $"🎯 {count}× {name} sur la map ({c.Label})";
+        _alertBannerMonster = alert.MonsterId;
         AddLog($"Alerte monstre : {count}× {name} ({c.Label}).");
         var window = WindowOf(c);
-        NoticeToast.Show("Alerte monstre", text, window is { } h ? () => FocusWindow(h) : null, window ?? default);
+        NoticeToast.Show("Alerte monstre", text, window is { } h ? () => FocusWindow(h) : null, window ?? default,
+            icon: Data.MonsterIcons.Get(alert.MonsterId));
+    }
+
+    /// <summary>Monstre de l'alerte affichée dans le bandeau : le bandeau disparaît quand plus aucun groupe de la map ne le contient.</summary>
+    int? _alertBannerMonster;
+
+    void ClearAlertBannerIfGone(IEnumerable<MapGroup> groups)
+    {
+        if (_alertBannerMonster is { } id && !groups.Any(g => g.Monsters.Any(m => m.Id == id)))
+        {
+            HuntAlertBanner.Text = "";
+            _alertBannerMonster = null;
+        }
     }
 }

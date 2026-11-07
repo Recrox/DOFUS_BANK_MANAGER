@@ -2,6 +2,12 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.61.0 — 7 novembre 2026
+
+- **Combat** : correction : une alerte monstre n'apparaît plus dans le bandeau rouge des archi-monstres ; elle a son propre bandeau, qui disparaît quand le groupe n'est plus sur la map.
+- **Combat** : les monstres s'affichent avec leur illustration du jeu (groupes de la map, combats de la session, alertes), le nom et le niveau au survol ; les bulles d'archi-monstre et d'alerte montrent aussi le monstre.
+- **Combat** : chaque panneau (groupes, rentabilité, archi-monstres, combats, drops) se réduit (▾) ou s'agrandit (⤢) ; le choix est retenu.
+
 ## 1.60.0 — 7 novembre 2026
 
 - **Combat** : combats et drops de la session « Perso » ou « Groupe » : en vue Groupe, vos personnages du même combat sont réunis, même sans groupe en jeu (XP, kamas et drops additionnés).

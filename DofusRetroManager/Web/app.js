@@ -133,6 +133,14 @@ document.addEventListener('click', e => {
     // Case réglée à une valeur précise (boutons « l'un ou l'autre », ex. Perso / Groupe)
     case 'set-on': post({ type: 'set', name: d.name, value: d.v === 'true' }); break;
     case 'open': local.open[d.key] = !local.open[d.key]; schedule(); break;
+    // Panneau réduit (min) ou agrandi (max, un seul à la fois) ; un nouveau clic le remet en place. Gardé dans le navigateur
+    case 'panel': {
+      const v = local.panels[d.key] === d.v ? undefined : d.v;
+      if (v === 'max') for (const k in local.panels) if (local.panels[k] === 'max') delete local.panels[k];
+      if (v) local.panels[d.key] = v; else delete local.panels[d.key];
+      try { localStorage.setItem('combatPanels', JSON.stringify(local.panels)); } catch { }
+      schedule(); break;
+    }
     case 'more': local.limit[d.grid] = (local.limit[d.grid] || 300) + 300; schedule(); break;
     case 'sort': {
       const s = local.sort[d.grid];

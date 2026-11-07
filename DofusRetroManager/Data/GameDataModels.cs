@@ -20,6 +20,8 @@ public sealed record Ingredient(int ItemId, int Quantity);
 /// </summary>
 public sealed record MonsterInfo(int Id, string Name, int RaceId, string Race, int LevelMin, int LevelMax, int Grade3Level)
 {
+    /// <summary>Illustration du monstre : clips/artworks/big/&lt;Gfx&gt;.swf du client installé (champ « g » du fichier de langue).</summary>
+    public int Gfx { get; init; }
     /// <summary>Niveaux des grades g1…g5, dans l'ordre.</summary>
     public IReadOnlyList<int> Grades { get; init; } = [];
 

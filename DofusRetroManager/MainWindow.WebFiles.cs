@@ -78,7 +78,7 @@ public partial class MainWindow
 
     (byte[]? Bytes, string Type) WebFile(string path)
     {
-        var icon = Regex.Match(path, @"^icon/(item|spell|head|chall)/(\d+)\.png$");
+        var icon = Regex.Match(path, @"^icon/(item|spell|head|chall|monster)/(\d+)\.png$");
         if (icon.Success)
         {
             if (!_webIcons.TryGetValue(path, out var png))
@@ -89,6 +89,7 @@ public partial class MainWindow
                     "item" => ItemIcons.Get(id),
                     "head" => CharacterIcons.Get(id), // tête du personnage : classe × 10 + sexe
                     "chall" => ChallengeIcons.Get(id), // challenge : son icône (champ g du fichier de langue)
+                    "monster" => MonsterIcons.Get(id), // monstre : son illustration (champ g du fichier de langue)
                     _ => SpellIcons.Get(id, _data?.SpellLooks.GetValueOrDefault(id)),
                 }, 64);
             }

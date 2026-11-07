@@ -49,6 +49,46 @@ public static class ItemIcons
 }
 
 /// <summary>
+/// Illustrations des monstres, comme dans le jeu : clips/artworks/big/&lt;g&gt;.swf du client installé (g : champ du
+/// fichier de langue « monsters »). Lecture seule : le jeu n'est jamais modifié.
+/// </summary>
+public static class MonsterIcons
+{
+    static readonly string Dir = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "Ankama", "Retro", "resources", "app", "retroclient", "clips", "artworks", "big");
+
+    static readonly Dictionary<int, ImageSource?> Cache = new();
+
+    /// <summary>Par identifiant de monstre ; appelé par la page (fil de rendu des images) et par les bulles : cache sous verrou.</summary>
+    public static ImageSource? Get(int monsterId)
+    {
+        lock (Cache) return Build(monsterId);
+    }
+
+    static ImageSource? Build(int monsterId)
+    {
+        if (Cache.TryGetValue(monsterId, out var img)) return img;
+        img = null;
+        if (ItemIcons.Data?.Monsters.TryGetValue(monsterId, out var m) == true && m.Gfx > 0)
+        {
+            var path = Path.Combine(Dir, m.Gfx + ".swf");
+            try
+            {
+                if (File.Exists(path) && SwfRenderer.Render(File.ReadAllBytes(path)) is { } drawing)
+                {
+                    var di = new DrawingImage(drawing);
+                    di.Freeze();
+                    img = di;
+                }
+            }
+            catch { } // illustration illisible : le nom du monstre reste au survol
+        }
+        return Cache[monsterId] = img;
+    }
+}
+
+/// <summary>
 /// Icônes des challenges de combat, comme dans le jeu : clips/challenges/&lt;g&gt;.swf du client installé (g : champ du
 /// fichier de langue « fightChallenge »). Lecture seule : le jeu n'est jamais modifié.
 /// </summary>

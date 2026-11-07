@@ -119,3 +119,32 @@ main:has(.combat-split) { overflow-y: auto; }
 .member .glyph { display: grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 6px; font-size: 11px; color: var(--muted); }
 .member .ellipsis { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .member i { font-style: normal; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* Panneaux réductibles et agrandissables (▾ réduire, ⤢ agrandir) */
+.panel { display: flex; flex-direction: column; min-height: 0; }
+.panel-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; min-width: 0; }
+.panel-bar .section-title { margin: 0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel-tools { display: inline-flex; gap: 4px; align-items: center; }
+.pbtn { width: 26px; height: 24px; padding: 0; font-size: 13px; line-height: 1; border-radius: 7px; background: var(--hover); border: 1px solid var(--line); }
+.panel-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.panel-body > .table-wrap { flex: 1; min-height: 0; }
+.panel.is-min { flex: none; }
+.panel.is-min .panel-bar { margin-bottom: 0; }
+.stack > .panel:not(.session):not(.is-min) { flex: 1; }
+.combat-max { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.combat-max > .panel { flex: 1; }
+.combat-max .session-hist { max-height: none; flex: 1; }
+
+/* Monstres en illustrations (nom et niveau au survol) */
+.mobs { display: inline-flex; flex-wrap: wrap; gap: 3px; vertical-align: middle; }
+.mob { position: relative; display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: var(--hover); }
+.mob img { width: 28px; height: 28px; object-fit: contain; }
+.mob b, .mob i { position: absolute; right: -2px; bottom: -3px; font-size: 9.5px; font-style: normal; font-weight: 800; line-height: 1;
+  padding: 1px 3px; border-radius: 6px; background: var(--glass-strong); border: 1px solid var(--line); }
+.mob i { color: var(--accent-solid); }
+.alert-chip img { width: 24px; height: 24px; object-fit: contain; }
+
+/* Bandeau d'alerte monstre (distinct du bandeau rouge des archi-monstres) */
+.notice { padding: 8px 14px; border-radius: var(--radius-md); background: var(--selected); border: 1px solid var(--accent-solid); font-weight: 700; }/* Groupes de la map : textes longs (drops vus, drops du jeu) coupés, texte complet au survol ; pas de débordement */
+.combat-split .stack .ellipsis, .combat-max .ellipsis { display: inline-block; max-width: 170px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; vertical-align: middle; }
+.combat-split .stack .mobs { min-width: 100px; }

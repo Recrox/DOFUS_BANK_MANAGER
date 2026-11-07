@@ -203,7 +203,7 @@ public sealed partial class GameData
                     data.Monsters[mid] = new MonsterInfo(mid, Avm1.ToStr(o.GetValueOrDefault("n")),
                         race, races.GetValueOrDefault(race, "?"),
                         levels.DefaultIfEmpty().Min(), levels.DefaultIfEmpty().Max(),
-                        levels.Count >= 3 ? levels[2] : levels.DefaultIfEmpty().Max()) { Grades = levels, IsBoss = o.GetValueOrDefault("d") is true };
+                        levels.Count >= 3 ? levels[2] : levels.DefaultIfEmpty().Max()) { Grades = levels, IsBoss = o.GetValueOrDefault("d") is true, Gfx = (int)Avm1.ToNum(o.GetValueOrDefault("g")) };
                 }
         }
 
