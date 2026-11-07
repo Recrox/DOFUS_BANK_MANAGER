@@ -158,6 +158,9 @@ public sealed class GameData
     public Dictionary<int, TtgFamily> TtgFamilies { get; } = new();
     /// <summary>Noms des challenges de combat (fichier de langue « fightChallenge »), ex. 5 = Économe.</summary>
     public Dictionary<int, string> FightChallenges { get; } = new();
+    /// <summary>Règle de chaque challenge (« d ») et son icône (« g » : clips/challenges/&lt;g&gt;.swf du client).</summary>
+    public Dictionary<int, string> FightChallengeRules { get; } = new();
+    public Dictionary<int, int> FightChallengeGfx { get; } = new();
     /// <summary>Noms des sorts (fichier de langue « spells »).</summary>
     public Dictionary<int, string> Spells { get; } = new();
     /// <summary>Icônes des sorts (fond, symbole, couleurs à l'état normal).</summary>
@@ -371,7 +374,12 @@ public sealed class GameData
         if (paths.TryGetValue("fightChallenge", out var fcPath)
             && Avm1.Run(await File.ReadAllBytesAsync(fcPath)).GetValueOrDefault("FC") is AsObject FC)
             foreach (var (k, v) in FC)
-                if (v is AsObject o && int.TryParse(k, out var cid)) data.FightChallenges[cid] = Avm1.ToStr(o.GetValueOrDefault("n"));
+                if (v is AsObject o && int.TryParse(k, out var cid))
+                {
+                    data.FightChallenges[cid] = Avm1.ToStr(o.GetValueOrDefault("n"));
+                    data.FightChallengeRules[cid] = Avm1.ToStr(o.GetValueOrDefault("d"));
+                    if (o.GetValueOrDefault("g") is double g) data.FightChallengeGfx[cid] = (int)g;
+                }
 
         // Sorts : S[id] = { n: nom, i: { b: fond, up: symbole, bc/fc/pc: couleurs du fond, du cadre et du symbole }, … }
         if (paths.TryGetValue("spells", out var spellsPath)

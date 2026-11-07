@@ -28,7 +28,7 @@ const TABS = [
     'PdaGrid', 'PdaEmpty', 'PdaDetailTitle', 'PdaDetailSub', 'PdaChart'] },
   { key: 'ocre', label: 'Ocre', watch: ['OcreCharacter', 'OcreStep', 'OcreKindFilter', 'OcreSummary', 'OcreGrid', 'OcreDetailTitle',
     'OcreDetailSub', 'OcreSouls'] },
-  { key: 'combat', label: 'Combat', watch: ['HuntCharacterBox', 'HuntLevel', 'HuntGroupLevel', 'HuntWisdom', 'HuntProspection',
+  { key: 'combat', label: 'Combat', watch: ['HuntCharacterBox', 'HuntIcons', 'HuntLevel', 'HuntGroupLevel', 'HuntWisdom', 'HuntProspection',
     'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
     'HuntSession', 'HuntPauseSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid', 'HuntDropsTitle', 'HuntDropGrid', 'HuntArchiPopup',
     'HuntAlertsToggle', 'HuntAlertMonster', 'HuntAlertCount', 'HuntAlertMin', 'HuntAlertMax', 'HuntAlertStatus', 'HuntAlertList',
@@ -431,21 +431,30 @@ const views = {
     const spells = rows('EconomeSpells').map(s => `<div class="spell ${s.State === 0 ? 'used' : s.State < 0 ? 'twice' : ''}" title="${esc(s.Name + ' — ' + s.Status)}">
       <img src="icon/spell/${s.Id}.png" alt=""><span class="fallback">${esc(s.Name)}</span></div>`).join('');
     const char = S.HuntCharacterBox;
+    // Caractéristiques en icônes du jeu (tête du personnage, runes Sa et Prospe) ; le libellé et le détail au survol
+    const [head, sa, pp] = T('HuntIcons').split('|').map(Number);
+    const headImg = head ? `<img class="ico" src="icon/head/${head}.png" alt="">` : '<span class="glyph">Niv</span>';
+    const group = img => `<span class="grp">${img}<i>👥</i></span>`;
+    const ist = (img, name, label, cls = '') => `<div class="istat" data-tip="${esc(label + (S[name]?.tt ? ' — ' + S[name].tt : ''))}">${img}<b class="${cls}">${esc(T(name))}</b></div>`;
+    const saImg = sa ? itemImg(sa) : '<span class="glyph">Sa</span>', ppImg = pp ? itemImg(pp) : '<span class="glyph">PP</span>';
+    // Cases et boutons en icônes : le texte au survol
+    const icheck = (name, icon, label) => `<label class="icheck" data-tip="${esc(S[name]?.t || label)}"><input type="checkbox" data-set="${name}" ${S[name]?.on ? 'checked' : ''}><span>${icon}</span></label>`;
+    const ibtn = (name, icon, label) => `<button class="small ibtn" data-act="click" data-name="${name}" data-tip="${esc(label)}">${icon}</button>`;
+    const pause = T('HuntPauseSession') || '⏸ Pause';
     return `<div class="stat-row">
-        ${char?.items?.length ? `<span class="lbl muted">Personnage</span>${select('HuntCharacterBox')}` : ''}
-        <div class="stat"><span>Niveau</span><b>${esc(T('HuntLevel'))}</b></div>
-        <div class="stat"><span>Niv. groupe</span><b class="acc">${esc(T('HuntGroupLevel'))}</b></div>
-        <div class="stat"><span>Sagesse</span><b>${esc(T('HuntWisdom'))}</b></div>
-        <div class="stat"><span>Prospection</span><b>${esc(T('HuntProspection'))}</b></div>
-        <div class="stat"><span>PP groupe</span><b class="acc">${esc(T('HuntGroupProspection'))}</b></div>
-        ${check('HuntSound', 'Alerte sonore archi')}
+        ${char?.items?.length ? `<span data-tip="Personnage affiché">${select('HuntCharacterBox')}</span>` : ''}
+        ${ist(headImg, 'HuntLevel', 'Niveau')}${ist(group(headImg), 'HuntGroupLevel', 'Niveau du groupe', 'acc')}
+        ${ist(saImg, 'HuntWisdom', 'Sagesse')}${ist(ppImg, 'HuntProspection', 'Prospection')}${ist(group(ppImg), 'HuntGroupProspection', 'Prospection du groupe', 'acc')}
+        <span class="sep"></span>
+        ${icheck('HuntSound', '🔔', 'Alerte sonore archi-monstre')}
         <label class="volume" title="Volume de l'alerte archi-monstre">🔊<input type="range" data-set="HuntVolume" data-fk="HuntVolume"
           min="${S.HuntVolume?.min ?? 0}" max="${S.HuntVolume?.max ?? 100}" step="1" value="${S.HuntVolume?.val ?? 70}"
           style="--p:${S.HuntVolume?.val ?? 70}%"><span class="muted">${esc(T('HuntVolumeText'))}</span></label>
-        <button class="small" data-act="click" data-name="HuntTestSound">Tester le son</button>
-        <button class="small" data-act="click" data-name="HuntNewSession">Nouvelle session</button>
-        <span title="Vous vous absentez : le temps ne compte plus dans la rentabilité. Un combat la relance.">${btn('HuntPauseSession', '⏸ Pause', 'small')}</span>
-        ${check('HuntArchiPopup', 'Pop-up archi')}${check('HuntAlertsToggle', S.HuntAlertsToggle?.t || 'Alertes monstres')}
+        ${ibtn('HuntTestSound', '▶', 'Tester le son (et la bulle archi-monstre)')}
+        ${icheck('HuntArchiPopup', '💬', 'Pop-up archi-monstre (bulle jusqu’à sa croix)')}${icheck('HuntAlertsToggle', '🎯', 'Alertes monstres')}
+        <span class="sep"></span>
+        ${ibtn('HuntNewSession', '↺', 'Nouvelle session : remet à zéro la rentabilité')}
+        ${ibtn('HuntPauseSession', esc(pause.split(' ')[0]), pause.slice(pause.indexOf(' ') + 1) + ' : le temps ne compte plus dans la rentabilité, un combat la relance')}
       </div>
       ${S.HuntAlertsToggle?.on ? `<div class="glass card"><div class="filters"><span class="lbl">Monstre</span>${input('HuntAlertMonster', 'Craqueleur des plaines', '200px')}
           <span class="lbl">Au moins</span>${input('HuntAlertCount', '', '50px')}<span class="lbl">dans le groupe, niveau</span>${input('HuntAlertMin', '', '56px')}
@@ -497,16 +506,15 @@ const views = {
               { h: 'Heure', k: 'TimeSort', f: r => `<span class="muted">${esc(r.Time)}</span>` },
               { h: 'Monstres', k: 'Monsters', f: r => `<span class="ellipsis" title="${esc(r.Drops)}">${esc(r.Monsters)}</span>` },
               { h: 'XP', k: 'Xp', num: true, f: r => fmt(r.Xp) },
-              { h: 'Kamas', k: 'Kamas', num: true, f: r => `<span class="acc">${fmt(r.Kamas)}</span>` },
-              { h: 'Drops', k: 'DropValue', num: true, f: r => `<span title="${esc(r.Drops)}">${fmt(r.DropValue)}</span>` },
+              // Colonne étroite : kamas + drops en un seul gain, le détail au survol
+              { h: 'Gain', k: 'DropValue', num: true, f: r => `<span class="acc" data-tip="${esc(`Kamas : ${fmt(r.Kamas)} · Drops : ${fmt(r.DropValue)}${r.Drops ? ' — ' + r.Drops : ''}`)}">${fmt((r.Kamas || 0) + (r.DropValue || 0))}</span>` },
             ], { empty: 'Aucun combat sur cette session.' })}</div>
           <div class="mini"><p class="section-title">${esc(T('HuntDropsTitle'))}</p>
             ${table('HuntDropGrid', [
               { h: '', f: r => itemImg(r.ItemId, 'sm') },
-              { h: 'Objet', k: 'Name', f: r => `<span class="strong">${esc(r.Name)}</span>` },
+              { h: 'Objet', k: 'Name', f: r => `<span class="strong ellipsis" title="${esc(r.Name)}">${esc(r.Name)}</span>` },
               { h: 'Qté', k: 'Quantity', num: true, f: r => fmt(r.Quantity) },
-              { h: 'Prix /u', k: 'Unit', num: true, f: r => fmt(r.Unit) },
-              { h: 'Total', k: 'Total', num: true, f: r => `<span class="acc strong">${fmt(r.Total)}</span>` },
+              { h: 'Total', k: 'Total', num: true, f: r => `<span class="acc strong" data-tip="${esc('Prix unitaire : ' + fmt(r.Unit) + ' k')}">${fmt(r.Total)}</span>` },
             ], { select: false, empty: 'Aucun objet obtenu.' })}</div>
         </div>
       </div>`;
@@ -521,11 +529,11 @@ function chronoBlock() {
   return `<div class="glass card chrono">
       <span class="time acc" title="Chronomètre : compte les fins de combat des personnages choisis (un combat à plusieurs compte une fois)">⏱ ${esc(T('ChronoTime'))}</span>
       ${btn('ChronoStart', '▶ Démarrer', 'small primary')}${btn('ChronoReset', 'Remettre à zéro', 'small')}
-      <span title="Personnages comptés">${select('AreneGroup')}</span>${check('AreneGroupEdit', 'Groupes')}
+      <span title="Personnages comptés">${select('AreneGroup')}</span><label class="icheck" data-tip="Gérer les groupes de personnages comptés"><input type="checkbox" data-set="AreneGroupEdit" ${S.AreneGroupEdit?.on ? 'checked' : ''}><span>👥</span></label>
       <div class="chrono-stats" title="Gains : kamas + drops au prix HDV (sinon prix marchand)">
         <b>${esc(T('ChronoFights'))}</b><b class="acc">${esc(T('ChronoGains'))}</b><span class="muted ellipsis" title="${esc(T('ChronoRate'))}">${esc(T('ChronoRate'))}</span></div>
-      <div class="chrono-chal">${challenges.map(c => `<span class="chip ${c.State === -1 ? 'failed' : ''}" title="${esc(c.Rule + ' — ' + c.Status + (c.Announced ? ' (annoncé par le jeu)' : ''))}">
-          <b class="${state(c)}">${esc(c.Name)}</b><span class="muted">${esc(c.Character)}</span></span>`).join('')}
+      <div class="chrono-chal">${challenges.map(c => `<span class="chall ${state(c)}" data-tip="${esc(c.Name + ' · ' + c.Status + ' · ' + c.Character + (c.Rule ? ' — ' + c.Rule : '') + (c.Announced ? ' (annoncé par le jeu)' : ''))}">
+          ${c.Gfx >= 0 ? `<img src="icon/chall/${c.Gfx}.png" alt="">` : ''}<span class="fallback">${esc(c.Name)}</span></span>`).join('')}
         ${T('AreneOtherChallenges') ? `<span class="muted ellipsis" title="${esc(T('AreneOtherChallenges'))}">${esc(T('AreneOtherChallenges'))}</span>` : ''}</div>
       <button class="small" data-act="open" data-key="chrono" title="Combats comptés par le chronomètre">Combats ${open ? '▾' : '▸'}</button>
     </div>

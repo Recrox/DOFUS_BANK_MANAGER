@@ -2,6 +2,13 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.50.0 — 7 novembre 2026
+
+- **Combat** : le haut de l'onglet passe en icônes du jeu : tête du personnage pour le niveau, runes de sagesse et de prospection, avec un petit 👥 pour les valeurs du groupe ; les réglages (alerte sonore, pop-up, alertes monstres, session) deviennent des boutons-icônes. Le libellé et le détail s'affichent au survol.
+- **Combat** : les challenges du combat s'affichent avec leur icône du jeu, entourée selon leur état (en cours, réussi, raté) ; nom, règle et personnage au survol. Les autres challenges annoncés par le jeu s'affichent aussi en icônes.
+- **Combat** : Correction : dans une fenêtre étroite (jeu à côté), la colonne de droite n'est plus coupée : elle passe sous le reste de l'onglet, qui défile ; ses tableaux sont plus compacts (gain d'un combat = kamas + drops, prix unitaire d'un drop au survol). L'en-tête de l'application passe aussi à la ligne au lieu de sortir de la fenêtre.
+- **Switcheur** : nouvelles touches par défaut : F6 pour le mode Sadida (au lieu de Ctrl+Alt+↓, remplacé automatiquement s'il n'avait pas été changé), et Alt pour « Clic + touche ».
+
 ## 1.49.0 — 7 novembre 2026
 
 - **Switcheur** : mode Sadida : quand un de vos Sadida est en arbre (Puissance Sylvestre) et que c'est son tour, un raccourci (Ctrl+Alt+↓ par défaut) affiche sa fenêtre (celui dont le tour finit le plus tôt s'il y en a plusieurs). Vous passez son tour, puis la fenêtre d'avant revient d'elle-même. Les tours d'arbre restants s'affichent dans la liste des fenêtres.

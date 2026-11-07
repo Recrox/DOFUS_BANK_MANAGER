@@ -43,6 +43,37 @@ public static class ItemIcons
 }
 
 /// <summary>
+/// Icônes des challenges de combat, comme dans le jeu : clips/challenges/&lt;g&gt;.swf du client installé (g : champ du
+/// fichier de langue « fightChallenge »). Lecture seule : le jeu n'est jamais modifié.
+/// </summary>
+public static class ChallengeIcons
+{
+    static readonly string Dir = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "Ankama", "Retro", "resources", "app", "retroclient", "clips", "challenges");
+
+    static readonly Dictionary<int, ImageSource?> Cache = new();
+
+    public static ImageSource? Get(int gfx)
+    {
+        if (Cache.TryGetValue(gfx, out var img)) return img;
+        img = null;
+        var path = Path.Combine(Dir, gfx + ".swf");
+        try
+        {
+            if (File.Exists(path) && SwfRenderer.Render(File.ReadAllBytes(path)) is { } drawing)
+            {
+                var di = new DrawingImage(drawing);
+                di.Freeze();
+                img = di;
+            }
+        }
+        catch { } // icône illisible : rien
+        return Cache[gfx] = img;
+    }
+}
+
+/// <summary>
 /// Icônes des sorts, comme dans le jeu, rendues depuis les fichiers du client installé : le fond
 /// (clips/spells/icons/back/&lt;b&gt;.swf : « _spellBackground » et « _spellFrame ») puis le symbole
 /// (icons/up/&lt;up&gt;.swf : « _spellPrint »), colorés selon le fichier de langue des sorts.

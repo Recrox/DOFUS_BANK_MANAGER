@@ -5,7 +5,7 @@ using DofusRetroManager.Hunt;
 namespace DofusRetroManager;
 
 /// <summary>Challenge suivi dans le chronomètre de l'onglet Combat. State : 1 réussi/en bonne voie, 0 en cours, -1 raté.</summary>
-public sealed record ChallengeRow(string Character, string Name, string Rule, string Status, int State, bool Announced);
+public sealed record ChallengeRow(string Character, string Name, string Rule, string Status, int State, bool Announced, int Gfx = 0);
 
 /// <summary>Combat compté par le chronomètre (les personnages d'un même combat sont réunis).</summary>
 public sealed record ArenaFightRow(string Time, DateTime TimeSort, string Characters, string Monsters, long Kamas, double DropValue, long Xp)
@@ -94,15 +94,18 @@ public partial class MainWindow
                     _ when failed => ($"Raté ({why})", -1),
                     _ => (c.InFight ? $"En cours · {why}" : $"Dernier combat · {why}", c.InFight ? 0 : 1),
                 };
-                rows.Add(new ChallengeRow(c.Label, name, rule, status, state, announced));
+                rows.Add(new ChallengeRow(c.Label, name, rule, status, state, announced, _data!.FightChallengeGfx.GetValueOrDefault(id, -1)));
             }
         }
+        // Autres challenges annoncés par le jeu : leur icône, avec leur résultat quand il est connu
+        foreach (var c in _hunt.Characters.Where(c => c.Name.Length == 0 || InAreneGroup(c.Name)).OrderBy(c => c.Label))
+            foreach (var (id, result) in c.Challenges.Where(kv => kv.Key is not (HuntTracker.Econome or HuntTracker.Barbare)))
+                rows.Add(new ChallengeRow(c.Label, _data!.FightChallenges.GetValueOrDefault(id, $"Challenge n° {id}"),
+                    _data.FightChallengeRules.GetValueOrDefault(id, ""), result switch { true => "Réussi", false => "Raté", _ => "En cours" },
+                    result switch { true => 1, false => -1, _ => 0 }, true, _data.FightChallengeGfx.GetValueOrDefault(id, -1)));
         AreneChallenges.ItemsSource = rows;
         AreneChallengesEmpty.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        var others = _hunt.Characters.SelectMany(c => c.Challenges.Keys)
-            .Where(id => id is not (HuntTracker.Econome or HuntTracker.Barbare)).Distinct().ToList();
-        AreneOtherChallenges.Text = others.Count == 0 ? ""
-            : "Autres challenges annoncés : " + string.Join(", ", others.Select(id => _data!.FightChallenges.GetValueOrDefault(id, $"n° {id}")));
+        AreneOtherChallenges.Text = "";
     }
 
     void RefreshChrono()

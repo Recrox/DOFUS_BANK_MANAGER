@@ -36,12 +36,12 @@ public sealed class OrganizerSettings
     /// Mode Sadida : ce raccourci affiche le Sadida en arbre (Puissance Sylvestre) dont le tour se termine le plus tôt ;
     /// le joueur passe lui-même son tour, puis la fenêtre d'avant revient (SadidaReturn).
     /// </summary>
-    public string SadidaKey { get; set; } = "Ctrl+Alt+Down";
+    public string SadidaKey { get; set; } = "F6";
     public bool SadidaReturn { get; set; } = true;
     /// <summary>Touche + clic dans le jeu : au relâchement du clic, la fenêtre suivante de l'ordre de jeu passe au premier plan.</summary>
     public bool ClickSwitch { get; set; }
     /// <summary>Touche à garder enfoncée pendant le clic : Ctrl, Alt ou Maj.</summary>
-    public string ClickSwitchKey { get; set; } = "Ctrl";
+    public string ClickSwitchKey { get; set; } = "Alt";
     /// <summary>Boutons qui déclenchent le clic + touche : gauche, droit, ou les deux.</summary>
     public bool ClickSwitchLeft { get; set; } = true;
     public bool ClickSwitchRight { get; set; }
@@ -76,7 +76,12 @@ public sealed class OrganizerSettings
     {
         try
         {
-            if (File.Exists(Path)) return JsonSerializer.Deserialize<OrganizerSettings>(File.ReadAllText(Path)) ?? new();
+            if (File.Exists(Path) && JsonSerializer.Deserialize<OrganizerSettings>(File.ReadAllText(Path)) is { } s)
+            {
+                // Ancien raccourci Sadida par défaut (1.49) : remplacé par la nouvelle touche par défaut, F6
+                if (s.SadidaKey == "Ctrl+Alt+Down") s.SadidaKey = "F6";
+                return s;
+            }
         }
         catch { }
         return new();

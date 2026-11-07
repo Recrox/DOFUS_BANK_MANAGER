@@ -142,6 +142,8 @@ public partial class MainWindow
     internal readonly WebText OcreDetailSub = new() { ForegroundKey = "TextMuted" };
     internal readonly WebList OcreSouls = new();
     internal readonly WebCombo HuntCharacterBox = new() { ToolTip = "Multi-compte : une entrée par fenêtre de jeu. « Auto » suit la fenêtre qui vient de changer de map." };
+    /// <summary>Icônes du haut de l'onglet : « tête|rune Sagesse|rune Prospection » (tête : classe × 10 + sexe, 0 si inconnue).</summary>
+    internal readonly WebText HuntIcons = new();
     internal readonly WebText HuntLevel = new() { Text = "?" };
     internal readonly WebText HuntGroupLevel = new() { Text = "?", ForegroundKey = "AccentSolid" };
     internal readonly WebText HuntWisdom = new() { ToolTip = "Lue dans vos caractéristiques (ouvrez la fiche du personnage ou changez d'équipement si elle reste inconnue)", Text = "?" };

@@ -126,7 +126,7 @@ public partial class MainWindow
 
     (byte[]? Bytes, string Type) WebFile(string path)
     {
-        var icon = Regex.Match(path, @"^icon/(item|spell|head)/(\d+)\.png$");
+        var icon = Regex.Match(path, @"^icon/(item|spell|head|chall)/(\d+)\.png$");
         if (icon.Success)
         {
             if (!_webIcons.TryGetValue(path, out var png))
@@ -136,6 +136,7 @@ public partial class MainWindow
                 {
                     "item" => ItemIcons.Get(id),
                     "head" => CharacterIcons.Get(id), // tête du personnage : classe × 10 + sexe
+                    "chall" => ChallengeIcons.Get(id), // challenge : son icône (champ g du fichier de langue)
                     _ => SpellIcons.Get(id, _data?.SpellLooks.GetValueOrDefault(id)),
                 }, 64);
             }
@@ -421,6 +422,7 @@ public partial class MainWindow
                     break;
                 case WebText tbk:
                     w.WriteString("t", tbk.Text);
+                    if (tbk.ToolTip is string tip && tip.Length > 0) w.WriteString("tt", tip); // détail au survol
                     w.WriteString("c", BrushCss(tbk.Foreground));
                     break;
                 case WebToggle tg:
