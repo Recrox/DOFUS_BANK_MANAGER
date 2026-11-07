@@ -103,6 +103,10 @@ public partial class MainWindow
                 rows.Add(new ChallengeRow(c.Label, _data!.FightChallenges.GetValueOrDefault(id, $"Challenge n° {id}"),
                     _data.FightChallengeRules.GetValueOrDefault(id, ""), result switch { true => "Réussi", false => "Raté", _ => "En cours" },
                     result switch { true => 1, false => -1, _ => 0 }, true, _data.FightChallengeGfx.GetValueOrDefault(id, -1)));
+        // Un même challenge au même état pour plusieurs personnages (combat à plusieurs) : une seule icône, les personnages au survol
+        rows = rows.GroupBy(r => (r.Name, r.Rule, r.Status, r.State, r.Announced, r.Gfx))
+            .Select(g => g.First() with { Character = g.Count() == 1 ? g.First().Character : $"{g.Count()} personnages : {string.Join(", ", g.Select(r => r.Character))}" })
+            .ToList();
         AreneChallenges.ItemsSource = rows;
         AreneChallengesEmpty.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         AreneOtherChallenges.Text = "";

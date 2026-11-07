@@ -160,6 +160,8 @@ public partial class MainWindow
     internal readonly WebText HuntStatus = new() { ForegroundKey = "Missing" };
     internal readonly WebControl HuntAlertsPanel = new() { Visibility = Visibility.Collapsed };
     internal readonly WebTextBox HuntAlertMonster = new() { ToolTip = "Nom du monstre, ex. Craqueleur des plaines" };
+    /// <summary>Noms de monstres proposés pendant la saisie (séparés par « | »).</summary>
+    internal readonly WebText HuntAlertSuggest = new();
     internal readonly WebTextBox HuntAlertCount = new() { Text = "1" };
     internal readonly WebTextBox HuntAlertMin = new() { Text = "1" };
     internal readonly WebTextBox HuntAlertMax = new() { Text = "200" };
@@ -392,6 +394,7 @@ public partial class MainWindow
         HuntAlertsToggle.Checked += HuntAlertsToggle_Changed;
         HuntAlertsToggle.Unchecked += HuntAlertsToggle_Changed;
         HuntAlertAdd.Click += HuntAlertAdd_Click;
+        HuntAlertMonster.TextChanged += (_, _) => SuggestAlertMonsters();
         HuntAlertTest.Click += HuntAlertTest_Click;
         EconomeReset.Click += EconomeReset_Click;
         HuntClearArchis.Click += HuntClearArchis_Click;

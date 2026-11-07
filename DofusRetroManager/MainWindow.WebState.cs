@@ -155,6 +155,7 @@ public partial class MainWindow
                         w.WriteStartObject();
                         w.WriteString("t", t.Content?.ToString());
                         w.WriteBoolean("on", t.IsChecked == true);
+                        if (t.Tag is string extra) w.WriteString("d", extra); // données d'affichage (ex. « tête|niveau » d'un personnage)
                         w.WriteEndObject();
                     }
                     w.WriteEndArray();

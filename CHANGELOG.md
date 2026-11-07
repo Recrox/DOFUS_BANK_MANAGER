@@ -2,6 +2,12 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.57.0 — 7 novembre 2026
+
+- **Combat** : correction : un challenge commun à plusieurs de vos personnages n'apparaît plus qu'une fois (personnages au survol), et son icône n'est plus recouverte par son nom.
+- **Combat** : alertes monstres : le nom du monstre est proposé dans une liste pendant la saisie.
+- **Combat** : groupes du chronomètre : chaque personnage avec sa tête et son niveau, ceux du groupe d'abord, triés par niveau.
+
 ## 1.56.0 — 7 novembre 2026
 
 - **Combat** : historique de toutes vos sessions (bouton « Historique » de la rentabilité) : durée, combats, XP, gains et gain par heure, détail par personnage au survol. Les sessions passées sont retrouvées d'après vos combats.

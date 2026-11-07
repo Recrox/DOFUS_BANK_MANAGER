@@ -103,3 +103,15 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 main:has(.combat-split) { overflow-y: auto; }
 @media (max-width: 860px) { .split.wide.combat-split { grid-template-columns: minmax(0, 1fr); } }
 .chrono-stats b.ellipsis { max-width: 320px; }
+/* Groupes du chronomètre : membres en cartes (tête, nom, niveau), ceux du groupe d'abord */
+.members-block + .members-block { margin-top: 8px; }
+.members-block .lbl { margin-bottom: 4px; display: block; }
+.members { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 5px; max-height: 210px; overflow-y: auto; }
+.member { display: flex; align-items: center; gap: 6px; padding: 3px 8px 3px 4px; min-width: 0; text-align: left; border-radius: 10px;
+  background: var(--hover); border: 1px solid var(--line); font-weight: 600; font-size: 12.5px; opacity: .75; }
+.member:hover { opacity: 1; }
+.member.on { background: var(--selected); border-color: var(--accent-solid); opacity: 1; }
+.member .ico { width: 24px; height: 24px; flex: none; }
+.member .glyph { display: grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 6px; font-size: 11px; color: var(--muted); }
+.member .ellipsis { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.member i { font-style: normal; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }

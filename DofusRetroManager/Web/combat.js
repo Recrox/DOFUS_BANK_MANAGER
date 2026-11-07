@@ -15,7 +15,7 @@ function chronoBlock() {
         <b class="ellipsis" title="${esc(T('ChronoFights'))}">${esc(T('ChronoFights'))}</b><b class="acc ellipsis" title="${esc(T('ChronoGains'))}">${esc(T('ChronoGains'))}</b>
         <span class="muted ellipsis" title="${esc(T('ChronoRate'))}">${esc(T('ChronoRate'))}</span></div>
       <div class="chrono-chal">${challenges.map(c => `<span class="chall ${state(c)}" data-tip="${esc(c.Name + ' · ' + c.Status + ' · ' + c.Character + (c.Rule ? ' — ' + c.Rule : '') + (c.Announced ? ' (annoncé par le jeu)' : ''))}">
-          ${c.Gfx >= 0 ? `<img src="icon/chall/${c.Gfx}.png" alt="">` : ''}<span class="fallback">${esc(c.Name)}</span></span>`).join('')}
+          ${c.Gfx >= 0 ? `<img src="icon/chall/${c.Gfx}.png" alt="">` : `<span class="fallback">${esc(c.Name)}</span>`}</span>`).join('')}
         ${T('AreneOtherChallenges') ? `<span class="muted ellipsis" title="${esc(T('AreneOtherChallenges'))}">${esc(T('AreneOtherChallenges'))}</span>` : ''}</div>
       <button class="small" data-act="open" data-key="chrono" title="Combats comptés par le chronomètre">Combats ${open ? '▾' : '▸'}</button>
     </div>
@@ -30,11 +30,26 @@ function chronoBlock() {
     ], { select: false, empty: 'Démarrez le chronomètre : chaque fin de combat s\'ajoute ici.' })}</div>` : ''}`;
 }
 
+// Membres d'un groupe du chronomètre : tête du personnage (classe) et niveau, ceux du groupe d'abord, puis les autres,
+// chacun trié par niveau ; un clic ajoute ou retire le personnage
+function groupMembers() {
+  const all = (S.AreneGroupMembers?.items || []).map((m, i) => { const [gfx, lvl] = (m.d || '').split('|'); return { ...m, i, gfx: Number(gfx) || 0, lvl: Number(lvl) || 0 }; });
+  if (!all.length) return '<span class="muted">Aucun personnage connu.</span>';
+  const chip = m => `<button class="member ${m.on ? 'on' : ''}" data-act="toggle" data-name="AreneGroupMembers" data-i="${m.i}" title="${esc(m.t + (m.lvl ? ' · niveau ' + m.lvl : '') + (m.on ? ' — retirer du groupe' : ' — ajouter au groupe'))}">
+      ${m.gfx ? `<img class="ico" src="icon/head/${m.gfx}.png" alt="">` : '<span class="glyph">?</span>'}<span class="ellipsis">${esc(m.t)}</span>${m.lvl ? `<i>${m.lvl}</i>` : ''}</button>`;
+  const block = (title, list) => list.length ? `<div class="members-block"><div class="lbl">${title} (${list.length})</div>
+      <div class="members">${list.sort((a, b) => b.lvl - a.lvl || a.t.localeCompare(b.t)).map(chip).join('')}</div></div>` : '';
+  return block('Dans le groupe', all.filter(m => m.on)) + block('Autres personnages', all.filter(m => !m.on));
+}
+
 // Réglages de l'onglet, regroupés dans un panneau repliable (⚙) : alertes archi-monstres, alertes monstres, groupes
 function combatSettings() {
-  const alerts = `<div class="filters" title="Monstre, nombre minimum dans le groupe, niveaux">${input('HuntAlertMonster', 'Monstre (ex. Craqueleur des plaines)', '170px')}
-      <span class="lbl">≥</span>${input('HuntAlertCount', '', '40px')}<span class="lbl">niv.</span>${input('HuntAlertMin', '', '46px')}
-      <span class="lbl">à</span>${input('HuntAlertMax', '', '46px')}
+  // Nom du monstre : liste déroulante des noms proposés par l'application pendant la saisie
+  const monster = input('HuntAlertMonster', 'Monstre (ex. Craqueleur des plaines)', '190px').replace('<input ', '<input list="hunt-monsters" autocomplete="off" ');
+  const suggest = `<datalist id="hunt-monsters">${T('HuntAlertSuggest').split('|').filter(Boolean).map(n => `<option value="${esc(n)}">`).join('')}</datalist>`;
+  const alerts = `<div class="filters" title="Monstre, nombre minimum dans le groupe, niveaux">${monster}${suggest}
+      <span class="lbl">≥</span>${input('HuntAlertCount', '', '40px')}<span class="lbl">niv.</span>${input('HuntAlertMin', '', '56px')}
+      <span class="lbl">à</span>${input('HuntAlertMax', '', '56px')}
       <button class="small primary" data-act="click" data-name="HuntAlertAdd" title="Prévenir (son et bulle) quand un groupe de la map contient au moins ce nombre de ce monstre, à ces niveaux">Ajouter</button>
       <button class="small" data-act="click" data-name="HuntAlertTest">Tester</button></div>
     ${T('HuntAlertStatus') ? `<div class="muted small">${esc(T('HuntAlertStatus'))}</div>` : ''}
@@ -46,7 +61,7 @@ function combatSettings() {
         <button class="small primary" data-act="click" data-name="AreneGroupSave">Enregistrer</button>
         <button class="small" data-act="click" data-name="AreneGroupDelete">Supprimer</button></div>
       ${T('AreneGroupStatus') ? `<div class="muted small">${esc(T('AreneGroupStatus'))}</div>` : ''}
-      <div class="filters">${(S.AreneGroupMembers?.items || []).map((m, i) => `<button class="pill ${m.on ? 'on' : ''}" data-act="toggle" data-name="AreneGroupMembers" data-i="${i}">${esc(m.t)}</button>`).join('') || '<span class="muted">Aucun personnage connu.</span>'}</div>`
+      ${groupMembers()}`
     : `<div class="muted small">Les personnages comptés par le chronomètre : tous, ou un groupe enregistré.</div>`;
   return `<div class="glass card combat-settings">
       <section><p class="section-title">🔔 Archi-monstres</p>

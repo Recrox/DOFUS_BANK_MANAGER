@@ -104,6 +104,21 @@ public partial class MainWindow
         HuntAlertsToggle.Content = _hunt.Alerts.Count == 0 ? "Alertes monstres" : $"Alertes monstres ({_hunt.Alerts.Count(a => a.Enabled)})";
     }
 
+    /// <summary>
+    /// Suggestions pour le nom du monstre (liste déroulante du champ) : les 12 premiers monstres dont le nom commence par
+    /// le texte, puis ceux qui le contiennent (hors archi-monstres), séparés par « | ».
+    /// </summary>
+    void SuggestAlertMonsters()
+    {
+        var text = HuntAlertMonster.Text.Trim();
+        if (_data == null || text.Length < 2) { HuntAlertSuggest.Text = ""; return; }
+        var names = _data.Monsters.Values.Where(m => m.Name.Length > 0 && !m.IsArchi && Contains(m.Name, text))
+            .Select(m => m.Name).Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n.StartsWith(text, StringComparison.OrdinalIgnoreCase) ? 0 : 1).ThenBy(n => n.Length).ThenBy(n => n)
+            .Take(12);
+        HuntAlertSuggest.Text = string.Join("|", names);
+    }
+
     void HuntAlertAdd_Click(object sender, RoutedEventArgs e)
     {
         if (_data == null || _hunt == null) return;

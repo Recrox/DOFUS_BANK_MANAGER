@@ -62,8 +62,17 @@ public partial class MainWindow
             .Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).Order().ToList();
         var members = AreneMembers;
         AreneGroupMembers.Children.Clear();
+        // Tête (classe et sexe) et niveau de chaque personnage, pour la page : « gfx|niveau » (0 et vide si inconnus)
         foreach (var name in known)
-            AreneGroupMembers.Children.Add(new CheckBox { Content = name, IsChecked = members?.Contains(name) == true, Margin = new Thickness(0, 0, 14, 4) });
+        {
+            var live = _hunt?.Characters.FirstOrDefault(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+            int? level = live?.Level ?? _hunt?.KnownOf(name)?.Level;
+            AreneGroupMembers.Children.Add(new CheckBox
+            {
+                Content = name, IsChecked = members?.Contains(name) == true, Margin = new Thickness(0, 0, 14, 4),
+                Tag = $"{_hunt?.LookOf(name)?.Gfx ?? 0}|{level}",
+            });
+        }
         AreneGroupName.Text = _arene.Selected ?? "";
     }
 
