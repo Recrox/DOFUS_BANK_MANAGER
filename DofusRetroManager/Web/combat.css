@@ -1,0 +1,76 @@
+/* Onglet Combat */
+
+/* Combat */
+.stat-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.stat { display: flex; flex-direction: column; padding: 8px 14px; border-radius: var(--radius-md); background: var(--glass-strong);
+  border: 1px solid var(--line); min-width: 92px; }
+.stat span { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+.stat b { font-size: 18px; font-weight: 800; }
+.stat b.acc { background: var(--accent); -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* Combat : caractéristiques en icônes (tête, runes), cases et boutons en icônes ; libellés au survol */
+.istat { display: flex; align-items: center; gap: 7px; padding: 5px 11px 5px 7px; border-radius: var(--radius-md);
+  background: var(--glass-strong); border: 1px solid var(--line); }
+.istat .ico { width: 28px; height: 28px; }
+.istat b { font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.istat b.acc { background: var(--accent); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.istat .glyph { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--hover);
+  font-size: 11px; font-weight: 800; color: var(--muted); }
+.grp { position: relative; display: inline-flex; }
+.grp i { position: absolute; right: -6px; bottom: -4px; font-size: 11px; font-style: normal; line-height: 1; }
+.stat-row .sep { width: 1px; align-self: stretch; margin: 4px 2px; background: var(--line); }
+.icheck { display: inline-flex; cursor: pointer; }
+.icheck input { display: none; }
+.icheck span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; font-size: 16px;
+  background: var(--hover); border: 1px solid var(--line); opacity: .45; filter: grayscale(1); transition: opacity .15s, filter .15s; }
+.icheck input:checked + span { opacity: 1; filter: none; border-color: var(--accent-solid); }
+.ibtn { min-width: 34px; height: 34px; padding: 0 8px; font-size: 15px; }
+/* Challenges en icônes du jeu : contour selon l'état (en cours, réussi, raté) */
+.chall { position: relative; display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; overflow: hidden;
+  border: 2px solid var(--warn); background: var(--hover); }
+.chall.ok { border-color: var(--ok); }
+.chall.bad { border-color: var(--bad); filter: grayscale(.7); }
+.chall img { position: relative; z-index: 1; width: 100%; height: 100%; object-fit: contain; }
+.chall .fallback { position: absolute; inset: 0; display: grid; place-items: center; font-size: 8px; text-align: center; overflow: hidden; }
+.econome { padding: 12px 14px; }
+.econome .bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.econome .bar .t { flex: 1; }
+.spells { display: flex; flex-wrap: wrap; gap: 6px; }
+.spell { position: relative; width: 44px; height: 44px; border-radius: 10px; overflow: hidden; transition: transform .15s, opacity .15s, filter .15s; }
+.spell img { position: relative; z-index: 1; width: 100%; height: 100%; display: block; }
+.spell:hover { transform: translateY(-2px) scale(1.06); }
+.spell.used { opacity: .45; filter: grayscale(1); }
+.spell.twice { opacity: .55; filter: grayscale(1); box-shadow: 0 0 0 3px var(--bad), 0 0 16px var(--bad); }
+.spell .fallback { position: absolute; inset: 0; display: grid; place-items: center; font-size: 9px; text-align: center;
+  background: var(--accent); color: #fff; padding: 2px; }
+.alert { padding: 10px 14px; border-radius: var(--radius-md); background: rgba(251, 113, 133, .15); border: 1px solid var(--bad);
+  color: var(--bad); font-weight: 700; }
+.drops { padding: 8px 12px 12px 46px; background: var(--glass-strong); }
+.drops table { font-size: 12.5px; }
+.drops td, .drops th { padding: 5px 8px; border: none; }
+.drops th { position: static; background: transparent; backdrop-filter: none; cursor: default; }
+.drops tr.dim { opacity: .5; }
+.side-tables { display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 12px; min-height: 0; }
+.section-title { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--accent-solid); font-weight: 800; }
+.mini { display: flex; flex-direction: column; min-height: 0; }
+.proj { font-size: 12.5px; }
+
+/* Volume de l'alerte archi-monstre */
+label.volume { display: inline-flex; align-items: center; gap: 8px; }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 110px; height: 6px; border-radius: 3px; cursor: pointer;
+  background: linear-gradient(90deg, #8b5cf6, #06b6d4) 0 / var(--p, 70%) 100% no-repeat, var(--input); border: 1px solid var(--line-strong); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent); border: 2px solid #fff; box-shadow: var(--accent-glow); transition: transform .12s; }
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+/* Combat : chronomètre et challenges (ancien onglet Arène) */
+.chrono { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 8px 12px; }
+.chrono .time { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chrono-stats { display: flex; gap: 10px; align-items: baseline; min-width: 0; flex: 1 1 220px; }
+.chrono .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.chrono-chal { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-width: 0; }
+.chrono-chal .chip.failed { border-color: var(--bad); }
+.chrono-grid { max-height: 220px; overflow: auto; }
+.chrono-grid .ellipsis { display: block; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Colonne de droite (onglet Combat) : étroite, les textes longs sont coupés (texte complet au survol) */
+.side-tables .ellipsis { display: block; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -1,0 +1,15 @@
+/* Onglet Brisage */
+
+/* Brisage : seuils par caractéristique */
+.stat-filters { gap: 6px; }
+.stat-filter { padding: 4px 6px 4px 10px; gap: 6px; }
+.stat-filter.on { border-color: var(--accent-solid); background: var(--selected); }
+.stat-filter input[type="text"] { width: 52px; padding: 3px 6px; text-align: center; }
+.ing.rune { grid-template-columns: 34px 1fr auto; }
+
+/* Brisage : filtres compacts (icône de la rune + abréviation), tableau sans défilement horizontal */
+.ico.xs { width: 18px; height: 18px; margin-right: 2px; }
+.stat-filter input[type="text"] { width: 44px; }
+.stats-wrap { display: block; min-width: 160px; max-width: 340px; white-space: normal; }
+.runes-text { font-size: 11px; max-width: 150px; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.craft-miss { display: inline-block; vertical-align: middle; max-width: 130px; }

@@ -1,0 +1,42 @@
+/* Onglet Carte */
+
+/* Carte : tuiles du client, grille des maps (40 × 23), marqueurs de taille fixe */
+.carte-cat { display: inline-flex; align-items: center; gap: 6px; }
+.carte-cat img { width: 18px; height: 18px; object-fit: contain; }
+.carte-host { position: relative; min-height: 0; border-radius: var(--radius-lg); border: 1px solid var(--line); overflow: hidden; background: #8c8c8c; }
+.carte-view { position: absolute; inset: 0; overflow: hidden; cursor: grab; user-select: none; }
+.carte-view:active { cursor: grabbing; }
+.carte-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.carte-world img { position: absolute; width: 600px; height: 345px; pointer-events: none; }
+.carte-grid { position: absolute; pointer-events: none;
+  background-image: linear-gradient(to right, rgba(0, 0, 0, .19) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 0, 0, .19) 1px, transparent 1px);
+  background-size: 40px 23px; }
+.carte-cell { position: absolute; display: none; width: 40px; height: 23px; border: 1.5px solid var(--accent-solid); box-sizing: border-box; pointer-events: none; }
+.carte-cell.hover { background: rgba(255, 255, 255, .16); }
+.carte-markers { position: absolute; inset: 0; pointer-events: none; }
+.carte-marker { position: absolute; width: 22px; height: 22px; transform: translate(-50%, -50%); pointer-events: auto; cursor: pointer; }
+.carte-marker img { width: 22px; height: 22px; object-fit: contain; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .5)); }
+.carte-marker > i { display: block; width: 10px; height: 10px; margin: 6px; border-radius: 50%; background: var(--accent-solid); border: 1.5px solid #fff; }
+.carte-marker.player { z-index: 2; width: 16px; height: 16px; }
+.carte-marker.player > i { width: 16px; height: 16px; margin: 0; background: #2e7dd1; border-width: 2.5px; }
+.carte-marker.player.me > i { background: var(--accent-solid); }
+.carte-marker.player span { position: absolute; left: 20px; top: -2px; white-space: nowrap; padding: 1px 6px; border-radius: 4px;
+  background: rgba(0, 0, 0, .78); color: #fff; font-size: 11px; font-weight: 600; }
+.carte-hover { position: absolute; left: 10px; bottom: 10px; padding: 5px 10px; border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, .78); color: #fff; font-weight: 600; pointer-events: none; max-width: calc(100% - 20px); }
+.carte-side { gap: 8px; }
+.carte-side .small { font-size: 11px; }
+.carte-list { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 2px; }
+.carte-row { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: center; padding: 5px 7px; border-radius: var(--radius-sm); cursor: pointer; }
+.carte-row:hover { background: var(--hover); }
+.carte-row.on { background: var(--selected); }
+.carte-row img { width: 22px; height: 22px; object-fit: contain; }
+.carte-row b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carte-row small { display: block; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Récolte sur la map : icône de la ressource, nombre et repousse (nom au survol) */
+.harvest-chips { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; }
+.harvest-chip { display: inline-flex; align-items: center; gap: 4px; cursor: default; }
+.harvest-chip .ico { width: 24px; height: 24px; }
+.harvest-chip b, .harvest-chip small { display: block; line-height: 1.15; }
+.harvest-chip small { font-size: 10.5px; }
