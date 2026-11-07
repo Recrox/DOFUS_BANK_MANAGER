@@ -109,8 +109,13 @@
                                 <Image Source="{Binding Icon}"/>
                                 <Border x:Name="Veil" Background="#99707070" Visibility="Collapsed"/>
                                 <Border x:Name="Fail" BorderBrush="{DynamicResource Missing}" BorderThickness="2" Visibility="Collapsed"/>
+                                <Border x:Name="Pick" BorderBrush="#FF34D399" BorderThickness="2" Visibility="Collapsed"/>
                             </Grid>
                             <DataTemplate.Triggers>
+                                <!-- Borné : l'action à relancer, encadrée de vert -->
+                                <DataTrigger Binding="{Binding State}" Value="2">
+                                    <Setter TargetName="Pick" Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
                                 <DataTrigger Binding="{Binding State}" Value="0">
                                     <Setter TargetName="Veil" Property="Visibility" Value="Visible"/>
                                     <Setter TargetName="Tile" Property="Opacity" Value="0.55"/>

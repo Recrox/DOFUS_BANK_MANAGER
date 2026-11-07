@@ -46,6 +46,9 @@ public sealed partial class HuntTracker
         var c = Current;
         c.InFight = true;
         c.UsedSpells.Clear();
+        c.TurnSpells.Clear();
+        c.VersatileBroken = false;
+        c.FightLifeLost = 0;
         c.SylvestreTurns = 0;
         c.SylvestrePending = null;
         c.Challenges.Clear(); // annoncés ensuite par le serveur (Gd)
@@ -106,6 +109,8 @@ public sealed partial class HuntTracker
         if (!mine) return;
         c.InFight = true;
         c.UsedSpells.Add(spell);
+        if (c.TurnSpells.Contains(spell)) c.VersatileBroken = true; // Versatile : même action deux fois dans le tour
+        c.TurnSpells.Add(spell);
         // Puissance Sylvestre réussie (un échec critique, 302, n'a pas d'effet)
         if (f[1] == "300" && IsSylvestre(spell)) c.SylvestrePending = SylvestreDuration(c, spell);
         Changed?.Invoke();
@@ -149,6 +154,7 @@ public sealed partial class HuntTracker
         c.TurnStart = DateTime.Now;
         c.TurnMs = durationMs;
         c.InFight = true;
+        c.TurnSpells.Clear(); // Versatile : nouveau tour, toutes les actions redeviennent possibles
         c.LastMove = DateTime.Now;
         if (Pinned != null) Pinned = c.Stream;
         Changed?.Invoke();
@@ -223,7 +229,13 @@ public sealed partial class HuntTracker
 
     public void ResetEconome()
     {
-        Shown?.UsedSpells.Clear();
+        if (Shown is { } c)
+        {
+            c.UsedSpells.Clear();
+            c.TurnSpells.Clear();
+            c.VersatileBroken = false;
+            c.FightLifeLost = 0;
+        }
         Changed?.Invoke();
     }
 }

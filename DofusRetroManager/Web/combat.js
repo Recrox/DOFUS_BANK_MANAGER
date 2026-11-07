@@ -69,7 +69,10 @@ function combatSettings() {
           <button class="small ibtn" data-act="click" data-name="HuntTestSound" data-tip="Tester le son (et la bulle archi-monstre)">▶</button></div>
         <label class="volume" title="Volume des alertes (archi-monstres, alertes monstres, Switcheur)">🔊<input type="range" data-set="HuntVolume" data-fk="HuntVolume"
           min="${S.HuntVolume?.min ?? 0}" max="${S.HuntVolume?.max ?? 100}" step="1" value="${S.HuntVolume?.val ?? 70}"
-          style="--p:${S.HuntVolume?.val ?? 70}%"><span class="muted">${esc(T('HuntVolumeText'))}</span></label></section>
+          style="--p:${S.HuntVolume?.val ?? 70}%"><span class="muted">${esc(T('HuntVolumeText'))}</span></label>
+        <p class="section-title" style="margin-top:6px">🖥 Superposition en jeu</p>
+        <div class="filters" title="Fenêtre posée sur le jeu (réglages complets : onglet Switcheur)">${check('OverlayEnabled', 'Activée')}
+          <span data-tip="Pendant un combat : aides aux challenges annoncés (Économe, Versatile, Barbare, Mystique, Borné, Intouchable) : sorts déjà lancés, interdits ou à relancer">${check('OverlayEconome', 'Aides aux challenges')}</span></div></section>
       <section><p class="section-title">🎯 ${esc(T('HuntAlertsToggle') || 'Alertes monstres')}</p>${alerts}</section>
       <section><p class="section-title" style="display:flex;justify-content:space-between;align-items:center">👥 Groupes du chronomètre
         <label class="check small"><input type="checkbox" data-set="AreneGroupEdit" ${S.AreneGroupEdit?.on ? 'checked' : ''}>Modifier</label></p>${groups}</section>
@@ -103,8 +106,6 @@ function sessionCard() {
 
 Object.assign(views, {
   combat() {
-    const spells = rows('EconomeSpells').map(s => `<div class="spell ${s.State === 0 ? 'used' : s.State < 0 ? 'twice' : ''}" title="${esc(s.Name + ' — ' + s.Status)}">
-      <img src="icon/spell/${s.Id}.png" alt=""><span class="fallback">${esc(s.Name)}</span></div>`).join('');
     const char = S.HuntCharacterBox;
     // Caractéristiques en icônes du jeu (tête du personnage, sagesse et prospection de sa fiche) ; le libellé et le détail au survol
     const head = Number(T('HuntIcons').split('|')[0]);
@@ -136,8 +137,6 @@ Object.assign(views, {
       ${chronoBlock()}
       <div class="split wide combat-split">
         <div class="stack">
-          <div class="glass econome"><div class="bar"><span class="t"><b class="acc">Économe</b> · ${esc(T('EconomeStatus'))}</span>
-            <button class="small" data-act="click" data-name="EconomeReset">Remettre à zéro</button></div><div class="spells">${spells}</div></div>
           <div class="strong"><a class="pos-link" data-act="goto-me" title="Voir sur la carte">${esc(T('HuntMap'))}</a></div>
           ${table('HuntGroupGrid', [
             { h: 'Monstres', k: 'Monsters', f: r => `<span class="strong">${esc(r.Monsters)}</span>` },

@@ -68,41 +68,24 @@ public partial class MainWindow
     /// </summary>
     void RefreshChallenges()
     {
+        // Challenges annoncés par le jeu (Gd) : leur résultat quand il est connu ; en attendant, pour ceux qu'on sait suivre
+        // (Économe, Versatile, Barbare, Mystique, Borné, Intouchable), l'état déduit des actions du personnage
         var rows = new List<ChallengeRow>();
-        foreach (var c in _hunt!.Characters.Where(c => (c.InFight || c.UsedSpells.Count > 0 || c.Challenges.Count > 0) && (c.Name.Length == 0 || InAreneGroup(c.Name))).OrderBy(c => c.Label))
-        {
-            var twice = c.UsedSpells.GroupBy(s => s).Where(g => g.Count() > 1)
-                .Select(g => g.Key == HuntTracker.Weapon ? "l'arme" : _data!.Spells.GetValueOrDefault(g.Key, $"sort {g.Key}")).ToList();
-            var spells = c.UsedSpells.Where(s => s != HuntTracker.Weapon).Distinct()
-                .Select(s => _data!.Spells.GetValueOrDefault(s, $"sort {s}")).ToList();
-
-            foreach (var (id, name, rule, failed, why) in new[]
+        foreach (var c in _hunt!.Characters.Where(c => c.Challenges.Count > 0 && (c.Name.Length == 0 || InAreneGroup(c.Name))).OrderBy(c => c.Label))
+            foreach (var (id, result) in c.Challenges)
             {
-                (HuntTracker.Econome, "Économe", "Chaque sort (et l'arme) une seule fois par combat", twice.Count > 0,
-                    twice.Count > 0 ? "relancé : " + string.Join(", ", twice) : $"{c.UsedSpells.Count} action(s) différente(s)"),
-                (HuntTracker.Barbare, "Barbare", "Aucun sort : seulement l'arme", spells.Count > 0,
-                    spells.Count > 0 ? "sort lancé : " + string.Join(", ", spells) : "aucun sort lancé"),
-            })
-            {
-                bool announced = c.Challenges.TryGetValue(id, out var result);
-                // Combat sans annonce de ce challenge : on ne l'affiche que pour suivre son état, discrètement
-                if (!announced && c.Challenges.Count > 0) continue;
+                var kind = KindOf(id);
+                var (failed, why) = kind == ChallengeKind.None ? (false, "") : Track(c, kind);
                 var (status, state) = result switch
                 {
                     true => ("Réussi", 1),
                     false => ("Raté", -1),
                     _ when failed => ($"Raté ({why})", -1),
-                    _ => (c.InFight ? $"En cours · {why}" : $"Dernier combat · {why}", c.InFight ? 0 : 1),
+                    _ => (why.Length > 0 ? $"En cours · {why}" : "En cours", 0),
                 };
-                rows.Add(new ChallengeRow(c.Label, name, rule, status, state, announced, _data!.FightChallengeGfx.GetValueOrDefault(id, -1)));
-            }
-        }
-        // Autres challenges annoncés par le jeu : leur icône, avec leur résultat quand il est connu
-        foreach (var c in _hunt.Characters.Where(c => c.Name.Length == 0 || InAreneGroup(c.Name)).OrderBy(c => c.Label))
-            foreach (var (id, result) in c.Challenges.Where(kv => kv.Key is not (HuntTracker.Econome or HuntTracker.Barbare)))
                 rows.Add(new ChallengeRow(c.Label, _data!.FightChallenges.GetValueOrDefault(id, $"Challenge n° {id}"),
-                    _data.FightChallengeRules.GetValueOrDefault(id, ""), result switch { true => "Réussi", false => "Raté", _ => "En cours" },
-                    result switch { true => 1, false => -1, _ => 0 }, true, _data.FightChallengeGfx.GetValueOrDefault(id, -1)));
+                    _data.FightChallengeRules.GetValueOrDefault(id, ""), status, state, true, _data.FightChallengeGfx.GetValueOrDefault(id, -1)));
+            }
         // Un même challenge au même état pour plusieurs personnages (combat à plusieurs) : une seule icône, les personnages au survol
         rows = rows.GroupBy(r => (r.Name, r.Rule, r.Status, r.State, r.Announced, r.Gfx))
             .Select(g => g.First() with { Character = g.Count() == 1 ? g.First().Character : $"{g.Count()} personnages : {string.Join(", ", g.Select(r => r.Character))}" })

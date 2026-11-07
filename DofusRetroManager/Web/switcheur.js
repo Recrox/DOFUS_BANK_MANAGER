@@ -40,7 +40,7 @@ Object.assign(views, {
           ${sw('OrganizerLockOrder', "Figer l'ordre en groupe", "L'ordre de jeu est enregistré à l'entrée en groupe.")}</section>
         <section class="card org-card"><h3><span class="ico">▣</span>Superposition en jeu</h3>
           ${sw('OverlayEnabled', 'Afficher au-dessus du jeu', 'Laisse passer les clics vers le jeu, sauf sur l’ordre de jeu : un clic sur un personnage affiche sa fenêtre.')}
-          <div class="sub">Blocs</div><div class="togs">${pill('OverlayEconome', 'Économe')}${pill('OverlayGroups', 'Groupes de la map')}${pill('OverlayHarvest', 'Récolte')}${pill('OverlayRotation', 'Ordre de jeu')}</div>
+          <div class="sub">Blocs</div><div class="togs">${pill('OverlayEconome', 'Challenges')}${pill('OverlayGroups', 'Groupes de la map')}${pill('OverlayHarvest', 'Récolte')}${pill('OverlayRotation', 'Ordre de jeu')}</div>
           <label class="volume">Opacité<input type="range" data-set="OverlayOpacity" data-fk="OverlayOpacity" min="${S.OverlayOpacity?.min ?? 40}"
             max="${S.OverlayOpacity?.max ?? 100}" step="1" value="${opacity}" style="--p:${((opacity - 40) / 60 * 100).toFixed(0)}%">
             <span class="muted">${esc(T('OverlayOpacityText'))}</span></label>

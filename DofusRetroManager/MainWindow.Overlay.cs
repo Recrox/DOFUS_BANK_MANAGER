@@ -164,10 +164,11 @@ public partial class MainWindow
             me?.Label ?? "Aucun personnage suivi",
             me == null ? "Changez de map en jeu"
                 : $"Niv. {N(me.Level)} · groupe {N(me.GroupLevel)}\nPP {N(me.Prospection)} · groupe {N(me.GroupProspection)} · Sagesse {N(me.Wisdom)}",
-            "Économe · " + EconomeStatus.Text, spells,
+            "Challenges · " + EconomeStatus.Text, spells,
             allGroups.Count == 0 ? "Map · aucun groupe" : $"Map · {allGroups.Count} groupe(s)" + (allGroups.Count > 3 ? " (3 plus forts)" : ""),
             groups, rotation,
-            _organizer.OverlayEconome && spells.Count > 0, _organizer.OverlayGroups, _organizer.OverlayRotation && rotation.Count > 1,
+            // Aides aux challenges : seulement pendant un combat dont un challenge annoncé est suivable
+            _organizer.OverlayEconome && (spells.Count > 0 || EconomeStatus.Text.Length > 0), _organizer.OverlayGroups, _organizer.OverlayRotation && rotation.Count > 1,
             Data.CharacterIcons.Get(_hunt?.LookOf(me?.Name ?? "")),
             harvest.Count == 0 ? "Récolte · aucune ressource" : $"Récolte · {harvest.Sum(l => l.Available)} disponible(s)",
             harvest.Select(Harvest.HarvestTracker.Chip).ToList(),

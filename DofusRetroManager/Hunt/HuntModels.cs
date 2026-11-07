@@ -81,6 +81,11 @@ public sealed class HuntCharacter(string stream, int number)
     /// <summary>Économe : en combat, et sorts déjà lancés dans ce combat (dans l'ordre).</summary>
     public bool InFight { get; set; }
     public List<int> UsedSpells { get; } = new();
+    /// <summary>Versatile : sorts lancés pendant le tour en cours du personnage ; Broken : une même action relancée dans un tour.</summary>
+    public List<int> TurnSpells { get; } = new();
+    public bool VersatileBroken { get; set; }
+    /// <summary>Intouchable : points de vie perdus depuis le début du combat (vie du personnage lue en début de tour, GTM).</summary>
+    public int FightLifeLost { get; set; }
     /// <summary>Sorts reçus sur cette connexion (la liste peut arriver avant le nom du personnage).</summary>
     public List<int>? KnownSpells { get; set; }
 

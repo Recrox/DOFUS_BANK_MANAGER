@@ -2,6 +2,12 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.58.0 — 7 novembre 2026
+
+- **Superposition** : aides aux challenges annoncés en combat : Économe, Versatile, Barbare, Mystique, Borné et Intouchable (sorts déjà lancés, interdits ou à relancer, points de vie perdus).
+- **Combat** : l'Économe n'est plus affiché dans l'onglet, seulement dans la superposition ; son affichage se règle dans ⚙ Réglages (bloc « Superposition en jeu »).
+- **Combat** : correction : un challenge annoncé sous un autre numéro (ex. Barbare) est maintenant bien suivi, et seuls les challenges annoncés par le jeu s'affichent.
+
 ## 1.57.0 — 7 novembre 2026
 
 - **Combat** : correction : un challenge commun à plusieurs de vos personnages n'apparaît plus qu'une fois (personnages au survol), et son icône n'est plus recouverte par son nom.

@@ -211,7 +211,7 @@ public partial class MainWindow
     internal readonly WebToggle OrganizerMaximize = new() { ToolTip = "Chaque nouvelle fenêtre du jeu est agrandie dès qu'elle apparaît (comme le bouton Agrandir de Windows).", Content = "Agrandir la fenêtre au démarrage de Dofus" };
     internal readonly WebToggle OrganizerLockOrder = new() { ToolTip = "Quand un personnage rejoint un groupe, l'ordre de jeu actuel est enregistré et ne suit plus l'initiative (qui change en combat)", Content = "Figer l'ordre à l'entrée en groupe" };
     internal readonly WebToggle OverlayEnabled = new() { ToolTip = "Affiche les infos utiles au-dessus du jeu, seulement quand une fenêtre de jeu est au premier plan. Les clics passent au jeu.", Content = "Superposition en jeu" };
-    internal readonly WebToggle OverlayEconome = new() { Content = "Économe" };
+    internal readonly WebToggle OverlayEconome = new() { Content = "Challenges" };
     internal readonly WebToggle OverlayGroups = new() { Content = "Groupes de la map" };
     internal readonly WebToggle OverlayHarvest = new() { ToolTip = "Ressources de la map : disponibles, récoltées et repousse estimée", Content = "Récolte" };
     internal readonly WebToggle OverlayRotation = new() { Content = "Ordre de jeu" };

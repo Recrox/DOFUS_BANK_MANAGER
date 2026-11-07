@@ -83,6 +83,7 @@ public sealed partial class HuntTracker
             int? hp = f.Length >= 2 && f[1] == "1" ? 0 : f.Length >= 3 && int.TryParse(f[2], out var l) ? l : c.Life;
             int? hpMax = f.Length >= 8 && int.TryParse(f[7], out var m) ? m : c.MaxLife;
             if (hp == c.Life && hpMax == c.MaxLife) return;
+            if (c.InFight && hp < c.Life) c.FightLifeLost += c.Life!.Value - hp!.Value; // Intouchable
             c.Life = hp;
             c.MaxLife = hpMax;
             Changed?.Invoke();
