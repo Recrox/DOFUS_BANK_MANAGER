@@ -142,9 +142,9 @@ Cet onglet trouve les objets à briser pour générer des runes. Cliquez sur une
 
 Les caractéristiques s'affichent en compact : l'icône de la rune, l'abréviation et la valeur ; le nom complet et la fourchette au survol. Les filtres comprennent aussi les % résistance (neutre, terre, feu, eau, air).
 
-Chaque ligne indique aussi le nombre d'exemplaires possédés, si l'objet est faisable, les ingrédients manquants, le coût de fabrication et le prix HDV. Un clic sur le nom d'un objet (ou « Voir la recette » dans le détail) ouvre sa recette dans l'onglet Recettes.
+Chaque ligne indique aussi si l'objet est faisable (« Fais. »), les ingrédients manquants, le coût de fabrication et le prix HDV. Le nom de l'objet est abrégé si besoin (nom complet au survol) ; les caractéristiques occupent toute la largeur libre, pour des lignes peu hautes. Un clic sur le nom d'un objet (ou « Voir la recette » dans le détail) ouvre sa recette dans l'onglet Recettes.
 
-**Runes estimées** : chaque objet affiche les runes qu'il devrait donner, leur valeur au prix unitaire HDV et le **gain** du brisage (valeur des runes moins le prix HDV de l'objet pour vos objets, moins son coût de fabrication pour les recettes). Le panneau de droite détaille chaque rune : quantité, prix par unité, total. Le champ **Quantité à briser** (par défaut, et avec **Max** : tous les exemplaires possédés) multiplie les runes, leur valeur et le gain.
+**Runes estimées** : chaque objet affiche les runes qu'il devrait donner, leur valeur au prix unitaire HDV et le **gain** du brisage (valeur des runes moins le prix HDV de l'objet pour vos objets, moins son coût de fabrication pour les recettes), et ce gain en pourcentage de ce prix de référence (colonne **Gain %**, triable). Le panneau de droite détaille chaque rune : quantité, prix par unité, total. Le champ **Quantité à briser** (par défaut, et avec **Max** : tous les exemplaires possédés) multiplie les runes, leur valeur et le gain.
 
 Aucune formule officielle n'existe pour Retro : c'est une **estimation**. Pour chaque caractéristique, poids de runes = jet × poids par point × niveau de l'objet × 36 % / 100, réparti de la plus grosse rune (Ra) à la plus petite (quantité décimale pour les runes simples). Exemple : la Coiffe du Kitsou (niveau 61, 150 de vitalité) donne 1 Ra Vi. Le brisage reste à faire à la main, en jeu (règle 3).
 

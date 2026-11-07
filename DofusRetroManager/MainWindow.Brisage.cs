@@ -13,6 +13,8 @@ public sealed record BrisageRow(int ItemId, string Name, int Level, string Type,
     public List<StatChip> Chips { get; init; } = [];
     public int Index { get; init; }
     public int GainSign => Gain is { } g ? Math.Sign(g) : 0;
+    /// <summary>Gain rapporté au prix de référence (prix HDV de l'objet, ou coût de fabrication), en fraction (0,25 = +25 %).</summary>
+    public double? GainPercent => Reference > 0 ? Gain / Reference : null;
     /// <summary>Colonne « Faisable » : « ×3 », sinon les ingrédients manquants.</summary>
     public bool CanCraft => Craftable > 0;
     public string CraftText => Craftable > 0 ? $"×{Craftable}" : Missing;

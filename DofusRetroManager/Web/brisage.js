@@ -17,14 +17,15 @@ Object.assign(views, {
       <div class="split">
         ${table('BrisageGrid', [
           { h: '', f: r => itemImg(r.ItemId) },
-          { h: 'Objet', k: 'Name', f: r => `<a class="strong item-link" data-act="item-recipe" data-id="${r.ItemId}" title="Voir la recette de cet objet">${esc(r.Name)}</a><div class="muted">${esc(r.Type)} · niv. ${r.Level}</div>` },
+          { h: 'Objet', k: 'Name', f: r => `<a class="strong item-link brisage-name" data-act="item-recipe" data-id="${r.ItemId}" title="${esc(r.Name)} — voir la recette">${esc(r.Name)}</a><div class="muted brisage-name">${esc(r.Type)} · niv. ${r.Level}</div>` },
           // Caractéristiques en entier (sur plusieurs lignes si besoin) ; lieu au survol du nombre possédé ; runes sous leur valeur
-          { h: 'Caractéristiques', k: 'Score', f: r => `<span class="stat-chips">${(r.Chips || []).map(c => `<span class="stat-chip ${c.On ? 'on' : ''} ${c.Neg ? 'neg' : ''}" title="${esc(c.Tip)}">${c.Rune ? itemImg(c.Rune, 'xs') : ''}<i>${esc(c.Short)}</i>${esc(c.Value)}</span>`).join('')}</span>` },
-          { h: 'Poss.', k: 'Owned', num: true, f: r => `<span class="strong ${r.Owned > 0 ? 'acc' : 'muted'}" title="${esc(r.Where)}">${r.Owned}</span>` },
-          { h: 'Faisable', k: 'Craftable', num: true, f: r => r.Craftable > 0 ? `<span class="ok strong" title="Faisable ${r.Craftable} fois avec vos ressources">×${r.Craftable}</span>` : r.Missing ? `<span class="bad strong" title="Manque : ${esc(r.Missing)}">✗</span>` : '' },
+          // Caractéristiques sur toute la largeur libre de la colonne : moins de lignes, donc des lignes moins hautes
+          { h: 'Caractéristiques', k: 'Score', f: r => `<span class="stat-chips wide">${(r.Chips || []).map(c => `<span class="stat-chip ${c.On ? 'on' : ''} ${c.Neg ? 'neg' : ''}" title="${esc(c.Tip)}">${c.Rune ? itemImg(c.Rune, 'xs') : ''}<i>${esc(c.Short)}</i>${esc(c.Value)}</span>`).join('')}</span>` },
+          { h: 'Fais.', k: 'Craftable', num: true, f: r => r.Craftable > 0 ? `<span class="ok strong" title="Faisable ${r.Craftable} fois avec vos ressources">×${r.Craftable}</span>` : r.Missing ? `<span class="bad strong" title="Manque : ${esc(r.Missing)}">✗</span>` : '' },
           { h: 'Prix', k: 'HdvPrice', num: true, f: r => `<span class="acc strong" title="Prix HDV">${fmt(r.HdvPrice)}</span><div class="muted small" title="Coût de fabrication (ingrédients au prix HDV)">${r.CraftCost != null ? '⚒ ' + fmt(r.CraftCost) : ''}</div>` },
           { h: 'Runes ≈', k: 'RunesValue', num: true, f: r => `<span class="strong" title="${esc(r.RunesText)}">${fmt(r.RunesValue)}</span>` },
           { h: 'Gain', k: 'Gain', num: true, f: r => r.Gain == null ? '—' : `<span title="${esc(S.BrisageGainColumn?.t || 'Gain')} : valeur des runes moins le prix de référence" class="strong ${r.GainSign < 0 ? 'bad' : 'ok'}">${r.Gain > 0 ? '+' : ''}${fmt(r.Gain)}</span>` },
+          { h: 'Gain %', k: 'GainPercent', num: true, f: r => r.GainPercent == null ? '—' : `<span title="Gain rapporté au prix de référence (${r.Reference == null ? '—' : fmt(r.Reference) + ' k'})" class="strong ${r.GainSign < 0 ? 'bad' : 'ok'}">${pct(r.GainPercent)}</span>` },
         ], { empty: T('BrisageEmpty') || 'Aucun objet ne correspond à ces critères.' })}
         <aside class="detail glass">${sel ? `${detailHead(itemImg(sel.ItemId, 'lg'), 'BrisageDetailTitle', 'BrisageDetailSub')}
           ${btn('BrisageGoRecipe', 'Voir la recette', 'small')}

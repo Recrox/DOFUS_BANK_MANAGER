@@ -2,6 +2,11 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.55.0 — 7 novembre 2026
+
+- **Brisage** : nouvelle colonne « Gain % » (gain rapporté au prix de l'objet ou à son coût de fabrication), triable.
+- **Brisage** : la colonne « Poss. » est retirée ; les caractéristiques prennent toute la largeur libre, les lignes sont beaucoup moins hautes, et le tableau ne déborde plus à la taille de fenêtre par défaut.
+
 ## 1.54.0 — 7 novembre 2026
 
 - **Interface** : l'application ne se fige plus à la première ouverture d'un onglet plein d'icônes ou de la carte : les images arrivent au fur et à mesure, et les raccourcis du Switcheur restent réactifs pendant ce temps.

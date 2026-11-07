@@ -10,6 +10,10 @@
 /* Brisage : filtres compacts (icône de la rune + abréviation), tableau sans défilement horizontal */
 .ico.xs { width: 18px; height: 18px; margin-right: 2px; }
 .stat-filter input[type="text"] { width: 44px; }
+/* Caractéristiques du tableau : toute la largeur libre (pas de limite à 290 px), pour des lignes moins hautes */
+.stat-chips.wide { max-width: none; min-width: 150px; }
+/* Nom de l'objet : coupé (nom complet au survol), pour laisser la place aux caractéristiques */
+.brisage-name { display: block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
 .stats-wrap { display: block; min-width: 160px; max-width: 340px; white-space: normal; }
 .runes-text { font-size: 11px; max-width: 150px; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .craft-miss { display: inline-block; vertical-align: middle; max-width: 130px; }
