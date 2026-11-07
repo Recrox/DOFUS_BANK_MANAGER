@@ -152,6 +152,7 @@ public sealed partial class HuntTracker
 
     public void NewSession()
     {
+        ArchiveSession(DateTime.Now);
         _store.SessionStart = DateTime.Now;
         _store.SessionPausedAt = null;
         _store.SessionPausedSeconds = 0;
@@ -192,6 +193,7 @@ public sealed partial class HuntTracker
             if (File.Exists(DataPath)) _store = JsonSerializer.Deserialize<HuntData>(File.ReadAllText(DataPath)) ?? new();
         }
         catch { _store = new(); }
+        RebuildSessions();
     }
 
     void Save()

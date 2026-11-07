@@ -43,6 +43,10 @@ public sealed record FightRow(string Time, DateTime TimeSort, string Duration, s
 
 public sealed record ProjectionRow(string Span, double Xp, double Kamas, double Drops, double Total);
 
+/// <summary>Ligne de l'historique des sessions (tous les personnages) ; Current : la session en cours. Tip : détail par personnage.</summary>
+public sealed record SessionRow(string Date, DateTime StartSort, string Duration, double Minutes, int Fights, int Characters,
+    long Xp, long Kamas, double Drops, double Total, double? PerHour, double? XpPerHour, string Tip, bool Current, bool Rebuilt);
+
 /// <summary>
 /// Onglet Chasse : monstres de la map avec l'XP et les drops estimés d'après les combats déjà faits, alerte sonore et
 /// historique des archi-monstres aperçus, et rentabilité de la session projetée sur 30, 60 et 120 minutes.
@@ -135,6 +139,38 @@ public partial class MainWindow
     }
 
     void HuntNewSession_Click(object sender, RoutedEventArgs e) => _hunt?.NewSession();
+
+    /// <summary>
+    /// Historique des sessions (tous les personnages), la session en cours en tête : durée, combats, XP, kamas, drops au
+    /// prix HDV actuel (comme la session en cours), total et rythme par heure ; le détail par personnage au survol.
+    /// </summary>
+    void ShowSessionHistory()
+    {
+        if (_hunt == null) return;
+        double Drops(SessionTotals t) => t.Drops.Sum(d => d.Value * (UnitPrice(d.Key) ?? 0));
+        var current = _hunt.CurrentSession();
+        var list = _hunt.Sessions.Select(s => (s, now: false)).ToList();
+        if (current != null) list.Add((current, true));
+        SetRows(HuntSessionGrid, list.AsEnumerable().Reverse().Select(x =>
+        {
+            var (s, now) = x;
+            double drops = Drops(s.Total), total = s.Total.Kamas + drops, minutes = s.Seconds / 60;
+            var hours = s.Seconds >= 60 ? s.Seconds / 3600 : (double?)null;
+            var tip = string.Join("\n", s.Characters.OrderByDescending(c => c.Value.Xp).Select(c =>
+                $"{c.Key} : {c.Value.Fights} combat(s) · {c.Value.Xp:N0} XP · {c.Value.Kamas:N0} kamas · drops {Kamas(Drops(c.Value))}"))
+                + (s.Rebuilt ? "\nReconstituée d'après les combats gardés (pauses inconnues)." : "");
+            return new SessionRow(
+                now ? "En cours" : s.Start.ToString("dd'/'MM HH:mm"), s.Start,
+                minutes >= 60 ? $"{(int)(minutes / 60)} h {(int)(minutes % 60):00}" : $"{minutes:0} min", minutes,
+                s.Total.Fights, s.Characters.Count, s.Total.Xp, s.Total.Kamas, drops, total,
+                hours is { } h ? total / h : null, hours is { } h2 ? s.Total.Xp / h2 : null, tip, now, s.Rebuilt);
+        }).ToList());
+    }
+
+    void HuntSessionForget_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is SessionRow { Current: false } row) _hunt?.ForgetSession(row.StartSort);
+    }
 
     void HuntPauseSession_Click(object sender, RoutedEventArgs e) => _hunt?.PauseSession(!_hunt.SessionPaused);
 
@@ -401,6 +437,7 @@ public partial class MainWindow
             double k = span / minutes;
             return new ProjectionRow($"{span} min", xpTotal * k, kamasTotal * k, dropsTotal * k, (kamasTotal + dropsTotal) * k);
         }).ToList();
+        ShowSessionHistory();
         HuntLearned.Text = $"Estimations apprises de {_hunt.Fights.Count(f => f.Monsters.Count > 0)} combat(s) "
             + $"({learned.Count} monstre(s) connus). Sagesse et étoiles du groupe appliquées à l'XP.";
 

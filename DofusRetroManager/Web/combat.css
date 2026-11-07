@@ -73,4 +73,33 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 .chrono-grid .ellipsis { display: block; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Colonne de droite (onglet Combat) : étroite, les textes longs sont coupés (texte complet au survol) */
-.side-tables .ellipsis { display: block; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-tables .ellipsis { display: block; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* En-tête : personnage et caractéristiques à gauche, session et réglages à droite */
+.combat-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.combat-actions { display: flex; gap: 6px; align-items: center; margin-left: auto; }
+.combat-actions .flags { font-size: 12px; margin-left: 2px; letter-spacing: 1px; }
+
+/* Réglages repliables : trois blocs côte à côte (un sous l'autre en fenêtre étroite) */
+.combat-settings { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(320px, 1.6fr) minmax(280px, 1.4fr); gap: 16px; }
+.combat-settings section { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.combat-settings section + section { border-left: 1px solid var(--line); padding-left: 16px; }
+.combat-settings .filters { gap: 6px; }
+@media (max-width: 1100px) {
+  .combat-settings { grid-template-columns: minmax(0, 1fr); }
+  .combat-settings section + section { border-left: none; padding-left: 0; border-top: 1px solid var(--line); padding-top: 10px; }
+}
+
+/* Rentabilité : onglets Session / Historique */
+.session .bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.session .bar .section-title { margin: 0; }
+.seg { display: inline-flex; gap: 4px; }
+.session-hist { max-height: 340px; overflow: auto; }
+.session-hist .table-wrap { max-height: none; }
+
+/* Colonne de droite plus large (un tiers de la largeur, 360 px au moins) */
+.split.wide.combat-split { grid-template-columns: minmax(0, 1fr) minmax(360px, 34%); flex: 1 0 auto; min-height: 560px; }
+/* L'onglet défile plutôt que d'écraser les listes de droite quand les réglages ou l'historique sont ouverts */
+main:has(.combat-split) { overflow-y: auto; }
+@media (max-width: 860px) { .split.wide.combat-split { grid-template-columns: minmax(0, 1fr); } }
+.chrono-stats b.ellipsis { max-width: 320px; }

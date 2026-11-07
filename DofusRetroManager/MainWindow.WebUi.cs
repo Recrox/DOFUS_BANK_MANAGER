@@ -42,7 +42,7 @@ public partial class MainWindow
     readonly ConcurrentDictionary<string, byte[]?> _webIcons = new(); // rempli par le fil de rendu des images
     /// <summary>Gestionnaires de clic sur une ligne que la page peut déclencher (le reste passe par les boutons nommés).</summary>
     static readonly HashSet<string> WebRowHandlers =
-        ["HuntDropsToggle_Click", "HuntAlertToggle_Click", "HuntAlertDelete_Click", "BankRecipes_Click", "OrganizerShow_Click", "OrganizerExclude_Click", "OrganizerMain_Click", "FmWeightReset_Click"];
+        ["HuntDropsToggle_Click", "HuntAlertToggle_Click", "HuntAlertDelete_Click", "BankRecipes_Click", "OrganizerShow_Click", "OrganizerExclude_Click", "OrganizerMain_Click", "FmWeightReset_Click", "HuntSessionForget_Click"];
 
     async Task ShowWebUiAsync()
     {

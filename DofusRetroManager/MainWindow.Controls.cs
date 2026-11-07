@@ -1,4 +1,4 @@
-// Fichier généré à partir de l'ancien MainWindow.xaml (interface WPF supprimée) : un objet par contrôle, sans affichage.
+﻿// Fichier généré à partir de l'ancien MainWindow.xaml (interface WPF supprimée) : un objet par contrôle, sans affichage.
 // La page HTML lit leur état et leur renvoie les actions (MainWindow.WebUi.cs). Ne plus ajouter de contrôle ici à la main
 // pour une nouvelle fonctionnalité : préférer un état envoyé directement à la page.
 using System.Windows;
@@ -175,6 +175,7 @@ public partial class MainWindow
     internal readonly WebText HuntEmpty = new() { Text = "Aucun groupe de monstres sur la map. Changez de map en jeu : les groupes présents s'afficheront ici.", ForegroundKey = "TextMuted" };
     internal readonly WebText HuntSession = new() { ForegroundKey = "TextMuted" };
     internal readonly WebList HuntProjection = new();
+    internal readonly WebList HuntSessionGrid = new();
     internal readonly WebText HuntLearned = new() { ForegroundKey = "TextMuted" };
     internal readonly WebButton HuntClearArchis = new() { Content = "Vider" };
     internal readonly WebList HuntArchiGrid = new();

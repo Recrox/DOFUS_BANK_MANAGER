@@ -103,6 +103,7 @@ public sealed partial class HuntTracker
         var last = _store.Fights.LastOrDefault();
         if (last != null && fight.Time - last.Time > SessionGap && _store.SessionStart <= last.Time)
         {
+            ArchiveSession(last.Time); // la session précédente s'arrête à son dernier combat
             _store.SessionStart = fight.Time.AddSeconds(-fight.DurationSeconds);
             _store.SessionPausedAt = null;
             _store.SessionPausedSeconds = 0;

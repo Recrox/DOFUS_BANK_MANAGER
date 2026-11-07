@@ -168,4 +168,30 @@ sealed class HuntData
     public Dictionary<string, CharacterLook> Looks { get; set; } = new();
     /// <summary>Dernier état connu de vos personnages (nom -> identifiant, niveau, initiative, vie…).</summary>
     public Dictionary<string, KnownCharacter> Known { get; set; } = new();
+    /// <summary>Historique des sessions terminées (résumés, sans limite : les combats eux-mêmes sont limités à MaxFights).</summary>
+    public List<SessionSummary> Sessions { get; set; } = new();
+}
+
+/// <summary>Totaux d'un personnage sur une session : combats, XP, kamas et objets obtenus (modèle -> quantité).</summary>
+public sealed class SessionTotals
+{
+    public int Fights { get; set; }
+    public long Xp { get; set; }
+    public long Kamas { get; set; }
+    /// <summary>Objets obtenus : valorisés au prix HDV du moment de l'affichage, comme la session en cours.</summary>
+    public Dictionary<int, int> Drops { get; set; } = new();
+}
+
+/// <summary>
+/// Session de combat terminée (onglet Combat, historique) : début, fin, durée hors pauses, totaux de tous les
+/// personnages et de chacun. Rebuilt : reconstituée d'après les combats gardés (avant l'historique, pauses inconnues).
+/// </summary>
+public sealed class SessionSummary
+{
+    public DateTime Start { get; set; }
+    public DateTime End { get; set; }
+    public double Seconds { get; set; }
+    public bool Rebuilt { get; set; }
+    public SessionTotals Total { get; set; } = new();
+    public Dictionary<string, SessionTotals> Characters { get; set; } = new();
 }

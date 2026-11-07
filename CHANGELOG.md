@@ -2,6 +2,11 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.56.0 — 7 novembre 2026
+
+- **Combat** : historique de toutes vos sessions (bouton « Historique » de la rentabilité) : durée, combats, XP, gains et gain par heure, détail par personnage au survol. Les sessions passées sont retrouvées d'après vos combats.
+- **Combat** : page réorganisée : les réglages (alertes archi-monstres, alertes monstres, groupes du chronomètre) sont réunis dans un panneau « ⚙ Réglages », et la colonne de droite est plus large.
+
 ## 1.55.0 — 7 novembre 2026
 
 - **Brisage** : nouvelle colonne « Gain % » (gain rapporté au prix de l'objet ou à son coût de fabrication), triable.
