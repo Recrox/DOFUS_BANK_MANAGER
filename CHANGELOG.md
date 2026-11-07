@@ -2,6 +2,10 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.48.0 — 7 novembre 2026
+
+- **Combat** : l'onglet Arène est fusionné dans Combat : le chronomètre, les groupes de personnages comptés et les challenges Économe et Barbare s'affichent dans un bandeau compact, la liste des combats comptés se déplie avec « Combats ▸ ».
+
 ## 1.47.0 — 6 novembre 2026
 
 - **HDV** : nouveau bouton « 📊 Mes échanges » : vos achats (HDV et boutiques de marchands), vos mises en vente, vos ventes (y compris celles faites hors connexion, constatées à la réouverture du mode vente) et vos retraits, avec les totaux sur la période, la taxe payée, le bilan et les objets les plus échangés. Filtre par personnage.

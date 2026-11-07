@@ -51,7 +51,7 @@ public sealed record OwnedItem(int TemplateId, int Quantity, string Effects = ""
 ///   GA001… / Gt                   envoyés par le client : déplacement, fin de tour (seul le fait est lu : qui joue)
 ///   GTS{id}|…                     début du tour d'un combattant (multi-compte : affiche le personnage qui joue)
 ///   GTM|id;0;pv;PA;PM;case;;pvmax|…   état des combattants : seuls les points de vie du personnage sont lus
-///   Gd{id};… / GdO{id} / GdK{id}  challenge du combat annoncé, réussi, raté (onglet Arène) : seul son identifiant est lu
+///   Gd{id};… / GdO{id} / GdK{id}  challenge du combat annoncé, réussi, raté (onglet Combat) : seul son identifiant est lu
 ///
 /// Onglet Switcheur (notifications ; lus, jamais journalisés ni conservés) :
 ///   ERK{de}|{à}|{type}            demande d'échange : seul l'identifiant du destinataire est lu

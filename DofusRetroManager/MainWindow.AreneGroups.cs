@@ -6,7 +6,7 @@ using DofusRetroManager.Data;
 
 namespace DofusRetroManager;
 
-/// <summary>Groupes de personnages de l'onglet Arène (arene.json) et groupe choisi (null : tous les personnages).</summary>
+/// <summary>Groupes de personnages de le chronomètre de l'onglet Combat (arene.json) et groupe choisi (null : tous les personnages).</summary>
 public sealed class AreneSettings
 {
     public Dictionary<string, List<string>> Groups { get; set; } = new();
@@ -14,7 +14,7 @@ public sealed class AreneSettings
 }
 
 /// <summary>
-/// Onglet Arène : le chronomètre et les challenges ne comptent que les personnages du groupe choisi (ex. les 8 comptes du
+/// Onglet Combat, chronomètre (ex-onglet Arène) : le chronomètre et les challenges ne comptent que les personnages du groupe choisi (ex. les 8 comptes du
 /// groupe principal, sans un 9e compte qui joue à côté), ou tous les personnages.
 /// </summary>
 public partial class MainWindow

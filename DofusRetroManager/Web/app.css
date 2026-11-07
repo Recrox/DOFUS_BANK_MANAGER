@@ -471,16 +471,15 @@ tr.drop-target td { box-shadow: inset 0 3px 0 var(--accent-solid); }
 .carte-row b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .carte-row small { display: block; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Arène : chronomètre et challenges */
-.chrono { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; }
-.chrono .time { font-size: 34px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; margin: 2px 0 6px; }
-.chrono-stats { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 260px; font-size: 15px; }
-.chrono-stats .small, .challenge .small { font-size: 11.5px; }
-.challenge { display: flex; flex-direction: column; gap: 3px; }
-.challenge.failed { border-color: var(--bad); }
-.challenge .row { display: flex; align-items: center; gap: 8px; }
-.challenge .row b { font-size: 14px; }
-.challenge .right { margin-left: auto; }
+/* Combat : chronomètre et challenges (ancien onglet Arène) */
+.chrono { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 8px 12px; }
+.chrono .time { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chrono-stats { display: flex; gap: 10px; align-items: baseline; min-width: 0; flex: 1 1 220px; }
+.chrono .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.chrono-chal { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-width: 0; }
+.chrono-chal .chip.failed { border-color: var(--bad); }
+.chrono-grid { max-height: 220px; overflow: auto; }
+.chrono-grid .ellipsis { display: block; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Nouveautés : journal des changements */
 .modal-back { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 24px;

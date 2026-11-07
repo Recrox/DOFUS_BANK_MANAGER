@@ -4,7 +4,7 @@ using DofusRetroManager.Hunt;
 
 namespace DofusRetroManager;
 
-/// <summary>Challenge suivi dans l'onglet Arène. State : 1 réussi/en bonne voie, 0 en cours, -1 raté.</summary>
+/// <summary>Challenge suivi dans le chronomètre de l'onglet Combat. State : 1 réussi/en bonne voie, 0 en cours, -1 raté.</summary>
 public sealed record ChallengeRow(string Character, string Name, string Rule, string Status, int State, bool Announced);
 
 /// <summary>Combat compté par le chronomètre (les personnages d'un même combat sont réunis).</summary>
@@ -14,7 +14,7 @@ public sealed record ArenaFightRow(string Time, DateTime TimeSort, string Charac
 }
 
 /// <summary>
-/// Onglet Arène : challenges Économe et Barbare du combat (annoncés par le serveur, et suivis d'après les sorts lancés),
+/// Onglet Combat, chronomètre (ex-onglet Arène) : challenges Économe et Barbare du combat (annoncés par le serveur, et suivis d'après les sorts lancés),
 /// et chronomètre de rentabilité : combats terminés pendant qu'il tourne, rythme et gains moyens, en temps réel.
 /// Simple affichage : c'est toujours le joueur qui choisit ses actions (README, règle 3).
 /// </summary>

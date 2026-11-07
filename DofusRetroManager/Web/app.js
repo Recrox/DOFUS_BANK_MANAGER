@@ -31,15 +31,15 @@ const TABS = [
   { key: 'combat', label: 'Combat', watch: ['HuntCharacterBox', 'HuntLevel', 'HuntGroupLevel', 'HuntWisdom', 'HuntProspection',
     'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'EconomeStatus', 'EconomeSpells', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
     'HuntSession', 'HuntPauseSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid', 'HuntDropsTitle', 'HuntDropGrid', 'HuntArchiPopup',
-    'HuntAlertsToggle', 'HuntAlertMonster', 'HuntAlertCount', 'HuntAlertMin', 'HuntAlertMax', 'HuntAlertStatus', 'HuntAlertList'] },
+    'HuntAlertsToggle', 'HuntAlertMonster', 'HuntAlertCount', 'HuntAlertMin', 'HuntAlertMax', 'HuntAlertStatus', 'HuntAlertList',
+    'ChronoTime', 'ChronoStart', 'ChronoReset', 'ChronoFights', 'ChronoGains', 'ChronoRate', 'ChronoGrid', 'AreneChallenges',
+    'AreneOtherChallenges', 'AreneGroup', 'AreneGroupEdit', 'AreneGroupName', 'AreneGroupStatus', 'AreneGroupMembers'] },
   { key: 'windows', label: 'Switcheur', watch: ['OrganizerEnabled', 'HotkeyDebounce', 'OrganizerClickSwitch', 'OrganizerClickKey', 'OrganizerClickLeft', 'OrganizerClickRight', 'OrganizerFixBounce', 'NotifyAutoSwitchTurn', 'OrganizerSplitMode', 'OrganizerMaximize', 'OrganizerLockOrder', 'HotkeyNext', 'HotkeyPrevious', 'HotkeyMain', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
     'NotifyExchange', 'NotifyParty', 'NotifyToast', 'NotifyFlash', 'NotifySound', 'NotifyAutoSwitch', 'OrganizerCount', 'OrganizerGrid', 'OverlayEnabled', 'OverlayEconome', 'OverlayGroups', 'OverlayHarvest',
     'OverlayRotation', 'OverlayOpacity', 'OverlayOpacityText', 'OverlayMove', 'OrganizerSaveOrder', 'OrganizerResetOrder',
     'OrganizerOrderStatus'] },
   { key: 'fm', label: 'FM', watch: ['FmItemCombo', 'FmItemName', 'FmReliquat', 'FmReliquatInput', 'FmStats',
     'FmHistoryGrid', 'FmEmpty', 'FmWeights', 'FmWeightsPanel', 'FmWeightsGrid'] },
-  { key: 'arene', label: 'Arène', watch: ['ChronoTime', 'ChronoStart', 'ChronoReset', 'ChronoFights', 'ChronoGains',
-    'ChronoRate', 'ChronoGrid', 'AreneChallenges', 'AreneOtherChallenges', 'AreneGroup', 'AreneGroupEdit', 'AreneGroupName', 'AreneGroupStatus', 'AreneGroupMembers'] },
   { key: 'carte', label: 'Carte', watch: ['CarteHarvestTitle', 'CarteHarvest', 'CarteHarvestList', 'CarteCellPanel', 'CarteCellTitle',
     'CarteCellInfo', 'CarteCellHarvest', 'CarteCellList'] },
   { key: 'journal', label: 'Journal', watch: ['LogBox', 'LogPacketsBox'] },
@@ -331,7 +331,6 @@ const TAB_ICONS = {
   combat: '<path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M9.5 17.5 21 6V3h-3L6.5 14.5"/><path d="M11 19l-6-6"/><path d="M8 16l-4 4"/>',
   windows: '<path d="M4 8h14"/><path d="M14 4l4 4-4 4"/><path d="M20 16H6"/><path d="M10 12l-4 4 4 4"/>',
   fm: '<path d="M4 20 15 9"/><path d="M13.5 7.5l3 3"/><path d="M18 3v4M16 5h4"/><path d="M20.5 11.5v3M19 13h3"/><path d="M9.5 3v2.5M8.25 4.25h2.5"/>',
-  arene: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5.5A2.5 2.5 0 0 0 8 10"/><path d="M16 6h2.5A2.5 2.5 0 0 1 16 10"/><path d="M12 13v3"/><path d="M9 20h6"/><path d="M10 16h4v4h-4z"/>',
   carte: '<path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20z"/><path d="M9 4v13.5"/><path d="M15 6.5V20"/>',
   journal: '<rect x="4.5" y="3" width="15" height="18" rx="2"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/>',
 };
@@ -340,7 +339,7 @@ const TAB_TIPS = {
   brisage: 'Objets à briser pour générer des runes', hdv: "Prix relevés à l'hôtel de vente", ttg: 'Cartes TTG : collection et prix des marchands',
   pda: "Pierres d'âme : prix par monstre et vos pierres", ocre: 'Quête du Dofus Ocre : étapes, âmes possédées et à acheter', combat: 'Groupes de la map, drops, XP et rentabilité',
   windows: "Passer d'un personnage à l'autre (multi-compte)", fm: 'Forgemagie : runes passées et reliquat',
-  arene: 'Chronomètre de rentabilité et challenges', carte: "Carte du monde et points d'intérêt", journal: "Messages de l'application",
+  carte: "Carte du monde et points d'intérêt", journal: "Messages de l'application",
 };
 const tabIcon = key => `<svg class="tab-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
   stroke-linejoin="round" aria-hidden="true">${TAB_ICONS[key] || ''}</svg>`;
@@ -456,6 +455,7 @@ const views = {
           <a class="item-link" ${attrs({ act: 'row', grid: 'HuntAlertList', i, handler: 'HuntAlertToggle_Click' })} title="Activer ou couper cette alerte">${a.Enabled ? '🔔' : '🔕'}</a>
           ${esc(a.Text)} <a class="item-link" ${attrs({ act: 'row', grid: 'HuntAlertList', i, handler: 'HuntAlertDelete_Click' })} title="Supprimer">✕</a></span>`).join('') || '<span class="muted">Aucune alerte.</span>'}</div></div>` : ''}
       ${T('HuntStatus') ? `<div class="alert">${esc(T('HuntStatus'))}</div>` : ''}
+      ${chronoBlock()}
       <div class="split wide">
         <div class="stack">
           <div class="glass econome"><div class="bar"><span class="t"><b class="acc">Économe</b> · ${esc(T('EconomeStatus'))}</span>
@@ -512,6 +512,37 @@ const views = {
       </div>`;
   },
 };
+
+// Chronomètre de rentabilité et challenges (ancien onglet Arène), en bandeau compact de l'onglet Combat
+function chronoBlock() {
+  const challenges = rows('AreneChallenges');
+  const state = c => c.State === 1 ? 'ok' : c.State === -1 ? 'bad' : 'warn';
+  const open = local.open.chrono;
+  return `<div class="glass card chrono">
+      <span class="time acc" title="Chronomètre : compte les fins de combat des personnages choisis (un combat à plusieurs compte une fois)">⏱ ${esc(T('ChronoTime'))}</span>
+      ${btn('ChronoStart', '▶ Démarrer', 'small primary')}${btn('ChronoReset', 'Remettre à zéro', 'small')}
+      <span title="Personnages comptés">${select('AreneGroup')}</span>${check('AreneGroupEdit', 'Groupes')}
+      <div class="chrono-stats" title="Gains : kamas + drops au prix HDV (sinon prix marchand)">
+        <b>${esc(T('ChronoFights'))}</b><b class="acc">${esc(T('ChronoGains'))}</b><span class="muted ellipsis" title="${esc(T('ChronoRate'))}">${esc(T('ChronoRate'))}</span></div>
+      <div class="chrono-chal">${challenges.map(c => `<span class="chip ${c.State === -1 ? 'failed' : ''}" title="${esc(c.Rule + ' — ' + c.Status + (c.Announced ? ' (annoncé par le jeu)' : ''))}">
+          <b class="${state(c)}">${esc(c.Name)}</b><span class="muted">${esc(c.Character)}</span></span>`).join('')}
+        ${T('AreneOtherChallenges') ? `<span class="muted ellipsis" title="${esc(T('AreneOtherChallenges'))}">${esc(T('AreneOtherChallenges'))}</span>` : ''}</div>
+      <button class="small" data-act="open" data-key="chrono" title="Combats comptés par le chronomètre">Combats ${open ? '▾' : '▸'}</button>
+    </div>
+    ${S.AreneGroupEdit?.on ? `<div class="glass card"><div class="filters"><span class="lbl">Nom du groupe</span>${input('AreneGroupName', 'Groupe principal', '180px')}
+      <button class="small primary" data-act="click" data-name="AreneGroupSave">Enregistrer le groupe</button>
+      <button class="small" data-act="click" data-name="AreneGroupDelete">Supprimer</button><span class="muted">${esc(T('AreneGroupStatus'))}</span></div>
+      <div class="filters">${(S.AreneGroupMembers?.items || []).map((m, i) => `<button class="pill ${m.on ? 'on' : ''}" data-act="toggle" data-name="AreneGroupMembers" data-i="${i}">${esc(m.t)}</button>`).join('') || '<span class="muted">Aucun personnage connu.</span>'}</div></div>` : ''}
+    ${open ? `<div class="chrono-grid">${table('ChronoGrid', [
+      { h: 'Fin', k: 'TimeSort', f: r => esc(r.Time) },
+      { h: 'Personnage(s)', k: 'Characters', f: r => `<span class="ellipsis" title="${esc(r.Characters)}">${esc(r.Characters)}</span>` },
+      { h: 'Monstres', k: 'Monsters', f: r => `<span class="ellipsis" title="${esc(r.Monsters)}">${esc(r.Monsters)}</span>` },
+      { h: 'XP', k: 'Xp', num: true, f: r => fmt(r.Xp) },
+      { h: 'Kamas', k: 'Kamas', num: true, f: r => fmt(r.Kamas) },
+      { h: 'Drops', k: 'DropValue', num: true, f: r => fmt(r.DropValue) },
+      { h: 'Total', k: 'Total', num: true, f: r => `<span class="acc strong">${fmt(r.Total)}</span>` },
+    ], { select: false, empty: 'Démarrez le chronomètre : chaque fin de combat s\'ajoute ici.' })}</div>` : ''}`;
+}
 
 const seenCol = { h: 'Relevé', k: 'SeenAt', f: r => `<span class="muted">${esc(r.Seen)}</span>` };
 const detailHead = (icon, title, sub) => `<div class="head">${icon}<div><h2>${esc(T(title))}</h2></div></div>
@@ -724,43 +755,6 @@ Object.assign(views, {
         { h: 'Exclure', k: 'Excluded', f: r => `<label class="check"><input type="checkbox" ${r.Excluded ? 'checked' : ''} ${attrs({ act: 'row', grid: 'OrganizerGrid', i: r._i, handler: 'OrganizerExclude_Click' })}></label>` },
         { h: '', f: r => `<button class="small primary" ${attrs({ act: 'row', grid: 'OrganizerGrid', i: r._i, handler: 'OrganizerShow_Click' })}>Afficher</button>` },
       ], { select: false, draggable: r => !r.Excluded && !r.Name.startsWith('('), empty: 'Aucune fenêtre Dofus Retro ouverte. Lancez le jeu : ses fenêtres apparaîtront ici.' })}`;
-  },
-
-  arene() {
-    const challenges = rows('AreneChallenges');
-    const state = c => c.State === 1 ? 'ok' : c.State === -1 ? 'bad' : 'warn';
-    return `<div class="card chrono">
-        <div class="chrono-clock"><span class="lbl">Chronomètre</span><div class="time acc">${esc(T('ChronoTime'))}</div>
-          <div class="filters">${btn('ChronoStart', '▶ Démarrer', 'primary')}${btn('ChronoReset', 'Remettre à zéro')}</div></div>
-        <div class="chrono-stats"><div class="filters"><span class="lbl">Personnages comptés</span>${select('AreneGroup')}${check('AreneGroupEdit', 'Gérer les groupes')}</div>
-          ${S.AreneGroupEdit?.on ? `<div class="card"><div class="filters"><span class="lbl">Nom du groupe</span>${input('AreneGroupName', 'Groupe principal', '180px')}
-            <button class="small primary" data-act="click" data-name="AreneGroupSave">Enregistrer le groupe</button>
-            <button class="small" data-act="click" data-name="AreneGroupDelete">Supprimer</button><span class="muted">${esc(T('AreneGroupStatus'))}</span></div>
-            <div class="filters">${(S.AreneGroupMembers?.items || []).map((m, i) => `<button class="pill ${m.on ? 'on' : ''}" data-act="toggle" data-name="AreneGroupMembers" data-i="${i}">${esc(m.t)}</button>`).join('') || '<span class="muted">Aucun personnage connu.</span>'}</div></div>` : ''}<div class="strong">${esc(T('ChronoFights'))}</div><div class="strong acc">${esc(T('ChronoGains'))}</div>
-          <div class="muted">${esc(T('ChronoRate'))}</div>
-          <div class="muted small">Compte les fins de combat de vos personnages (tous, ou ceux du groupe choisi) pendant que le chronomètre tourne (un combat à plusieurs personnages compte une fois). Gains : kamas + drops au prix HDV (sinon prix marchand).</div></div>
-      </div>
-      <div class="split wide">
-        ${table('ChronoGrid', [
-          { h: 'Fin', k: 'TimeSort', f: r => esc(r.Time) },
-          { h: 'Personnage(s)', k: 'Characters' },
-          { h: 'Monstres', k: 'Monsters', f: r => `<span class="ellipsis" title="${esc(r.Monsters)}">${esc(r.Monsters)}</span>` },
-          { h: 'XP', k: 'Xp', num: true, f: r => fmt(r.Xp) },
-          { h: 'Kamas', k: 'Kamas', num: true, f: r => fmt(r.Kamas) },
-          { h: 'Drops', k: 'DropValue', num: true, f: r => fmt(r.DropValue) },
-          { h: 'Total', k: 'Total', num: true, f: r => `<span class="acc strong">${fmt(r.Total)}</span>` },
-        ], { select: false, empty: 'Aucun combat compté : démarrez le chronomètre, chaque fin de combat sera ajoutée ici.' })}
-        <aside class="glass detail">
-          <h2>Challenges Économe et Barbare</h2>
-          <div class="sub">Annoncés par le jeu au début du combat ; leur état est suivi d'après les sorts et attaques de vos personnages. Le jeu donne le résultat final.</div>
-          ${challenges.length ? challenges.map(c => `<div class="card challenge ${c.State === -1 ? 'failed' : ''}">
-              <div class="row"><b>${esc(c.Name)}</b>${c.Announced ? '<span class="chip">annoncé</span>' : ''}<span class="muted right">${esc(c.Character)}</span></div>
-              <div class="muted small">${esc(c.Rule)}</div>
-              <div class="strong ${state(c)}">${esc(c.Status)}</div></div>`).join('')
-            : `<div class="empty">Entrez en combat : les challenges de vos personnages s'afficheront ici.</div>`}
-          ${T('AreneOtherChallenges') ? `<div class="muted">${esc(T('AreneOtherChallenges'))}</div>` : ''}
-        </aside>
-      </div>`;
   },
 
   carte() {

@@ -610,7 +610,7 @@ public sealed class HuntTracker
         }
     }
 
-    /// <summary>Challenges de combat (fichier de langue « fightChallenge ») suivis par l'onglet Arène.</summary>
+    /// <summary>Challenges de combat (fichier de langue « fightChallenge ») suivis par le chronomètre de l'onglet Combat.</summary>
     public const int Econome = 5, Barbare = 9;
 
     /// <summary>

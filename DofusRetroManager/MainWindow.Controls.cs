@@ -280,7 +280,6 @@ public partial class MainWindow
         MainTabs.Add(new WebTab { Header = "Combat" });
         MainTabs.Add(new WebTab { Header = "Switcheur" });
         MainTabs.Add(new WebTab { Header = "FM" });
-        MainTabs.Add(new WebTab { Header = "Arène" });
         MainTabs.Add(CarteTab);
         MainTabs.Add(new WebTab { Header = "Journal" });
         MainTabs.SelectedIndex = 0;
