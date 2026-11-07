@@ -23,6 +23,14 @@ public partial class MainWindow
     /// <summary>Deux fins de combat plus rapprochées que ce délai sont le même combat (multi-compte).</summary>
     static readonly TimeSpan SameFight = TimeSpan.FromSeconds(15);
 
+    /// <summary>
+    /// Deux fins de combat de vos personnages sont le même combat (groupés en jeu ou non) : fin à SameFight près et mêmes
+    /// monstres affrontés (modèles et niveaux).
+    /// </summary>
+    static bool IsSameFight(FightRecord a, FightRecord b) =>
+        (a.Time - b.Time).Duration() <= SameFight && a.Monsters.Count == b.Monsters.Count
+        && a.Monsters.OrderBy(m => m.Id).ThenBy(m => m.Level).SequenceEqual(b.Monsters.OrderBy(m => m.Id).ThenBy(m => m.Level));
+
     /// <summary>Périodes où le chronomètre a tourné ; la dernière est ouverte (End null) tant qu'il tourne.</summary>
     readonly List<(DateTime Start, DateTime? End)> _chrono = new();
     readonly DispatcherTimer _chronoTimer = new() { Interval = TimeSpan.FromSeconds(1) };
@@ -107,7 +115,8 @@ public partial class MainWindow
             .OrderBy(f => f.Time).ToList();
         var fights = new List<List<FightRecord>>();
         foreach (var f in records)
-            if (fights.Count > 0 && f.Time - fights[^1][^1].Time <= SameFight) fights[^1].Add(f);
+            // Plusieurs combats peuvent finir en même temps (personnages séparés) : on cherche le bon parmi les derniers
+            if (fights.FindLast(g => IsSameFight(g[0], f)) is { } same) same.Add(f);
             else fights.Add([f]);
 
         double DropValue(FightRecord f) => f.Drops.Sum(d => d.Quantity * (DropPrice(d.ItemId) ?? 0));

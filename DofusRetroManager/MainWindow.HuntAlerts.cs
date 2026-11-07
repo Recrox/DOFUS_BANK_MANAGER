@@ -24,7 +24,8 @@ public sealed record HuntAlertRow(MonsterAlert Alert, string Text)
 /// </summary>
 public partial class MainWindow
 {
-    List<FightRecord> _huntSessionFights = [];
+    /// <summary>Combats de la session : un par ligne, avec ceux de vos autres personnages du même combat en vue Groupe.</summary>
+    List<List<FightRecord>> _huntSessionFights = [];
     DateTime? _huntSelectedFight;
     bool _huntFightsUpdating;
 
@@ -48,13 +49,15 @@ public partial class MainWindow
     void ShowHuntDrops()
     {
         if (_data == null) return;
-        var fight = _huntSessionFights.FirstOrDefault(f => f.Time == _huntSelectedFight);
-        var fights = fight != null ? [fight] : _huntSessionFights;
+        var chosen = _huntSessionFights.FirstOrDefault(g => g[0].Time == _huntSelectedFight);
+        var fight = chosen?[0];
+        var fights = chosen ?? _huntSessionFights.SelectMany(g => g).ToList();
         var rows = fights.SelectMany(f => f.Drops).GroupBy(d => d.ItemId)
             .Select(g => new HuntDropRow(g.Key, _data.GetItem(g.Key).Name, g.Sum(d => d.Quantity), DropPrice(g.Key)))
             .OrderByDescending(r => r.Total ?? -1).ThenBy(r => r.Name).ToList();
         SetRows(HuntDropGrid, rows);
-        HuntDropsTitle.Text = (fight != null ? $"Drops du combat de {fight.Time:HH:mm}" : "Drops de la session")
+        var who = HuntFightsGroup.IsChecked == true ? " (groupe)" : "";
+        HuntDropsTitle.Text = (fight != null ? $"Drops du combat de {fight.Time:HH:mm}{who}" : $"Drops de la session{who}")
             + $" · {rows.Sum(r => r.Quantity):N0} objet(s) · {Kamas(rows.Sum(r => r.Total ?? 0))}"
             + (fight != null ? " (Ctrl+clic sur le combat pour revoir la session)" : "");
     }

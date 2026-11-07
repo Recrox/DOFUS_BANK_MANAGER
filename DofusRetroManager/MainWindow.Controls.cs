@@ -182,6 +182,8 @@ public partial class MainWindow
     internal readonly WebButton HuntClearArchis = new() { Content = "Vider" };
     internal readonly WebList HuntArchiGrid = new();
     internal readonly WebList HuntFightGrid = new();
+    /// <summary>Combats et drops : du personnage affiché (décoché), ou de tous vos personnages du même combat (coché).</summary>
+    internal readonly WebToggle HuntFightsGroup = new() { Content = "Groupe" };
     internal readonly WebText HuntDropsTitle = new() { Text = "Drops de la session", ForegroundKey = "AccentSolid" };
     internal readonly WebList HuntDropGrid = new();
     internal readonly WebToggle OrganizerEnabled = new() { ToolTip = "Désactivé : plus de raccourcis, de notifications ni de bascule de fenêtre (la liste reste affichée)", Content = "Switcheur activé" };
@@ -395,6 +397,8 @@ public partial class MainWindow
         HuntAlertsToggle.Unchecked += HuntAlertsToggle_Changed;
         HuntAlertAdd.Click += HuntAlertAdd_Click;
         HuntAlertMonster.TextChanged += (_, _) => SuggestAlertMonsters();
+        HuntFightsGroup.Checked += (_, _) => RefreshHunt();
+        HuntFightsGroup.Unchecked += (_, _) => RefreshHunt();
         HuntAlertTest.Click += HuntAlertTest_Click;
         EconomeReset.Click += EconomeReset_Click;
         HuntClearArchis.Click += HuntClearArchis_Click;

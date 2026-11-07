@@ -30,7 +30,7 @@ const TABS = [
     'OcreDetailSub', 'OcreSouls'] },
   { key: 'combat', label: 'Combat', watch: ['HuntCharacterBox', 'HuntIcons', 'HuntLevel', 'HuntGroupLevel', 'HuntWisdom', 'HuntProspection',
     'HuntGroupProspection', 'HuntSound', 'HuntVolume', 'HuntVolumeText', 'HuntStatus', 'OverlayEnabled', 'OverlayEconome', 'HuntMap', 'HuntGroupGrid', 'HuntEmpty',
-    'HuntSession', 'HuntPauseSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid', 'HuntDropsTitle', 'HuntDropGrid', 'HuntArchiPopup',
+    'HuntSession', 'HuntPauseSession', 'HuntProjection', 'HuntLearned', 'HuntArchiGrid', 'HuntFightGrid', 'HuntFightsGroup', 'HuntDropsTitle', 'HuntDropGrid', 'HuntArchiPopup',
     'HuntAlertsToggle', 'HuntAlertMonster', 'HuntAlertSuggest', 'HuntAlertCount', 'HuntAlertMin', 'HuntAlertMax', 'HuntAlertStatus', 'HuntAlertList',
     'ChronoTime', 'ChronoStart', 'ChronoReset', 'ChronoFights', 'ChronoGains', 'ChronoRate', 'ChronoGrid', 'AreneChallenges',
     'AreneOtherChallenges', 'AreneGroup', 'AreneGroupEdit', 'AreneGroupName', 'AreneGroupStatus', 'AreneGroupMembers', 'HuntSessionGrid'] },

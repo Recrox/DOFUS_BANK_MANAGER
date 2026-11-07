@@ -130,6 +130,8 @@ document.addEventListener('click', e => {
     case 'select': post({ type: 'select', name: d.grid, index: +d.i }); break;
     case 'row': post({ type: 'row', name: d.grid, index: +d.i, handler: d.handler }); break;
     case 'toggle': post({ type: 'toggle', name: d.name, index: +d.i }); break;
+    // Case réglée à une valeur précise (boutons « l'un ou l'autre », ex. Perso / Groupe)
+    case 'set-on': post({ type: 'set', name: d.name, value: d.v === 'true' }); break;
     case 'open': local.open[d.key] = !local.open[d.key]; schedule(); break;
     case 'more': local.limit[d.grid] = (local.limit[d.grid] || 300) + 300; schedule(); break;
     case 'sort': {

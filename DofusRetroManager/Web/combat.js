@@ -117,6 +117,7 @@ Object.assign(views, {
     const ibtn = (name, icon, label) => `<button class="small ibtn" data-act="click" data-name="${name}" data-tip="${esc(label)}">${icon}</button>`;
     const pause = T('HuntPauseSession') || '⏸ Pause';
     const settings = local.open.combatSettings;
+    const byGroup = S.HuntFightsGroup?.on;
     // État des alertes, rappelé sur le bouton des réglages (son coupé, pop-up, alertes monstres actives)
     const flags = (S.HuntSound?.on ? '🔔' : '🔕') + (S.HuntArchiPopup?.on ? '💬' : '') + (rows('HuntAlertList').some(a => a.Enabled) ? '🎯' : '');
     return `<div class="combat-top">
@@ -166,10 +167,14 @@ Object.assign(views, {
                 <div class="muted small">niv. ${r.Level}</div><div>${posLink(shortMap(r.Map), r.Goto, 'ellipsis')}</div>` },
               { h: 'Pierre', k: 'Price', num: true, f: r => fmt(r.Price) },
             ], { select: false, empty: 'Aucun archi-monstre vu.' })}</div>
-          <div class="mini"><p class="section-title">Combats de la session</p>
+          <div class="mini"><div class="filters" style="justify-content:space-between"><p class="section-title">Combats de la session</p>
+            <div class="seg" data-tip="Perso : le personnage affiché. Groupe : avec vos autres personnages du même combat (groupés en jeu ou non : même fin et mêmes monstres)">
+              <button class="pill ${byGroup ? '' : 'on'}" data-act="set-on" data-name="HuntFightsGroup" data-v="false">Perso</button>
+              <button class="pill ${byGroup ? 'on' : ''}" data-act="set-on" data-name="HuntFightsGroup" data-v="true">Groupe</button></div></div>
             ${table('HuntFightGrid', [
               { h: 'Heure', k: 'TimeSort', f: r => `<span class="muted">${esc(r.Time)}</span>` },
-              { h: 'Monstres', k: 'Monsters', f: r => `<span class="ellipsis" title="${esc(r.Drops)}">${esc(r.Monsters)}</span>` },
+              // Vue Groupe : nombre de vos personnages du combat sous les monstres, leurs noms au survol
+              { h: 'Monstres', k: 'Monsters', f: r => `<span class="ellipsis" title="${esc(r.Drops)}">${esc(r.Monsters)}</span>${byGroup ? `<div class="muted small" data-tip="${esc(r.Characters)}">👥 ${r.Count}</div>` : ''}` },
               { h: 'XP', k: 'Xp', num: true, f: r => fmt(r.Xp) },
               // Kamas + drops en un seul gain, le détail au survol
               { h: 'Gain', k: 'DropValue', num: true, f: r => `<span class="acc" data-tip="${esc(`Kamas : ${fmt(r.Kamas)} · Drops : ${fmt(r.DropValue)}${r.Drops ? ' — ' + r.Drops : ''}`)}">${fmt((r.Kamas || 0) + (r.DropValue || 0))}</span>` },

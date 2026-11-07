@@ -2,6 +2,11 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.60.0 — 7 novembre 2026
+
+- **Combat** : combats et drops de la session « Perso » ou « Groupe » : en vue Groupe, vos personnages du même combat sont réunis, même sans groupe en jeu (XP, kamas et drops additionnés).
+- **Combat** : le chronomètre ne confond plus deux combats différents qui finissent en même temps.
+
 ## 1.59.0 — 7 novembre 2026
 
 - **Combat** : correction : l'onglet ne s'étire plus sur une immense hauteur ; il tient dans la fenêtre et chaque liste défile dans son cadre.

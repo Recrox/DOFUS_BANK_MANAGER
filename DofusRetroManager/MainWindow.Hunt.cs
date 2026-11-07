@@ -38,8 +38,9 @@ public sealed record ArchiRow(string Time, DateTime TimeSort, string Name, int L
     public string ShortMap => System.Text.RegularExpressions.Regex.Replace(Map, @"\s*\(.*\)\s*$", "");
 }
 
+/// <summary>Combat de la session (vue Groupe : totaux de vos personnages du même combat, Characters et Count).</summary>
 public sealed record FightRow(string Time, DateTime TimeSort, string Duration, string Monsters, long Xp, long Kamas,
-    string Drops, double DropValue);
+    string Drops, double DropValue, string Characters = "", int Count = 1);
 
 public sealed record ProjectionRow(string Span, double Xp, double Kamas, double Drops, double Total);
 
@@ -409,17 +410,28 @@ public partial class MainWindow
         // Session du personnage affiché ; en multi-compte, le total de tous les personnages est rappelé
         var allSession = _hunt.Fights.Where(f => f.Time >= _hunt.SessionStart).ToList();
         var session = allSession.Where(f => f.Character == (me?.Name ?? "")).ToList();
-        var fightRows = session.AsEnumerable().Reverse().Take(100).Select(f => new FightRow(
-            f.Time.ToString("HH:mm"), f.Time, $"{f.DurationSeconds / 60}:{f.DurationSeconds % 60:00}",
-            string.Join(", ", f.Monsters.GroupBy(m => m.Id).Select(x => (x.Count() > 1 ? $"{x.Count()}× " : "") + _data.GetMonster(x.Key).Name)),
-            f.Xp, f.Kamas,
-            string.Join(", ", f.Drops.Select(d => $"{d.Quantity}× {_data.GetItem(d.ItemId).Name}")), Value(f))).ToList();
+        // Vue « Groupe » : chaque combat du personnage avec ceux de vos autres personnages du même combat (groupés en jeu
+        // ou non : même fin à SameFight près et mêmes monstres)
+        bool byGroup = HuntFightsGroup.IsChecked == true;
+        var fightGroups = session.Select(f => byGroup
+            ? allSession.Where(g => g.Character != f.Character && IsSameFight(f, g)).GroupBy(g => g.Character)
+                .Select(x => x.OrderBy(g => Math.Abs((g.Time - f.Time).Ticks)).First()).Prepend(f).ToList()
+            : [f]).ToList();
+        var fightRows = fightGroups.AsEnumerable().Reverse().Take(100).Select(g =>
+        {
+            var f = g[0];
+            var drops = g.SelectMany(x => x.Drops).GroupBy(d => d.ItemId).Select(x => $"{x.Sum(d => d.Quantity)}× {_data.GetItem(x.Key).Name}");
+            return new FightRow(f.Time.ToString("HH:mm"), f.Time, $"{f.DurationSeconds / 60}:{f.DurationSeconds % 60:00}",
+                string.Join(", ", f.Monsters.GroupBy(m => m.Id).Select(x => (x.Count() > 1 ? $"{x.Count()}× " : "") + _data.GetMonster(x.Key).Name)),
+                g.Sum(x => x.Xp), g.Sum(x => x.Kamas), string.Join(", ", drops), g.Sum(Value),
+                string.Join(", ", g.Select(x => x.Character)), g.Count);
+        }).ToList();
         // Combat choisi (détail de ses drops) : gardé d'un rafraîchissement à l'autre
         _huntFightsUpdating = true;
         SetRows(HuntFightGrid, fightRows);
         HuntFightGrid.SelectedItem = fightRows.FirstOrDefault(r => r.TimeSort == _huntSelectedFight);
         _huntFightsUpdating = false;
-        _huntSessionFights = session;
+        _huntSessionFights = fightGroups;
         ShowHuntDrops();
 
         var minutes = Math.Max(1, _hunt.SessionDuration.TotalMinutes);
