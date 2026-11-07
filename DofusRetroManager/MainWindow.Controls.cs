@@ -184,6 +184,8 @@ public partial class MainWindow
     internal readonly WebTextBox HotkeyNext = new() { ToolTip = "Cliquez ici puis appuyez sur la combinaison voulue (Suppr : aucun raccourci)" };
     internal readonly WebTextBox HotkeyPrevious = new() { ToolTip = "Cliquez ici puis appuyez sur la combinaison voulue (Suppr : aucun raccourci)" };
     internal readonly WebTextBox HotkeyMain = new() { ToolTip = "Affiche le personnage principal (étoile dans la liste). Cliquez ici puis appuyez sur la combinaison voulue (Suppr : aucun raccourci)" };
+    internal readonly WebTextBox HotkeySadida = new() { ToolTip = "Affiche le Sadida en arbre (Puissance Sylvestre) dont c'est le tour, celui qui a le moins de temps restant. Passez son tour vous-même : la fenêtre d'avant revient. Cliquez ici puis appuyez sur la combinaison voulue (Suppr : aucun raccourci)" };
+    internal readonly WebToggle SadidaReturn = new() { ToolTip = "Après le tour du Sadida (passé par vous), la fenêtre affichée avant le raccourci revient au premier plan", Content = "Retour après le tour" };
     internal readonly WebTextBox HotkeyDebounce = new() { ToolTip = "Délai minimal entre deux raccourcis, en millisecondes (160 par défaut) : un double appui involontaire ne saute pas un personnage" };
     internal readonly WebToggle OrganizerClickSwitch = new() { ToolTip = "Cliquez dans le jeu en gardant cette touche enfoncée : votre clic arrive au jeu, puis la fenêtre suivante (ordre de jeu) s'affiche. Rien n'est cliqué à votre place.", Content = "Clic +" };
     internal readonly WebCombo OrganizerClickKey = new() { ToolTip = "Touche à garder enfoncée pendant le clic" };
@@ -396,6 +398,9 @@ public partial class MainWindow
         HotkeyNext.TextChanged += Hotkey_Changed;
         HotkeyPrevious.TextChanged += Hotkey_Changed;
         HotkeyMain.TextChanged += Hotkey_Changed;
+        HotkeySadida.TextChanged += Hotkey_Changed;
+        SadidaReturn.Checked += OrganizerOption_Changed;
+        SadidaReturn.Unchecked += OrganizerOption_Changed;
         HotkeyDebounce.TextChanged += HotkeyDebounce_Changed;
         OrganizerClickSwitch.Checked += OrganizerOption_Changed;
         OrganizerClickSwitch.Unchecked += OrganizerOption_Changed;

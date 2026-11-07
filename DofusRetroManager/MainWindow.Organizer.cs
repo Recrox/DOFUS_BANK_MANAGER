@@ -54,6 +54,8 @@ public partial class MainWindow
         HotkeyNext.Text = _organizer.NextKey;
         HotkeyPrevious.Text = _organizer.PreviousKey;
         HotkeyMain.Text = _organizer.MainKey;
+        HotkeySadida.Text = _organizer.SadidaKey;
+        SadidaReturn.IsChecked = _organizer.SadidaReturn;
         OrganizerOptions.IsEnabled = _organizer.Enabled;
         _organizerLoading = false;
         InitClickSwitch();
@@ -82,6 +84,7 @@ public partial class MainWindow
         foreach (var (gesture, step) in new[] { (_organizer.NextKey, 1), (_organizer.PreviousKey, -1) })
             if (gesture.Length > 0 && !_hotkeys.Register(gesture, () => Debounced(() => Cycle(step)))) failed.Add(gesture);
         if (_organizer.MainKey.Length > 0 && !_hotkeys.Register(_organizer.MainKey, () => Debounced(FocusMain))) failed.Add(_organizer.MainKey);
+        if (_organizer.SadidaKey.Length > 0 && !_hotkeys.Register(_organizer.SadidaKey, () => Debounced(SadidaJump))) failed.Add(_organizer.SadidaKey);
         HotkeyStatus.Text = failed.Count == 0 ? ""
             : $"Raccourci indisponible (déjà pris par une autre application ?) : {string.Join(", ", failed)}";
     }
@@ -285,7 +288,7 @@ public partial class MainWindow
             var look = LookOf(w);
             string state = w.Name.Length == 0 ? "Pas connecté"
                 : c == null ? "Pas encore vu (lancez l'appli avant la connexion ou changez de map)"
-                : c.InFight ? "En combat" : "Hors combat";
+                : c.InFight ? "En combat" + (c.IsTree ? $" · 🌳 {c.SylvestreTurns} tour(s)" : "") : "Hors combat";
             return new OrganizerRow(w.Handle.ToInt64(), rotation.IndexOf(w) + 1, w.Name.Length > 0 ? w.Name : "(sélection du personnage)",
                 (c?.Level ?? KnownOf(w)?.Level)?.ToString() ?? "?", InitiativeOf(w), state, IsExcluded(w), w.Handle == foreground, IsMain(w),
                 look?.Text ?? "", look?.Gfx ?? 0, CharacterIcons.Get(look));
@@ -346,6 +349,7 @@ public partial class MainWindow
         _organizer.ClickSwitchLeft = OrganizerClickLeft.IsChecked == true;
         _organizer.ClickSwitchRight = OrganizerClickRight.IsChecked == true;
         _organizer.FixWindowBounce = OrganizerFixBounce.IsChecked == true;
+        _organizer.SadidaReturn = SadidaReturn.IsChecked == true;
         bool enabledChanged = _organizer.Enabled != (OrganizerEnabled.IsChecked == true);
         _organizer.Enabled = OrganizerEnabled.IsChecked == true;
         _organizer.Save();
@@ -360,6 +364,7 @@ public partial class MainWindow
         _organizer.NextKey = HotkeyNext.Text;
         _organizer.PreviousKey = HotkeyPrevious.Text;
         _organizer.MainKey = HotkeyMain.Text;
+        _organizer.SadidaKey = HotkeySadida.Text;
         _organizer.Save();
         RegisterHotkeys();
     }
@@ -412,7 +417,7 @@ public partial class MainWindow
         };
         if (_organizer.ShowToast)
             NoticeToast.Show(window?.Name is { Length: > 0 } n ? n : c.Label, text,
-                window != null ? () => FocusWindow(window.Handle) : null);
+                window != null ? () => FocusWindow(window.Handle) : null, window?.Handle ?? default);
         if (_organizer.FlashTaskbar && window != null) GameWindows.Flash(window.Handle);
         PlayNoticeSound();
     }

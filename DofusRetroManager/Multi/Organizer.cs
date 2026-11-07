@@ -32,6 +32,12 @@ public sealed class OrganizerSettings
     /// <summary>Personnage principal (étoile) : un seul, affiché par son propre raccourci.</summary>
     public string? MainCharacter { get; set; }
     public string MainKey { get; set; } = "Ctrl+Alt+Up";
+    /// <summary>
+    /// Mode Sadida : ce raccourci affiche le Sadida en arbre (Puissance Sylvestre) dont le tour se termine le plus tôt ;
+    /// le joueur passe lui-même son tour, puis la fenêtre d'avant revient (SadidaReturn).
+    /// </summary>
+    public string SadidaKey { get; set; } = "Ctrl+Alt+Down";
+    public bool SadidaReturn { get; set; } = true;
     /// <summary>Touche + clic dans le jeu : au relâchement du clic, la fenêtre suivante de l'ordre de jeu passe au premier plan.</summary>
     public bool ClickSwitch { get; set; }
     /// <summary>Touche à garder enfoncée pendant le clic : Ctrl, Alt ou Maj.</summary>

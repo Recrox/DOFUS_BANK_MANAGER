@@ -25,7 +25,7 @@ public sealed class Trade
     public bool SoldUnseen { get; set; }
 
     public const string Purchase = "Achat", Listing = "Offre";
-    public const string OnSale = "En vente", Sold = "Vendue", Withdrawn = "Retirée";
+    public const string OnSale = "En vente", Sold = "Vendue", Withdrawn = "Retirée", Expired = "Expirée";
 }
 
 sealed class TradeData
@@ -40,6 +40,8 @@ sealed class TradeData
 ///   Achat chez un marchand : l'inventaire gagne un objet de la boutique ouverte, à son prix.
 ///   Mise en vente : EmK+ en mode vente ; retrait : EmK- puis l'objet revient dans l'inventaire ; vente : l'offre
 ///   disparaît sans revenir, ou n'est plus listée à l'ouverture suivante du mode vente (vente faite hors connexion).
+///   Le jeu annonce aussi les ventes (INFOS_65, et INFOS_73 pour celles faites hors jeu, à la connexion) et les ventes
+///   expirées (INFOS_67) : kamas, objet et quantité suffisent à retrouver l'offre.
 /// Tout reste sur ce PC (echanges.json), rien n'est partagé (README, règle 4).
 /// </summary>
 public sealed class TradeTracker
@@ -205,7 +207,7 @@ public sealed class TradeTracker
         // Offres retirées qui ne sont pas revenues dans l'inventaire : vendues
         foreach (var l in w.Leaving.Where(l => force || now - l.Time > Match).ToList())
         {
-            Close(l.Listing, Trade.Sold, l.Time, false);
+            if (l.Listing.State == Trade.OnSale) Close(l.Listing, Trade.Sold, l.Time, false); // sinon déjà annoncée par le jeu
             w.Leaving.Remove(l);
         }
     }
@@ -266,6 +268,58 @@ public sealed class TradeTracker
         Save();
         Changed?.Invoke();
     }
+
+    /// <summary>
+    /// Vente annoncée par le jeu. 65 / 73 : « kamas~?~objet~quantité » (vendue en jeu / hors jeu) ; 67 : « objet~quantité »
+    /// (expirée, renvoyée à la banque). L'objet est un identifiant ou un nom selon le message : les deux sont acceptés.
+    /// L'offre est cherchée parmi celles du personnage, sinon parmi toutes (message reçu avant le nom du personnage).
+    /// </summary>
+    public void OnSaleInfo(string character, int code, string[] args)
+    {
+        var now = DateTime.Now;
+        if (code is 65 or 73)
+        {
+            if (args.Length < 4 || !long.TryParse(args[0], out var kamas) || !int.TryParse(args[3], out var qty)) { Unknown(code, args); return; }
+            var items = ItemsOf(args[2]).Concat(ItemsOf(args[1])).ToHashSet();
+            var offer = Find(character, t => t.Quantity == qty && t.Price == kamas && (items.Count == 0 || items.Contains(t.ItemId)))
+                ?? Find(character, t => t.Quantity == qty && items.Contains(t.ItemId));
+            if (offer != null) { Close(offer, Trade.Sold, now, code == 73); return; }
+            // Déjà comptée à l'instant (offre disparue du mode vente ouvert) : pas de doublon
+            if (_store.Trades.Any(t => t.Kind == Trade.Listing && t.State == Trade.Sold && t.Quantity == qty && t.Price == kamas
+                && t.ClosedAt is { } at && now - at < TimeSpan.FromSeconds(30))) return;
+            // Offre jamais vue (mise en vente sans l'application) : la vente est quand même enregistrée
+            if (items.Count == 0) { Unknown(code, args); return; }
+            Add(new Trade
+            {
+                Kind = Trade.Listing, Time = now, Character = character, ItemId = items.First(), Quantity = qty, Price = kamas,
+                State = Trade.Sold, ClosedAt = now, SoldUnseen = code == 73,
+            });
+        }
+        else if (code == 67)
+        {
+            if (args.Length < 2 || !int.TryParse(args[1], out var qty)) { Unknown(code, args); return; }
+            var items = ItemsOf(args[0]).ToHashSet();
+            // Plusieurs offres identiques : la plus ancienne expire en premier
+            if (Find(character, t => t.Quantity == qty && items.Contains(t.ItemId)) is { } offer) Close(offer, Trade.Expired, now, false);
+        }
+    }
+
+    Trade? Find(string character, Func<Trade, bool> match) =>
+        (character.Length > 0 ? Active(character).FirstOrDefault(match) : null)
+        ?? _store.Trades.FirstOrDefault(t => t.Kind == Trade.Listing && t.State == Trade.OnSale && match(t));
+
+    /// <summary>Objets désignés par un paramètre : identifiant, ou nom (sans balises ni guillemets).</summary>
+    IEnumerable<int> ItemsOf(string arg)
+    {
+        arg = System.Text.RegularExpressions.Regex.Replace(arg, "<[^>]*>", "").Trim().Trim('\'', '"').Trim();
+        if (arg.Length == 0) return [];
+        if (int.TryParse(arg, out var id)) return _data.Items.ContainsKey(id) ? [id] : [];
+        return _data.Items.Values.Where(i => string.Equals(i.Name, arg, StringComparison.OrdinalIgnoreCase)).Select(i => i.Id);
+    }
+
+    /// <summary>Format inattendu : signalé dans le journal (objet, prix et quantité seulement : aucun nom de joueur).</summary>
+    void Unknown(int code, string[] args) =>
+        Log?.Invoke($"Mes échanges : message de vente {code} non reconnu ({string.Join("~", args)[..Math.Min(80, string.Join("~", args).Length)]}).");
 
     IEnumerable<Trade> Active(string character) =>
         _store.Trades.Where(t => t.Kind == Trade.Listing && t.State == Trade.OnSale && t.Character == character);

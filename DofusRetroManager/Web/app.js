@@ -34,7 +34,7 @@ const TABS = [
     'HuntAlertsToggle', 'HuntAlertMonster', 'HuntAlertCount', 'HuntAlertMin', 'HuntAlertMax', 'HuntAlertStatus', 'HuntAlertList',
     'ChronoTime', 'ChronoStart', 'ChronoReset', 'ChronoFights', 'ChronoGains', 'ChronoRate', 'ChronoGrid', 'AreneChallenges',
     'AreneOtherChallenges', 'AreneGroup', 'AreneGroupEdit', 'AreneGroupName', 'AreneGroupStatus', 'AreneGroupMembers'] },
-  { key: 'windows', label: 'Switcheur', watch: ['OrganizerEnabled', 'HotkeyDebounce', 'OrganizerClickSwitch', 'OrganizerClickKey', 'OrganizerClickLeft', 'OrganizerClickRight', 'OrganizerFixBounce', 'NotifyAutoSwitchTurn', 'OrganizerSplitMode', 'OrganizerMaximize', 'OrganizerLockOrder', 'HotkeyNext', 'HotkeyPrevious', 'HotkeyMain', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
+  { key: 'windows', label: 'Switcheur', watch: ['OrganizerEnabled', 'HotkeyDebounce', 'OrganizerClickSwitch', 'OrganizerClickKey', 'OrganizerClickLeft', 'OrganizerClickRight', 'OrganizerFixBounce', 'NotifyAutoSwitchTurn', 'OrganizerSplitMode', 'OrganizerMaximize', 'OrganizerLockOrder', 'HotkeyNext', 'HotkeyPrevious', 'HotkeyMain', 'HotkeySadida', 'SadidaReturn', 'HotkeyStatus', 'NotifyFight', 'NotifyTurn',
     'NotifyExchange', 'NotifyParty', 'NotifyToast', 'NotifyFlash', 'NotifySound', 'NotifyAutoSwitch', 'OrganizerCount', 'OrganizerGrid', 'OverlayEnabled', 'OverlayEconome', 'OverlayGroups', 'OverlayHarvest',
     'OverlayRotation', 'OverlayOpacity', 'OverlayOpacityText', 'OverlayMove', 'OrganizerSaveOrder', 'OrganizerResetOrder',
     'OrganizerOrderStatus'] },
@@ -227,16 +227,16 @@ function tradesView() {
     if (t.k === 'Achat') events.push({ t, at: t.t, kind: 'Achat', cls: 'bad', sign: -1 });
     else {
       events.push({ t, at: t.t, kind: 'Mise en vente', cls: 'muted', sign: 0 });
-      if (t.st !== 'En vente' && t.ct) events.push({ t, at: t.ct, kind: t.st === 'Vendue' ? (t.u ? 'Vendue (hors ligne)' : 'Vendue') : 'Retirée', cls: t.st === 'Vendue' ? 'ok' : 'muted', sign: t.st === 'Vendue' ? 1 : 0 });
+      if (t.st !== 'En vente' && t.ct) events.push({ t, at: t.ct, kind: t.st === 'Vendue' ? (t.u ? 'Vendue (hors ligne)' : 'Vendue') : t.st === 'Expirée' ? 'Expirée' : 'Retirée', cls: t.st === 'Vendue' ? 'ok' : 'muted', sign: t.st === 'Vendue' ? 1 : 0 });
     }
   }
   const shown = events.filter(e => e.at >= since && (!f.k || e.kind.startsWith(f.k))).sort((a, b) => b.at - a.at).slice(0, 300);
-  const kinds = [['', 'Tout'], ['Achat', 'Achats'], ['Mise en vente', 'Mises en vente'], ['Vendue', 'Ventes'], ['Retirée', 'Retraits']];
+  const kinds = [['', 'Tout'], ['Achat', 'Achats'], ['Mise en vente', 'Mises en vente'], ['Vendue', 'Ventes'], ['Retirée', 'Retraits'], ['Expirée', 'Expirées']];
 
   return `<div class="trades">
     <div class="filters"><span class="lbl">Personnage</span><select data-tf="c"><option value="">Tous</option>${chars.map(c => `<option ${c === f.c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
       <span class="lbl">Période</span><select data-tf="d">${[[1, '24 h'], [7, '7 jours'], [30, '30 jours'], [0, 'Tout']].map(([v, l]) => `<option value="${v}" ${v === f.d ? 'selected' : ''}>${l}</option>`).join('')}</select>
-      <span class="muted small" title="Achats : lot disparu d'une offre consultée et objet reçu au même moment, ou objet reçu dans la boutique d'un marchand. Ventes : offre retirée sans retour de l'objet, ou absente à l'ouverture suivante du mode vente (vente hors ligne). Rien n'est envoyé hors de ce PC.">ⓘ d'où viennent ces chiffres</span></div>
+      <span class="muted small" title="Achats : lot disparu d'une offre consultée et objet reçu au même moment, ou objet reçu dans la boutique d'un marchand. Ventes : message de vente du jeu (en jeu, ou à la connexion pour celles faites hors jeu), offre retirée sans retour de l'objet, ou absente à l'ouverture suivante du mode vente. Rien n'est envoyé hors de ce PC.">ⓘ d'où viennent ces chiffres</span></div>
     <div class="kpis">
       ${tile('Achats', k(spent), `${buys.length} lot(s)`, 'bad', 'Total payé à l\'HDV et chez les marchands')}
       ${tile('Ventes', k(earned), `${sold.length} offre(s) vendue(s)`, 'ok', 'Offres vendues sur la période (prix demandé)')}
@@ -713,6 +713,7 @@ Object.assign(views, {
       ${local.orgHidden ? '' : `<div class="org-grid ${enabled ? '' : 'off'}">
         <section class="card org-card"><h3><span class="ico">⌨</span>Raccourcis</h3>
           ${hotkey('HotkeyNext', '→', 'Suivant')}${hotkey('HotkeyPrevious', '←', 'Précédent')}${hotkey('HotkeyMain', '★', 'Principal')}
+          <div class="org-key sadida" title="Mode Sadida : affiche le Sadida en arbre (Puissance Sylvestre) dont c'est le tour, celui qui a le moins de temps restant. Passez son tour vous-même : la fenêtre d'avant revient. Sans Sadida en arbre à son tour, rien ne se passe.">${hotkey('HotkeySadida', '🌳', 'Sadida')}<span title="Retour à la fenêtre d'avant après le tour du Sadida">${pill('SadidaReturn', '↩')}</span></div>
           <label class="org-key"><span class="k-ico">⏱</span><span>Anti-rebond</span><span class="unit">${input('HotkeyDebounce', '', '70px')} ms</span></label>
           <div class="org-key click" title="Cliquez dans le jeu en gardant cette touche enfoncée : votre clic arrive au jeu, puis la fenêtre suivante (ordre de jeu) s'affiche. Rien n'est cliqué à votre place.">
             <span class="k-ico">🖱</span><label class="check"><input type="checkbox" data-set="OrganizerClickSwitch" ${on('OrganizerClickSwitch')}>Clic +</label>

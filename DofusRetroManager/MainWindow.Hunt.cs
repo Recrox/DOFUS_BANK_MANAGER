@@ -84,6 +84,7 @@ public partial class MainWindow
         HuntSound.IsChecked = _hunt.SoundAlert;
         HuntVolume.Value = _hunt.SoundVolume;
         InitHuntAlerts();
+        InitSadida();
     }
 
     /// <summary>
@@ -124,7 +125,14 @@ public partial class MainWindow
     /// <summary>Curseur relâché : on fait entendre le nouveau volume.</summary>
     void HuntVolume_DragCompleted(object sender, DragCompletedEventArgs e) => PlayAlert();
 
-    void HuntTestSound_Click(object sender, RoutedEventArgs e) => PlayAlert();
+    void HuntTestSound_Click(object sender, RoutedEventArgs e)
+    {
+        PlayAlert();
+        // Bulle d'exemple, pour vérifier qu'elle s'affiche (case « Pop-up archi »)
+        if (_hunt?.ArchiPopup == true)
+            try { Multi.NoticeToast.Show("Archi-monstre (exemple)", "💎 12 345 k\n📍 [4,-18] Amakna", null, sticky: true); }
+            catch (Exception ex) { AddLog($"Bulle archi-monstre impossible : {ex.GetType().Name} {ex.Message}"); }
+    }
 
     void HuntNewSession_Click(object sender, RoutedEventArgs e) => _hunt?.NewSession();
 

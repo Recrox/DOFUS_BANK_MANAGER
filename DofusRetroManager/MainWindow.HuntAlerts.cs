@@ -70,12 +70,19 @@ public partial class MainWindow
     void ShowArchiPopup(ArchiSighting a)
     {
         if (_data == null || _hunt?.ArchiPopup != true) return;
-        var price = _pda?.Prices.GetValueOrDefault(Hdv.PdaTracker.Key(a.MonsterId, Hdv.PdaTracker.Archi))?.Price;
-        var who = _hunt.Characters.FirstOrDefault(c => c.MapId == a.MapId);
-        NoticeToast.Show("Archi-monstre !",
-            $"{_data.GetMonster(a.MonsterId).Name} (niveau {a.Level})\n{MapText(a.MapId)}"
-            + (price is { } p ? $"\nPierre ≈ {p:N0} k" : "") + (who != null ? $"\nVu par {who.Label}" : ""),
-            WindowOf(who) is { } h ? () => FocusWindow(h) : null);
+        try
+        {
+            var price = _pda?.Prices.GetValueOrDefault(Hdv.PdaTracker.Key(a.MonsterId, Hdv.PdaTracker.Archi))?.Price;
+            var who = _hunt.Characters.FirstOrDefault(c => c.MapId == a.MapId);
+            var window = WindowOf(who);
+            // La bulle s'affiche sur l'écran de la fenêtre qui voit l'archi (jeu sur un second écran)
+            // Compact : le nom en titre, puis le prix de la pierre et la position (sans la sous-zone entre parenthèses)
+            var pos = System.Text.RegularExpressions.Regex.Replace(MapText(a.MapId), @"\s*\(.*\)\s*$", "");
+            NoticeToast.Show(_data.GetMonster(a.MonsterId).Name,
+                (price is { } p ? $"💎 {p:N0} k" : "💎 prix inconnu") + $"\n📍 {pos}",
+                window is { } h ? () => FocusWindow(h) : null, window ?? default, sticky: true);
+        }
+        catch (Exception ex) { AddLog($"Pop-up archi-monstre impossible ({ex.GetType().Name} : {ex.Message})."); }
     }
 
     /// <summary>Fenêtre du jeu d'un personnage (par son nom), si elle est ouverte.</summary>
@@ -156,6 +163,7 @@ public partial class MainWindow
         var text = $"{count}× {name} (niv. {alert.MinLevel}–{alert.MaxLevel})\n{MapText(c.MapId)} · {c.Label}";
         HuntStatus.Text = $"🔔 {count}× {name} sur la map";
         AddLog($"Alerte monstre : {count}× {name} ({c.Label}).");
-        NoticeToast.Show("Alerte monstre", text, WindowOf(c) is { } h ? () => FocusWindow(h) : null);
+        var window = WindowOf(c);
+        NoticeToast.Show("Alerte monstre", text, window is { } h ? () => FocusWindow(h) : null, window ?? default);
     }
 }

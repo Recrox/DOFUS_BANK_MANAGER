@@ -524,6 +524,11 @@ tr.drop-target td { box-shadow: inset 0 3px 0 var(--accent-solid); }
 /* Switcheur : touche + clic (case, touche et libellé sur une ligne) */
 .org-key.click { display: flex; flex-wrap: wrap; gap: 6px 8px; }
 .org-key.click select { width: 72px; }
+.org-key.sadida { display: flex; align-items: center; gap: 8px; }
+.org-key.sadida { gap: 4px; }
+.org-key.sadida > .org-key { flex: 1; min-width: 0; grid-template-columns: 24px minmax(0, 1fr) 122px; }
+.org-key.sadida input.hotkey { width: 122px; }
+.org-key.sadida .tog span { padding-left: 7px; padding-right: 7px; }
 
 /* Onglet TTG : livre de la collection (deux pages, comme le classeur du jeu) */
 .modal.book { width: min(1320px, 100%); height: 100%; }

@@ -101,6 +101,16 @@ public sealed class HuntCharacter(string stream, int number)
     public DateTime? TurnStart { get; set; }
     public int TurnMs { get; set; }
 
+    /// <summary>Niveau de chaque sort du personnage (SL), pour la durée de ses effets.</summary>
+    public Dictionary<int, int> SpellLevels { get; } = new();
+    /// <summary>
+    /// Puissance Sylvestre (Sadida, onglet Switcheur) : tours restants sous forme d'arbre. Lancé pendant un tour, le sort
+    /// prend effet à la fin de ce tour (SylvestrePending), puis chaque fin de tour du personnage en retire un.
+    /// </summary>
+    public int SylvestreTurns { get; set; }
+    public int? SylvestrePending { get; set; }
+    public bool IsTree => InFight && SylvestreTurns > 0;
+
     /// <summary>Challenges du combat en cours (message Gd) : identifiant -> réussi (true), raté (false) ou en cours (null).</summary>
     public Dictionary<int, bool?> Challenges { get; } = new();
 
@@ -260,6 +270,8 @@ public sealed class HuntTracker
     public event Action<HuntCharacter, GameNotice, string?>? Notice;
     /// <summary>Le personnage entre dans un groupe (il était seul) : l'onglet Switcheur peut figer l'ordre de jeu.</summary>
     public event Action<HuntCharacter>? PartyJoined;
+    /// <summary>Fin du tour de jeu d'un de vos personnages (début du tour d'un autre combattant, ou fin du combat).</summary>
+    public event Action<HuntCharacter>? TurnEnded;
     /// <summary>Personnage d'une connexion reconnu sans sa sélection (connexion, nom) : la banque suit la même fenêtre.</summary>
     public event Action<string, string>? Identified;
 
@@ -647,7 +659,11 @@ public sealed class HuntTracker
         var c = Current;
         c.InFight = false; // l'Économe garde les sorts du combat affichés jusqu'au suivant
         c.LifeAt = DateTime.Now; // la vie remonte à partir de la fin du combat
+        bool wasTurn = c.TurnStart != null;
         c.TurnStart = null;
+        c.SylvestreTurns = 0;
+        c.SylvestrePending = null;
+        if (wasTurn) TurnEnded?.Invoke(c);
         var monsters = new List<GroupMonster>();
         var players = new List<string[]>();
 
@@ -739,7 +755,10 @@ public sealed class HuntTracker
         {
             var f = e.Split('~');
             if (f.Length >= 1 && int.TryParse(f[0], out var id))
+            {
                 spells.Add((id, f.Length >= 3 && int.TryParse(f[2], out var pos) ? pos : 99));
+                if (f.Length >= 2 && int.TryParse(f[1], out var level)) c.SpellLevels[id] = level;
+            }
         }
         if (spells.Count == 0) return;
         // Ordre de la barre de sorts, puis ceux qui n'y sont pas
@@ -753,6 +772,8 @@ public sealed class HuntTracker
         var c = Current;
         c.InFight = true;
         c.UsedSpells.Clear();
+        c.SylvestreTurns = 0;
+        c.SylvestrePending = null;
         c.Challenges.Clear(); // annoncés ensuite par le serveur (Gd)
         Changed?.Invoke();
         Notice?.Invoke(c, GameNotice.Fight, null);
@@ -811,6 +832,8 @@ public sealed class HuntTracker
         if (!mine) return;
         c.InFight = true;
         c.UsedSpells.Add(spell);
+        // Puissance Sylvestre réussie (un échec critique, 302, n'a pas d'effet)
+        if (f[1] == "300" && IsSylvestre(spell)) c.SylvestrePending = SylvestreDuration(c, spell);
         Changed?.Invoke();
     }
 
@@ -840,7 +863,13 @@ public sealed class HuntTracker
         // Tour d'un autre combattant : celui du personnage est fini
         if (c.Id == 0 || c.Id != fighter)
         {
-            if (c.TurnStart != null) { c.TurnStart = null; Changed?.Invoke(); }
+            if (c.TurnStart != null)
+            {
+                c.TurnStart = null;
+                EndTurn(c);
+                Changed?.Invoke();
+                TurnEnded?.Invoke(c);
+            }
             return;
         }
         c.TurnStart = DateTime.Now;
@@ -896,6 +925,26 @@ public sealed class HuntTracker
         IdentifyById(c);
         Remember(c);
         Changed?.Invoke();
+    }
+
+    /// <summary>Puissance Sylvestre (Sadida) : sort 197 et ses variantes, reconnus par leur nom dans le fichier de langue.</summary>
+    HashSet<int>? _sylvestre;
+    bool IsSylvestre(int spell) => (_sylvestre ??= _data.Spells.Where(kv => kv.Value.Trim().Equals("Puissance Sylvestre", StringComparison.OrdinalIgnoreCase))
+        .Select(kv => kv.Key).Append(197).ToHashSet()).Contains(spell);
+
+    /// <summary>Durée du sort au niveau du personnage (fichier de langue : 2, 3 ou 4 tours) ; niveau inconnu : le plus haut.</summary>
+    int SylvestreDuration(HuntCharacter c, int spell)
+    {
+        var turns = _data.SpellTurns.GetValueOrDefault(spell) ?? [2, 2, 3, 3, 4, 4];
+        int level = c.SpellLevels.GetValueOrDefault(spell);
+        return level is >= 1 and <= 6 && turns[level - 1] > 0 ? turns[level - 1] : turns.Max();
+    }
+
+    /// <summary>Fin d'un tour du personnage : Puissance Sylvestre lancée pendant ce tour prend effet, sinon un tour d'arbre de moins.</summary>
+    static void EndTurn(HuntCharacter c)
+    {
+        if (c.SylvestrePending is { } n) { c.SylvestreTurns = n - 1; c.SylvestrePending = null; }
+        else if (c.SylvestreTurns > 0) c.SylvestreTurns--;
     }
 
     public void ResetEconome()

@@ -162,6 +162,8 @@ public sealed class GameData
     public Dictionary<int, string> Spells { get; } = new();
     /// <summary>Icônes des sorts (fond, symbole, couleurs à l'état normal).</summary>
     public Dictionary<int, SpellLook> SpellLooks { get; } = new();
+    /// <summary>Durée en tours des effets d'un sort, par niveau (index 0 = niveau 1) : la plus longue de ses effets.</summary>
+    public Dictionary<int, int[]> SpellTurns { get; } = new();
     /// <summary>
     /// XP de base des monstres (niveau et XP du grade 1), livrée avec l'application ou lue dans un
     /// monstres.json placé dans le dossier de l'application. Le fichier de langue « monsters » d'Ankama ne contient pas l'XP.
@@ -378,6 +380,11 @@ public sealed class GameData
                 if (v is AsObject o && int.TryParse(k, out var sid))
                 {
                     data.Spells[sid] = Avm1.ToStr(o.GetValueOrDefault("n"));
+                    // Niveaux : l1…l6 = [effets, effets critiques, …] ; effet = [type, min, max, valeur, durée en tours, …]
+                    var turns = Enumerable.Range(1, 6).Select(l => o.GetValueOrDefault("l" + l) is List<object?> { Count: > 0 } lv
+                        && lv[0] is List<object?> effects
+                            ? effects.OfType<List<object?>>().Select(e => e.Count > 4 ? (int)Avm1.ToNum(e[4]) : 0).DefaultIfEmpty(0).Max() : 0).ToArray();
+                    if (turns.Any(t => t > 0)) data.SpellTurns[sid] = turns;
                     if (o.GetValueOrDefault("i") is AsObject i)
                     {
                         static int First(object? c) => c is List<object?> { Count: > 0 } l ? (int)Avm1.ToNum(l[0]) : 0xFFFFFF;

@@ -115,6 +115,11 @@ public sealed class DofusTracker
     public event Action<string, string>? HdvSellList;
     /// <summary>Offre mise en vente ou retirée en mode vente de l'HDV (message EmK sans le préfixe : « +id|qté|objet|effets|prix|heures », « -id »).</summary>
     public event Action<string, string>? HdvSellMove;
+    /// <summary>
+    /// Vente à l'HDV annoncée par le jeu (Mes échanges) : personnage, code (65 vendue, 73 vendue hors jeu, 67 expirée) et
+    /// paramètres (kamas, objet, quantité). Ces messages ne contiennent aucun nom de joueur.
+    /// </summary>
+    public event Action<string, int, string[]>? HdvSaleInfo;
     /// <summary>Quantité d'un objet gagnée (positive) ou perdue (négative) dans l'inventaire : (personnage, objet, quantité).</summary>
     public event Action<string, int, int>? InventoryDelta;
 
@@ -163,6 +168,22 @@ public sealed class DofusTracker
 
     /// <summary>Codes des messages de forgemagie (fichier lang : INFOS_117, INFOS_183, INFOS_194).</summary>
     public static readonly int[] FmInfoCodes = [117, 183, 194];
+    /// <summary>Codes des messages de vente à l'HDV (INFOS_65 vendue, INFOS_73 vendue hors jeu, INFOS_67 vente expirée).</summary>
+    public static readonly int[] HdvSaleCodes = [65, 67, 73];
+
+    /// <summary>Messages de vente à l'HDV d'un message « Im » : code et paramètres (séparés par '~').</summary>
+    static List<(int Code, string[] Args)> SaleInfos(string msg)
+    {
+        var list = new List<(int, string[])>();
+        foreach (var part in msg[2..].Split('|'))
+        {
+            var semi = part.IndexOf(';');
+            var head = semi < 0 ? part : part[..semi];
+            if (head.Length >= 2 && int.TryParse(head.AsSpan(1), out var code) && HdvSaleCodes.Contains(code))
+                list.Add((code, semi < 0 ? [] : part[(semi + 1)..].Split('~')));
+        }
+        return list;
+    }
 
     public static string BanksDir => Path.Combine(Data.GameData.AppDir, "banks");
 
@@ -293,6 +314,8 @@ public sealed class DofusTracker
         else if (msg.StartsWith("EHP")) HdvAverage?.Invoke(msg[3..]);
         else if (msg.StartsWith("EHm")) HdvOfferMove?.Invoke(msg[3..]);
         else if (InCraft && msg.StartsWith("Ec")) CraftResult?.Invoke(msg[2..]);
+        else if (msg.StartsWith("Im") && SaleInfos(msg) is { Count: > 0 } sales)
+            foreach (var (code, args) in sales) HdvSaleInfo?.Invoke(Cur.Character, code, args);
         else if (InCraft && msg.StartsWith("Im"))
             foreach (var code in InfoCodes(msg)) CraftInfo?.Invoke(code);
         // Chasse

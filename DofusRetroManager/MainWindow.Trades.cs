@@ -25,6 +25,7 @@ public partial class MainWindow
         _tracker.InventoryDelta += (c, tpl, qty) => Safe(() => _trades.OnInventoryDelta(c, tpl, qty));
         _tracker.HdvSellList += (c, body) => Safe(() => _trades.OnSellList(c, body));
         _tracker.HdvSellMove += (c, body) => Safe(() => _trades.OnSellMove(c, body));
+        _tracker.HdvSaleInfo += (c, code, args) => Safe(() => _trades.OnSaleInfo(c, code, args));
         _sniffer.StreamClosed += stream => Ui(() => _trades.OnStreamClosed(stream));
         _windowTimer.Tick += (_, _) => _trades.Tick();
     }

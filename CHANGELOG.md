@@ -2,6 +2,13 @@
 
 Les changements de chaque version, la plus récente en haut. Ce fichier est intégré à l'application (bouton **Nouveautés** en haut) et sert de notes de Release sur GitHub.
 
+## 1.49.0 — 7 novembre 2026
+
+- **Switcheur** : mode Sadida : quand un de vos Sadida est en arbre (Puissance Sylvestre) et que c'est son tour, un raccourci (Ctrl+Alt+↓ par défaut) affiche sa fenêtre (celui dont le tour finit le plus tôt s'il y en a plusieurs). Vous passez son tour, puis la fenêtre d'avant revient d'elle-même. Les tours d'arbre restants s'affichent dans la liste des fenêtres.
+- **Combat** : la bulle d'archi-monstre, plus compacte (nom, prix de la pierre, position), reste affichée jusqu'à ce que vous la fermiez avec sa croix ; un clic dessus affiche la fenêtre du personnage qui le voit.
+- **HDV** : « Mes échanges » enregistre vos ventes dès que le jeu les annonce (« Votre compte en banque a été crédité… »), y compris celles faites hors jeu, annoncées à la connexion ; les ventes expirées sont marquées « Expirée » au lieu d'être comptées comme vendues.
+- **Combat** : Correction : la bulle d'archi-monstre (et les autres bulles) s'affiche sur l'écran du jeu, et non plus toujours sur l'écran principal ; « Tester le son » montre aussi une bulle d'exemple.
+
 ## 1.48.0 — 7 novembre 2026
 
 - **Combat** : l'onglet Arène est fusionné dans Combat : le chronomètre, les groupes de personnages comptés et les challenges Économe et Barbare s'affichent dans un bandeau compact, la liste des combats comptés se déplie avec « Combats ▸ ».
